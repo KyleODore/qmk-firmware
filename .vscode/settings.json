@@ -17,5 +17,6 @@
       "xstddef": "c",
       "type_traits": "c",
       "utility": "c"
-    }
+    },
+    "git.ignoreLimitWarning": true
 }
