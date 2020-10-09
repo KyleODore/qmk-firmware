@@ -1,0 +1,213 @@
+   1              		.cpu cortex-m0
+   2              		.eabi_attribute 20, 1
+   3              		.eabi_attribute 21, 1
+   4              		.eabi_attribute 23, 3
+   5              		.eabi_attribute 24, 1
+   6              		.eabi_attribute 25, 1
+   7              		.eabi_attribute 26, 1
+   8              		.eabi_attribute 30, 4
+   9              		.eabi_attribute 34, 0
+  10              		.eabi_attribute 18, 2
+  11              		.file	"bootmagic_lite.c"
+  12              		.text
+  13              	.Ltext0:
+  14              		.cfi_sections	.debug_frame
+  15              		.section	.text.bootmagic_lite_reset_eeprom,"ax",%progbits
+  16              		.align	1
+  17              		.weak	bootmagic_lite_reset_eeprom
+  18              		.arch armv6s-m
+  19              		.syntax unified
+  20              		.code	16
+  21              		.thumb_func
+  22              		.fpu softvfp
+  24              	bootmagic_lite_reset_eeprom:
+  25              	.LFB194:
+  26              		.file 1 "tmk_core/common/bootmagic_lite.c"
+   1:tmk_core/common/bootmagic_lite.c **** #include "quantum.h"
+   2:tmk_core/common/bootmagic_lite.c **** 
+   3:tmk_core/common/bootmagic_lite.c **** bool is_keyboard_left(void);
+   4:tmk_core/common/bootmagic_lite.c **** 
+   5:tmk_core/common/bootmagic_lite.c **** /** \brief Reset eeprom
+   6:tmk_core/common/bootmagic_lite.c ****  *
+   7:tmk_core/common/bootmagic_lite.c ****  * ...just incase someone wants to only change the eeprom behaviour
+   8:tmk_core/common/bootmagic_lite.c ****  */
+   9:tmk_core/common/bootmagic_lite.c **** __attribute__((weak)) void bootmagic_lite_reset_eeprom(void) {
+  27              		.loc 1 9 62 view -0
+  28              		.cfi_startproc
+  29              		@ args = 0, pretend = 0, frame = 0
+  30              		@ frame_needed = 0, uses_anonymous_args = 0
+  10:tmk_core/common/bootmagic_lite.c **** #if defined(VIA_ENABLE)
+  11:tmk_core/common/bootmagic_lite.c ****     via_eeprom_reset();
+  12:tmk_core/common/bootmagic_lite.c **** #else
+  13:tmk_core/common/bootmagic_lite.c ****     eeconfig_disable();
+  31              		.loc 1 13 5 view .LVU1
+   9:tmk_core/common/bootmagic_lite.c **** #if defined(VIA_ENABLE)
+  32              		.loc 1 9 62 is_stmt 0 view .LVU2
+  33 0000 10B5     		push	{r4, lr}
+  34              		.cfi_def_cfa_offset 8
+  35              		.cfi_offset 4, -8
+  36              		.cfi_offset 14, -4
+  37              		.loc 1 13 5 view .LVU3
+  38 0002 FFF7FEFF 		bl	eeconfig_disable
+  39              	.LVL0:
+  14:tmk_core/common/bootmagic_lite.c **** #endif
+  15:tmk_core/common/bootmagic_lite.c **** }
+  40              		.loc 1 15 1 view .LVU4
+  41              		@ sp needed
+  42 0006 10BD     		pop	{r4, pc}
+  43              		.cfi_endproc
+  44              	.LFE194:
+  46              		.section	.text.bootmagic_lite,"ax",%progbits
+  47              		.align	1
+  48              		.weak	bootmagic_lite
+  49              		.syntax unified
+  50              		.code	16
+  51              		.thumb_func
+  52              		.fpu softvfp
+  54              	bootmagic_lite:
+  55              	.LFB195:
+  16:tmk_core/common/bootmagic_lite.c **** 
+  17:tmk_core/common/bootmagic_lite.c **** /** \brief The lite version of TMK's bootmagic based on Wilba.
+  18:tmk_core/common/bootmagic_lite.c ****  *
+  19:tmk_core/common/bootmagic_lite.c ****  *  100% less potential for accidentally making the keyboard do stupid things.
+  20:tmk_core/common/bootmagic_lite.c ****  */
+  21:tmk_core/common/bootmagic_lite.c **** __attribute__((weak)) void bootmagic_lite(void) {
+  56              		.loc 1 21 49 is_stmt 1 view -0
+  57              		.cfi_startproc
+  58              		@ args = 0, pretend = 0, frame = 0
+  59              		@ frame_needed = 0, uses_anonymous_args = 0
+  22:tmk_core/common/bootmagic_lite.c ****     // We need multiple scans because debouncing can't be turned off.
+  23:tmk_core/common/bootmagic_lite.c ****     matrix_scan();
+  60              		.loc 1 23 5 view .LVU6
+  21:tmk_core/common/bootmagic_lite.c ****     // We need multiple scans because debouncing can't be turned off.
+  61              		.loc 1 21 49 is_stmt 0 view .LVU7
+  62 0000 10B5     		push	{r4, lr}
+  63              		.cfi_def_cfa_offset 8
+  64              		.cfi_offset 4, -8
+  65              		.cfi_offset 14, -4
+  66              		.loc 1 23 5 view .LVU8
+  67 0002 FFF7FEFF 		bl	matrix_scan
+  68              	.LVL1:
+  24:tmk_core/common/bootmagic_lite.c **** #if defined(DEBOUNCE) && DEBOUNCE > 0
+  25:tmk_core/common/bootmagic_lite.c ****     wait_ms(DEBOUNCE * 2);
+  69              		.loc 1 25 5 is_stmt 1 view .LVU9
+  70              		.loc 1 25 5 view .LVU10
+  71              		.loc 1 25 5 view .LVU11
+  72 0006 6420     		movs	r0, #100
+  73 0008 FFF7FEFF 		bl	chThdSleep
+  74              	.LVL2:
+  26:tmk_core/common/bootmagic_lite.c **** #else
+  27:tmk_core/common/bootmagic_lite.c ****     wait_ms(30);
+  28:tmk_core/common/bootmagic_lite.c **** #endif
+  29:tmk_core/common/bootmagic_lite.c ****     matrix_scan();
+  75              		.loc 1 29 5 view .LVU12
+  76 000c FFF7FEFF 		bl	matrix_scan
+  77              	.LVL3:
+  30:tmk_core/common/bootmagic_lite.c **** 
+  31:tmk_core/common/bootmagic_lite.c ****     // If the configured key (commonly Esc) is held down on power up,
+  32:tmk_core/common/bootmagic_lite.c ****     // reset the EEPROM valid state and jump to bootloader.
+  33:tmk_core/common/bootmagic_lite.c ****     // This isn't very generalized, but we need something that doesn't
+  34:tmk_core/common/bootmagic_lite.c ****     // rely on user's keymaps in firmware or EEPROM.
+  35:tmk_core/common/bootmagic_lite.c ****     uint8_t row = BOOTMAGIC_LITE_ROW;
+  78              		.loc 1 35 5 view .LVU13
+  36:tmk_core/common/bootmagic_lite.c ****     uint8_t col = BOOTMAGIC_LITE_COLUMN;
+  79              		.loc 1 36 5 view .LVU14
+  37:tmk_core/common/bootmagic_lite.c **** 
+  38:tmk_core/common/bootmagic_lite.c **** #if defined(SPLIT_KEYBOARD) && defined(BOOTMAGIC_LITE_ROW_RIGHT) && defined(BOOTMAGIC_LITE_COLUMN_R
+  39:tmk_core/common/bootmagic_lite.c ****     if (!is_keyboard_left()) {
+  40:tmk_core/common/bootmagic_lite.c ****         row = BOOTMAGIC_LITE_ROW_RIGHT;
+  41:tmk_core/common/bootmagic_lite.c ****         col = BOOTMAGIC_LITE_COLUMN_RIGHT;
+  42:tmk_core/common/bootmagic_lite.c ****     }
+  43:tmk_core/common/bootmagic_lite.c **** #endif
+  44:tmk_core/common/bootmagic_lite.c **** 
+  45:tmk_core/common/bootmagic_lite.c ****     if (matrix_get_row(row) & (1 << col)) {
+  80              		.loc 1 45 5 view .LVU15
+  81              		.loc 1 45 9 is_stmt 0 view .LVU16
+  82 0010 0020     		movs	r0, #0
+  83 0012 FFF7FEFF 		bl	matrix_get_row
+  84              	.LVL4:
+  85              		.loc 1 45 8 view .LVU17
+  86 0016 C307     		lsls	r3, r0, #31
+  87 0018 03D5     		bpl	.L2
+  46:tmk_core/common/bootmagic_lite.c ****         bootmagic_lite_reset_eeprom();
+  88              		.loc 1 46 9 is_stmt 1 view .LVU18
+  89 001a FFF7FEFF 		bl	bootmagic_lite_reset_eeprom
+  90              	.LVL5:
+  47:tmk_core/common/bootmagic_lite.c **** 
+  48:tmk_core/common/bootmagic_lite.c ****         // Jump to bootloader.
+  49:tmk_core/common/bootmagic_lite.c ****         bootloader_jump();
+  91              		.loc 1 49 9 view .LVU19
+  92 001e FFF7FEFF 		bl	bootloader_jump
+  93              	.LVL6:
+  94              	.L2:
+  50:tmk_core/common/bootmagic_lite.c ****     }
+  51:tmk_core/common/bootmagic_lite.c **** }...
+  95              		.loc 1 51 1 is_stmt 0 view .LVU20
+  96              		@ sp needed
+  97 0022 10BD     		pop	{r4, pc}
+  98              		.cfi_endproc
+  99              	.LFE195:
+ 101              		.text
+ 102              	.Letext0:
+ 103              		.file 2 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\lib\\gcc\\arm-none-eabi\\8.3.1\\in
+ 104              		.file 3 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\arm-none-eabi\\include\\machine\\_
+ 105              		.file 4 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\arm-none-eabi\\include\\sys\\_stdi
+ 106              		.file 5 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\arm-none-eabi\\include\\stdint.h"
+ 107              		.file 6 "./lib/chibios/os/common/ports/ARMCMx/compilers/GCC/chtypes.h"
+ 108              		.file 7 "./lib/chibios/os/rt/include/chsystypes.h"
+ 109              		.file 8 "./lib/chibios/os/rt/include/chschd.h"
+ 110              		.file 9 "./lib/chibios/os/rt/include/chtime.h"
+ 111              		.file 10 "./lib/chibios/os/common/ext/ST/STM32F0xx/system_stm32f0xx.h"
+ 112              		.file 11 "./lib/chibios/os/common/ext/ST/STM32F0xx/stm32f072xb.h"
+ 113              		.file 12 "./lib/chibios/os/common/ports/ARMCMx/chcore.h"
+ 114              		.file 13 "./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h"
+ 115              		.file 14 "./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/stm32_tim.h"
+ 116              		.file 15 "./lib/chibios/os/rt/include/chsem.h"
+ 117              		.file 16 "./lib/chibios/os/rt/include/chmtx.h"
+ 118              		.file 17 "./lib/chibios/os/rt/include/chsys.h"
+ 119              		.file 18 "./lib/chibios/os/rt/include/chregistry.h"
+ 120              		.file 19 "./lib/chibios/os/oslib/include/chmemcore.h"
+ 121              		.file 20 "./lib/chibios/os/hal/ports/STM32/LLD/DMAv1/stm32_dma.h"
+ 122              		.file 21 "./lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/stm32_gpio.h"
+ 123              		.file 22 "./lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.h"
+ 124              		.file 23 "./lib/chibios/os/hal/include/hal_i2c.h"
+ 125              		.file 24 "./lib/chibios/os/hal/ports/STM32/LLD/I2Cv2/hal_i2c_lld.h"
+ 126              		.file 25 "./lib/chibios/os/hal/include/hal_pwm.h"
+ 127              		.file 26 "./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_pwm_lld.h"
+ 128              		.file 27 "./lib/chibios/os/hal/include/hal_spi.h"
+ 129              		.file 28 "./lib/chibios/os/hal/ports/STM32/LLD/SPIv2/hal_spi_lld.h"
+ 130              		.file 29 "./lib/chibios/os/hal/include/hal_usb.h"
+ 131              		.file 30 "./lib/chibios/os/hal/ports/STM32/LLD/USBv1/hal_usb_lld.h"
+ 132              		.file 31 "tmk_core/common/action.h"
+ 133              		.file 32 "tmk_core/common/report.h"
+ 134              		.file 33 "tmk_core/common/host.h"
+ 135              		.file 34 "tmk_core/common/debug.h"
+ 136              		.file 35 "quantum/keycode_config.h"
+ 137              		.file 36 "quantum/keymap.h"
+ 138              		.file 37 "./quantum/color.h"
+ 139              		.file 38 "quantum/rgblight.h"
+ 140              		.file 39 "tmk_core/common/action_layer.h"
+ 141              		.file 40 "tmk_core/common/timer.h"
+ 142              		.file 41 "tmk_core/common/action_util.h"
+ 143              		.file 42 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\arm-none-eabi\\include\\sys\\_typ
+ 144              		.file 43 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\arm-none-eabi\\include\\sys\\reen
+ 145              		.file 44 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\arm-none-eabi\\include\\sys\\lock
+ 146              		.file 45 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\arm-none-eabi\\include\\stdlib.h"
+ 147              		.file 46 "quantum/quantum.h"
+ 148              		.file 47 "tmk_core/common/matrix.h"
+ 149              		.file 48 "./lib/chibios/os/rt/include/chthreads.h"
+ 150              		.file 49 "tmk_core/common/bootloader.h"
+ 151              		.file 50 "tmk_core/common/eeconfig.h"
+DEFINED SYMBOLS
+                            *ABS*:00000000 bootmagic_lite.c
+C:\Users\kyleo\AppData\Local\Temp\ccKQGIts.s:16     .text.bootmagic_lite_reset_eeprom:00000000 $t
+C:\Users\kyleo\AppData\Local\Temp\ccKQGIts.s:24     .text.bootmagic_lite_reset_eeprom:00000000 bootmagic_lite_reset_eeprom
+C:\Users\kyleo\AppData\Local\Temp\ccKQGIts.s:47     .text.bootmagic_lite:00000000 $t
+C:\Users\kyleo\AppData\Local\Temp\ccKQGIts.s:54     .text.bootmagic_lite:00000000 bootmagic_lite
+
+UNDEFINED SYMBOLS
+eeconfig_disable
+matrix_scan
+chThdSleep
+matrix_get_row
+bootloader_jump

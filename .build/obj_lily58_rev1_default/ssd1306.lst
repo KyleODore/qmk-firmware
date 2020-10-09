@@ -1,0 +1,2108 @@
+   1               		.file	"ssd1306.c"
+   2               	__SP_H__ = 0x3e
+   3               	__SP_L__ = 0x3d
+   4               	__SREG__ = 0x3f
+   5               	__tmp_reg__ = 0
+   6               	__zero_reg__ = 1
+   7               		.text
+   8               	.Ltext0:
+   9               		.cfi_sections	.debug_frame
+  10               		.section	.text._send_cmd1,"ax",@progbits
+  12               	_send_cmd1:
+  13               	.LVL0:
+  14               	.LFB115:
+  15               		.file 1 "keyboards/lily58/ssd1306.c"
+   1:keyboards/lily58/ssd1306.c **** #ifdef SSD1306OLED
+   2:keyboards/lily58/ssd1306.c **** 
+   3:keyboards/lily58/ssd1306.c **** #include "ssd1306.h"
+   4:keyboards/lily58/ssd1306.c **** #include "i2c.h"
+   5:keyboards/lily58/ssd1306.c **** #include <string.h>
+   6:keyboards/lily58/ssd1306.c **** #include "print.h"
+   7:keyboards/lily58/ssd1306.c **** #ifdef ADAFRUIT_BLE_ENABLE
+   8:keyboards/lily58/ssd1306.c **** #include "adafruit_ble.h"
+   9:keyboards/lily58/ssd1306.c **** #endif
+  10:keyboards/lily58/ssd1306.c **** #ifdef PROTOCOL_LUFA
+  11:keyboards/lily58/ssd1306.c **** #include "lufa.h"
+  12:keyboards/lily58/ssd1306.c **** #endif
+  13:keyboards/lily58/ssd1306.c **** #include "sendchar.h"
+  14:keyboards/lily58/ssd1306.c **** #include "timer.h"
+  15:keyboards/lily58/ssd1306.c **** 
+  16:keyboards/lily58/ssd1306.c **** extern const unsigned char font[] PROGMEM;
+  17:keyboards/lily58/ssd1306.c **** 
+  18:keyboards/lily58/ssd1306.c **** // Set this to 1 to help diagnose early startup problems
+  19:keyboards/lily58/ssd1306.c **** // when testing power-on with ble.  Turn it off otherwise,
+  20:keyboards/lily58/ssd1306.c **** // as the latency of printing most of the debug info messes
+  21:keyboards/lily58/ssd1306.c **** // with the matrix scan, causing keys to drop.
+  22:keyboards/lily58/ssd1306.c **** #define DEBUG_TO_SCREEN 0
+  23:keyboards/lily58/ssd1306.c **** 
+  24:keyboards/lily58/ssd1306.c **** //static uint16_t last_battery_update;
+  25:keyboards/lily58/ssd1306.c **** //static uint32_t vbat;
+  26:keyboards/lily58/ssd1306.c **** //#define BatteryUpdateInterval 10000 /* milliseconds */
+  27:keyboards/lily58/ssd1306.c **** 
+  28:keyboards/lily58/ssd1306.c **** // 'last_flush' is declared as uint16_t,
+  29:keyboards/lily58/ssd1306.c **** // so this must be less than 65535 
+  30:keyboards/lily58/ssd1306.c **** #define ScreenOffInterval 60000 /* milliseconds */
+  31:keyboards/lily58/ssd1306.c **** #if DEBUG_TO_SCREEN
+  32:keyboards/lily58/ssd1306.c **** static uint8_t displaying;
+  33:keyboards/lily58/ssd1306.c **** #endif
+  34:keyboards/lily58/ssd1306.c **** static uint16_t last_flush;
+  35:keyboards/lily58/ssd1306.c **** 
+  36:keyboards/lily58/ssd1306.c **** static bool force_dirty = true;
+  37:keyboards/lily58/ssd1306.c **** 
+  38:keyboards/lily58/ssd1306.c **** // Write command sequence.
+  39:keyboards/lily58/ssd1306.c **** // Returns true on success.
+  40:keyboards/lily58/ssd1306.c **** static inline bool _send_cmd1(uint8_t cmd) {
+  16               		.loc 1 40 44 view -0
+  17               		.cfi_startproc
+  18               		.loc 1 40 44 is_stmt 0 view .LVU1
+  19 0000 CF93      		push r28
+  20               	.LCFI0:
+  21               		.cfi_def_cfa_offset 3
+  22               		.cfi_offset 28, -2
+  23               	/* prologue: function */
+  24               	/* frame size = 0 */
+  25               	/* stack size = 1 */
+  26               	.L__stack_usage = 1
+  27 0002 C82F      		mov r28,r24
+  41:keyboards/lily58/ssd1306.c ****   bool res = false;
+  28               		.loc 1 41 3 is_stmt 1 view .LVU2
+  29               	.LVL1:
+  42:keyboards/lily58/ssd1306.c **** 
+  43:keyboards/lily58/ssd1306.c ****   if (i2c_start_write(SSD1306_ADDRESS)) {
+  30               		.loc 1 43 3 view .LVU3
+  31               	.LBB16:
+  32               	.LBI16:
+  33               		.file 2 "keyboards/lily58/i2c.h"
+   1:keyboards/lily58/i2c.h **** #pragma once
+   2:keyboards/lily58/i2c.h **** 
+   3:keyboards/lily58/i2c.h **** #include <stdint.h>
+   4:keyboards/lily58/i2c.h **** 
+   5:keyboards/lily58/i2c.h **** #ifndef F_CPU
+   6:keyboards/lily58/i2c.h **** #define F_CPU 16000000UL
+   7:keyboards/lily58/i2c.h **** #endif
+   8:keyboards/lily58/i2c.h **** 
+   9:keyboards/lily58/i2c.h **** #define I2C_READ 1
+  10:keyboards/lily58/i2c.h **** #define I2C_WRITE 0
+  11:keyboards/lily58/i2c.h **** 
+  12:keyboards/lily58/i2c.h **** #define I2C_ACK 1
+  13:keyboards/lily58/i2c.h **** #define I2C_NACK 0
+  14:keyboards/lily58/i2c.h **** 
+  15:keyboards/lily58/i2c.h **** #define SLAVE_BUFFER_SIZE 0x10
+  16:keyboards/lily58/i2c.h **** 
+  17:keyboards/lily58/i2c.h **** // i2c SCL clock frequency 400kHz
+  18:keyboards/lily58/i2c.h **** #define SCL_CLOCK  400000L
+  19:keyboards/lily58/i2c.h **** 
+  20:keyboards/lily58/i2c.h **** extern volatile uint8_t i2c_slave_buffer[SLAVE_BUFFER_SIZE];
+  21:keyboards/lily58/i2c.h **** 
+  22:keyboards/lily58/i2c.h **** void i2c_master_init(void);
+  23:keyboards/lily58/i2c.h **** uint8_t i2c_master_start(uint8_t address);
+  24:keyboards/lily58/i2c.h **** void i2c_master_stop(void);
+  25:keyboards/lily58/i2c.h **** uint8_t i2c_master_write(uint8_t data);
+  26:keyboards/lily58/i2c.h **** uint8_t i2c_master_read(int);
+  27:keyboards/lily58/i2c.h **** void i2c_reset_state(void);
+  28:keyboards/lily58/i2c.h **** void i2c_slave_init(uint8_t address);
+  29:keyboards/lily58/i2c.h **** 
+  30:keyboards/lily58/i2c.h **** 
+  31:keyboards/lily58/i2c.h **** static inline unsigned char i2c_start_read(unsigned char addr) {
+  32:keyboards/lily58/i2c.h ****   return i2c_master_start((addr << 1) | I2C_READ);
+  33:keyboards/lily58/i2c.h **** }
+  34:keyboards/lily58/i2c.h **** 
+  35:keyboards/lily58/i2c.h **** static inline unsigned char i2c_start_write(unsigned char addr) {
+  34               		.loc 2 35 29 view .LVU4
+  35               	.LBB17:
+  36:keyboards/lily58/i2c.h ****   return i2c_master_start((addr << 1) | I2C_WRITE);
+  36               		.loc 2 36 3 view .LVU5
+  37               		.loc 2 36 10 is_stmt 0 view .LVU6
+  38 0004 88E7      		ldi r24,lo8(120)
+  39               	.LVL2:
+  40               		.loc 2 36 10 view .LVU7
+  41 0006 0E94 0000 		call i2c_master_start
+  42               	.LVL3:
+  43               		.loc 2 36 10 view .LVU8
+  44               	.LBE17:
+  45               	.LBE16:
+  46               		.loc 1 43 6 view .LVU9
+  47 000a 8823      		tst r24
+  48 000c 01F0      		breq .L2
+  49               	.LVL4:
+  50               	.L9:
+  44:keyboards/lily58/ssd1306.c ****     xprintf("failed to start write to %d\n", SSD1306_ADDRESS);
+  45:keyboards/lily58/ssd1306.c ****     goto done;
+  46:keyboards/lily58/ssd1306.c ****   }
+  47:keyboards/lily58/ssd1306.c **** 
+  48:keyboards/lily58/ssd1306.c ****   if (i2c_master_write(0x0 /* command byte follows */)) {
+  49:keyboards/lily58/ssd1306.c ****     print("failed to write control byte\n");
+  50:keyboards/lily58/ssd1306.c **** 
+  51:keyboards/lily58/ssd1306.c ****     goto done;
+  52:keyboards/lily58/ssd1306.c ****   }
+  53:keyboards/lily58/ssd1306.c **** 
+  54:keyboards/lily58/ssd1306.c ****   if (i2c_master_write(cmd)) {
+  51               		.loc 1 54 6 view .LVU10
+  52 000e C0E0      		ldi r28,0
+  53 0010 00C0      		rjmp .L3
+  54               	.LVL5:
+  55               	.L2:
+  48:keyboards/lily58/ssd1306.c ****     print("failed to write control byte\n");
+  56               		.loc 1 48 3 is_stmt 1 view .LVU11
+  48:keyboards/lily58/ssd1306.c ****     print("failed to write control byte\n");
+  57               		.loc 1 48 7 is_stmt 0 view .LVU12
+  58 0012 80E0      		ldi r24,0
+  59 0014 0E94 0000 		call i2c_master_write
+  60               	.LVL6:
+  48:keyboards/lily58/ssd1306.c ****     print("failed to write control byte\n");
+  61               		.loc 1 48 6 view .LVU13
+  62 0018 8111      		cpse r24,__zero_reg__
+  63 001a 00C0      		rjmp .L9
+  64               		.loc 1 54 3 is_stmt 1 view .LVU14
+  65               		.loc 1 54 7 is_stmt 0 view .LVU15
+  66 001c 8C2F      		mov r24,r28
+  67 001e 0E94 0000 		call i2c_master_write
+  68               	.LVL7:
+  69               		.loc 1 54 6 view .LVU16
+  70 0022 C1E0      		ldi r28,lo8(1)
+  71               	.LVL8:
+  72               		.loc 1 54 6 view .LVU17
+  73 0024 8111      		cpse r24,__zero_reg__
+  74 0026 00C0      		rjmp .L9
+  75               	.L3:
+  76               	.LVL9:
+  55:keyboards/lily58/ssd1306.c ****     xprintf("failed to write command %d\n", cmd);
+  56:keyboards/lily58/ssd1306.c ****     goto done;
+  57:keyboards/lily58/ssd1306.c ****   }
+  58:keyboards/lily58/ssd1306.c ****   res = true;
+  59:keyboards/lily58/ssd1306.c **** done:
+  60:keyboards/lily58/ssd1306.c ****   i2c_master_stop();
+  77               		.loc 1 60 3 is_stmt 1 view .LVU18
+  78 0028 0E94 0000 		call i2c_master_stop
+  79               	.LVL10:
+  61:keyboards/lily58/ssd1306.c ****   return res;
+  80               		.loc 1 61 3 view .LVU19
+  62:keyboards/lily58/ssd1306.c **** }
+  81               		.loc 1 62 1 is_stmt 0 view .LVU20
+  82 002c 8C2F      		mov r24,r28
+  83               	/* epilogue start */
+  84 002e CF91      		pop r28
+  85               	.LVL11:
+  86               		.loc 1 62 1 view .LVU21
+  87 0030 0895      		ret
+  88               		.cfi_endproc
+  89               	.LFE115:
+  91               		.section	.text._send_cmd2,"ax",@progbits
+  93               	_send_cmd2:
+  94               	.LVL12:
+  95               	.LFB116:
+  63:keyboards/lily58/ssd1306.c **** 
+  64:keyboards/lily58/ssd1306.c **** // Write 2-byte command sequence.
+  65:keyboards/lily58/ssd1306.c **** // Returns true on success
+  66:keyboards/lily58/ssd1306.c **** static inline bool _send_cmd2(uint8_t cmd, uint8_t opr) {
+  96               		.loc 1 66 57 is_stmt 1 view -0
+  97               		.cfi_startproc
+  98               		.loc 1 66 57 is_stmt 0 view .LVU23
+  99 0000 CF93      		push r28
+ 100               	.LCFI1:
+ 101               		.cfi_def_cfa_offset 3
+ 102               		.cfi_offset 28, -2
+ 103               	/* prologue: function */
+ 104               	/* frame size = 0 */
+ 105               	/* stack size = 1 */
+ 106               	.L__stack_usage = 1
+ 107 0002 C62F      		mov r28,r22
+  67:keyboards/lily58/ssd1306.c ****   if (!_send_cmd1(cmd)) {
+ 108               		.loc 1 67 3 is_stmt 1 view .LVU24
+ 109               		.loc 1 67 8 is_stmt 0 view .LVU25
+ 110 0004 0E94 0000 		call _send_cmd1
+ 111               	.LVL13:
+ 112               		.loc 1 67 6 view .LVU26
+ 113 0008 8823      		tst r24
+ 114 000a 01F0      		breq .L10
+  68:keyboards/lily58/ssd1306.c ****     return false;
+  69:keyboards/lily58/ssd1306.c ****   }
+  70:keyboards/lily58/ssd1306.c ****   return _send_cmd1(opr);
+ 115               		.loc 1 70 3 is_stmt 1 view .LVU27
+ 116               		.loc 1 70 10 is_stmt 0 view .LVU28
+ 117 000c 8C2F      		mov r24,r28
+ 118               	/* epilogue start */
+  71:keyboards/lily58/ssd1306.c **** }
+ 119               		.loc 1 71 1 view .LVU29
+ 120 000e CF91      		pop r28
+ 121               	.LVL14:
+  70:keyboards/lily58/ssd1306.c **** }
+ 122               		.loc 1 70 10 view .LVU30
+ 123 0010 0C94 0000 		jmp _send_cmd1
+ 124               	.LVL15:
+ 125               	.L10:
+ 126               		.loc 1 71 1 view .LVU31
+ 127 0014 80E0      		ldi r24,0
+ 128               	/* epilogue start */
+ 129 0016 CF91      		pop r28
+ 130               	.LVL16:
+ 131               		.loc 1 71 1 view .LVU32
+ 132 0018 0895      		ret
+ 133               		.cfi_endproc
+ 134               	.LFE116:
+ 136               		.section	.text._send_cmd3.constprop.1,"ax",@progbits
+ 138               	_send_cmd3.constprop.1:
+ 139               	.LVL17:
+ 140               	.LFB139:
+  72:keyboards/lily58/ssd1306.c **** 
+  73:keyboards/lily58/ssd1306.c **** // Write 3-byte command sequence.
+  74:keyboards/lily58/ssd1306.c **** // Returns true on success
+  75:keyboards/lily58/ssd1306.c **** static inline bool _send_cmd3(uint8_t cmd, uint8_t opr1, uint8_t opr2) {
+ 141               		.loc 1 75 20 is_stmt 1 view -0
+ 142               		.cfi_startproc
+ 143               		.loc 1 75 20 is_stmt 0 view .LVU34
+ 144 0000 CF93      		push r28
+ 145               	.LCFI2:
+ 146               		.cfi_def_cfa_offset 3
+ 147               		.cfi_offset 28, -2
+ 148               	/* prologue: function */
+ 149               	/* frame size = 0 */
+ 150               	/* stack size = 1 */
+ 151               	.L__stack_usage = 1
+ 152 0002 C62F      		mov r28,r22
+ 153               	.LVL18:
+  76:keyboards/lily58/ssd1306.c ****   if (!_send_cmd1(cmd)) {
+ 154               		.loc 1 76 3 is_stmt 1 view .LVU35
+ 155               		.loc 1 76 8 is_stmt 0 view .LVU36
+ 156 0004 0E94 0000 		call _send_cmd1
+ 157               	.LVL19:
+ 158               		.loc 1 76 6 view .LVU37
+ 159 0008 8823      		tst r24
+ 160 000a 01F0      		breq .L14
+ 161               	.LVL20:
+ 162               	.LBB20:
+ 163               	.LBI20:
+  75:keyboards/lily58/ssd1306.c ****   if (!_send_cmd1(cmd)) {
+ 164               		.loc 1 75 20 is_stmt 1 view .LVU38
+ 165               	.LBB21:
+  77:keyboards/lily58/ssd1306.c ****     return false;
+  78:keyboards/lily58/ssd1306.c ****   }
+  79:keyboards/lily58/ssd1306.c ****   if (!_send_cmd1(opr1)) {
+ 166               		.loc 1 79 3 view .LVU39
+ 167               		.loc 1 79 8 is_stmt 0 view .LVU40
+ 168 000c 80E0      		ldi r24,0
+ 169 000e 0E94 0000 		call _send_cmd1
+ 170               	.LVL21:
+ 171               		.loc 1 79 6 view .LVU41
+ 172 0012 8823      		tst r24
+ 173 0014 01F0      		breq .L14
+  80:keyboards/lily58/ssd1306.c ****     return false;
+  81:keyboards/lily58/ssd1306.c ****   }
+  82:keyboards/lily58/ssd1306.c ****   return _send_cmd1(opr2);
+ 174               		.loc 1 82 3 is_stmt 1 view .LVU42
+ 175               		.loc 1 82 10 is_stmt 0 view .LVU43
+ 176 0016 8C2F      		mov r24,r28
+ 177               	/* epilogue start */
+ 178               	.LBE21:
+ 179               	.LBE20:
+  83:keyboards/lily58/ssd1306.c **** }
+ 180               		.loc 1 83 1 view .LVU44
+ 181 0018 CF91      		pop r28
+ 182               	.LVL22:
+ 183               	.LBB23:
+ 184               	.LBB22:
+  82:keyboards/lily58/ssd1306.c **** }
+ 185               		.loc 1 82 10 view .LVU45
+ 186 001a 0C94 0000 		jmp _send_cmd1
+ 187               	.LVL23:
+ 188               	.L14:
+  82:keyboards/lily58/ssd1306.c **** }
+ 189               		.loc 1 82 10 view .LVU46
+ 190               	.LBE22:
+ 191               	.LBE23:
+ 192               		.loc 1 83 1 view .LVU47
+ 193 001e 80E0      		ldi r24,0
+ 194               	/* epilogue start */
+ 195 0020 CF91      		pop r28
+ 196               	.LVL24:
+ 197               		.loc 1 83 1 view .LVU48
+ 198 0022 0895      		ret
+ 199               		.cfi_endproc
+ 200               	.LFE139:
+ 202               		.section	.text.iota_gfx_off,"ax",@progbits
+ 203               	.global	iota_gfx_off
+ 205               	iota_gfx_off:
+ 206               	.LFB120:
+  84:keyboards/lily58/ssd1306.c **** 
+  85:keyboards/lily58/ssd1306.c **** #define send_cmd1(c) if (!_send_cmd1(c)) {goto done;}
+  86:keyboards/lily58/ssd1306.c **** #define send_cmd2(c,o) if (!_send_cmd2(c,o)) {goto done;}
+  87:keyboards/lily58/ssd1306.c **** #define send_cmd3(c,o1,o2) if (!_send_cmd3(c,o1,o2)) {goto done;}
+  88:keyboards/lily58/ssd1306.c **** 
+  89:keyboards/lily58/ssd1306.c **** static void clear_display(void) {
+  90:keyboards/lily58/ssd1306.c ****   matrix_clear(&display);
+  91:keyboards/lily58/ssd1306.c **** 
+  92:keyboards/lily58/ssd1306.c ****   // Clear all of the display bits (there can be random noise
+  93:keyboards/lily58/ssd1306.c ****   // in the RAM on startup)
+  94:keyboards/lily58/ssd1306.c ****   send_cmd3(PageAddr, 0, (DisplayHeight / 8) - 1);
+  95:keyboards/lily58/ssd1306.c ****   send_cmd3(ColumnAddr, 0, DisplayWidth - 1);
+  96:keyboards/lily58/ssd1306.c **** 
+  97:keyboards/lily58/ssd1306.c ****   if (i2c_start_write(SSD1306_ADDRESS)) {
+  98:keyboards/lily58/ssd1306.c ****     goto done;
+  99:keyboards/lily58/ssd1306.c ****   }
+ 100:keyboards/lily58/ssd1306.c ****   if (i2c_master_write(0x40)) {
+ 101:keyboards/lily58/ssd1306.c ****     // Data mode
+ 102:keyboards/lily58/ssd1306.c ****     goto done;
+ 103:keyboards/lily58/ssd1306.c ****   }
+ 104:keyboards/lily58/ssd1306.c ****   for (uint8_t row = 0; row < MatrixRows; ++row) {
+ 105:keyboards/lily58/ssd1306.c ****     for (uint8_t col = 0; col < DisplayWidth; ++col) {
+ 106:keyboards/lily58/ssd1306.c ****       i2c_master_write(0);
+ 107:keyboards/lily58/ssd1306.c ****     }
+ 108:keyboards/lily58/ssd1306.c ****   }
+ 109:keyboards/lily58/ssd1306.c **** 
+ 110:keyboards/lily58/ssd1306.c ****   display.dirty = false;
+ 111:keyboards/lily58/ssd1306.c **** 
+ 112:keyboards/lily58/ssd1306.c **** done:
+ 113:keyboards/lily58/ssd1306.c ****   i2c_master_stop();
+ 114:keyboards/lily58/ssd1306.c **** }
+ 115:keyboards/lily58/ssd1306.c **** 
+ 116:keyboards/lily58/ssd1306.c **** #if DEBUG_TO_SCREEN
+ 117:keyboards/lily58/ssd1306.c **** #undef sendchar
+ 118:keyboards/lily58/ssd1306.c **** static int8_t capture_sendchar(uint8_t c) {
+ 119:keyboards/lily58/ssd1306.c ****   sendchar(c);
+ 120:keyboards/lily58/ssd1306.c ****   iota_gfx_write_char(c);
+ 121:keyboards/lily58/ssd1306.c **** 
+ 122:keyboards/lily58/ssd1306.c ****   if (!displaying) {
+ 123:keyboards/lily58/ssd1306.c ****     iota_gfx_flush();
+ 124:keyboards/lily58/ssd1306.c ****   }
+ 125:keyboards/lily58/ssd1306.c ****   return 0;
+ 126:keyboards/lily58/ssd1306.c **** }
+ 127:keyboards/lily58/ssd1306.c **** #endif
+ 128:keyboards/lily58/ssd1306.c **** 
+ 129:keyboards/lily58/ssd1306.c **** bool iota_gfx_init(bool rotate) {
+ 130:keyboards/lily58/ssd1306.c ****   bool success = false;
+ 131:keyboards/lily58/ssd1306.c **** 
+ 132:keyboards/lily58/ssd1306.c ****   i2c_master_init();
+ 133:keyboards/lily58/ssd1306.c ****   send_cmd1(DisplayOff);
+ 134:keyboards/lily58/ssd1306.c ****   send_cmd2(SetDisplayClockDiv, 0x80);
+ 135:keyboards/lily58/ssd1306.c ****   send_cmd2(SetMultiPlex, DisplayHeight - 1);
+ 136:keyboards/lily58/ssd1306.c **** 
+ 137:keyboards/lily58/ssd1306.c ****   send_cmd2(SetDisplayOffset, 0);
+ 138:keyboards/lily58/ssd1306.c **** 
+ 139:keyboards/lily58/ssd1306.c **** 
+ 140:keyboards/lily58/ssd1306.c ****   send_cmd1(SetStartLine | 0x0);
+ 141:keyboards/lily58/ssd1306.c ****   send_cmd2(SetChargePump, 0x14 /* Enable */);
+ 142:keyboards/lily58/ssd1306.c ****   send_cmd2(SetMemoryMode, 0 /* horizontal addressing */);
+ 143:keyboards/lily58/ssd1306.c **** 
+ 144:keyboards/lily58/ssd1306.c ****   if(rotate){
+ 145:keyboards/lily58/ssd1306.c ****     // the following Flip the display orientation 180 degrees
+ 146:keyboards/lily58/ssd1306.c ****     send_cmd1(SegRemap);
+ 147:keyboards/lily58/ssd1306.c ****     send_cmd1(ComScanInc);
+ 148:keyboards/lily58/ssd1306.c ****   }else{
+ 149:keyboards/lily58/ssd1306.c ****     // Flips the display orientation 0 degrees
+ 150:keyboards/lily58/ssd1306.c ****     send_cmd1(SegRemap | 0x1);
+ 151:keyboards/lily58/ssd1306.c ****     send_cmd1(ComScanDec);
+ 152:keyboards/lily58/ssd1306.c ****   }
+ 153:keyboards/lily58/ssd1306.c **** 
+ 154:keyboards/lily58/ssd1306.c ****   send_cmd2(SetComPins, 0x2);
+ 155:keyboards/lily58/ssd1306.c ****   send_cmd2(SetContrast, 0x8f);
+ 156:keyboards/lily58/ssd1306.c ****   send_cmd2(SetPreCharge, 0xf1);
+ 157:keyboards/lily58/ssd1306.c ****   send_cmd2(SetVComDetect, 0x40);
+ 158:keyboards/lily58/ssd1306.c ****   send_cmd1(DisplayAllOnResume);
+ 159:keyboards/lily58/ssd1306.c ****   send_cmd1(NormalDisplay);
+ 160:keyboards/lily58/ssd1306.c ****   send_cmd1(DeActivateScroll);
+ 161:keyboards/lily58/ssd1306.c ****   send_cmd1(DisplayOn);
+ 162:keyboards/lily58/ssd1306.c **** 
+ 163:keyboards/lily58/ssd1306.c ****   send_cmd2(SetContrast, 0); // Dim
+ 164:keyboards/lily58/ssd1306.c **** 
+ 165:keyboards/lily58/ssd1306.c ****   clear_display();
+ 166:keyboards/lily58/ssd1306.c **** 
+ 167:keyboards/lily58/ssd1306.c ****   success = true;
+ 168:keyboards/lily58/ssd1306.c **** 
+ 169:keyboards/lily58/ssd1306.c ****   iota_gfx_flush();
+ 170:keyboards/lily58/ssd1306.c **** 
+ 171:keyboards/lily58/ssd1306.c **** #if DEBUG_TO_SCREEN
+ 172:keyboards/lily58/ssd1306.c ****   print_set_sendchar(capture_sendchar);
+ 173:keyboards/lily58/ssd1306.c **** #endif
+ 174:keyboards/lily58/ssd1306.c **** 
+ 175:keyboards/lily58/ssd1306.c **** done:
+ 176:keyboards/lily58/ssd1306.c ****   return success;
+ 177:keyboards/lily58/ssd1306.c **** }
+ 178:keyboards/lily58/ssd1306.c **** 
+ 179:keyboards/lily58/ssd1306.c **** bool iota_gfx_off(void) {
+ 207               		.loc 1 179 25 is_stmt 1 view -0
+ 208               		.cfi_startproc
+ 209               	/* prologue: function */
+ 210               	/* frame size = 0 */
+ 211               	/* stack size = 0 */
+ 212               	.L__stack_usage = 0
+ 180:keyboards/lily58/ssd1306.c ****   bool success = false;
+ 213               		.loc 1 180 3 view .LVU50
+ 214               	.LVL25:
+ 181:keyboards/lily58/ssd1306.c **** 
+ 182:keyboards/lily58/ssd1306.c ****   send_cmd1(DisplayOff);
+ 215               		.loc 1 182 3 view .LVU51
+ 216 0000 8EEA      		ldi r24,lo8(-82)
+ 217 0002 0C94 0000 		jmp _send_cmd1
+ 218               	.LVL26:
+ 219               		.cfi_endproc
+ 220               	.LFE120:
+ 222               		.section	.text.iota_gfx_on,"ax",@progbits
+ 223               	.global	iota_gfx_on
+ 225               	iota_gfx_on:
+ 226               	.LFB121:
+ 183:keyboards/lily58/ssd1306.c ****   success = true;
+ 184:keyboards/lily58/ssd1306.c **** 
+ 185:keyboards/lily58/ssd1306.c **** done:
+ 186:keyboards/lily58/ssd1306.c ****   return success;
+ 187:keyboards/lily58/ssd1306.c **** }
+ 188:keyboards/lily58/ssd1306.c **** 
+ 189:keyboards/lily58/ssd1306.c **** bool iota_gfx_on(void) {
+ 227               		.loc 1 189 24 view -0
+ 228               		.cfi_startproc
+ 229               	/* prologue: function */
+ 230               	/* frame size = 0 */
+ 231               	/* stack size = 0 */
+ 232               	.L__stack_usage = 0
+ 190:keyboards/lily58/ssd1306.c ****   bool success = false;
+ 233               		.loc 1 190 3 view .LVU53
+ 234               	.LVL27:
+ 191:keyboards/lily58/ssd1306.c **** 
+ 192:keyboards/lily58/ssd1306.c ****   send_cmd1(DisplayOn);
+ 235               		.loc 1 192 3 view .LVU54
+ 236 0000 8FEA      		ldi r24,lo8(-81)
+ 237 0002 0C94 0000 		jmp _send_cmd1
+ 238               	.LVL28:
+ 239               		.cfi_endproc
+ 240               	.LFE121:
+ 242               		.section	.text.matrix_write_char_inner,"ax",@progbits
+ 243               	.global	matrix_write_char_inner
+ 245               	matrix_write_char_inner:
+ 246               	.LVL29:
+ 247               	.LFB122:
+ 193:keyboards/lily58/ssd1306.c ****   success = true;
+ 194:keyboards/lily58/ssd1306.c **** 
+ 195:keyboards/lily58/ssd1306.c **** done:
+ 196:keyboards/lily58/ssd1306.c ****   return success;
+ 197:keyboards/lily58/ssd1306.c **** }
+ 198:keyboards/lily58/ssd1306.c **** 
+ 199:keyboards/lily58/ssd1306.c **** void matrix_write_char_inner(struct CharacterMatrix *matrix, uint8_t c) {
+ 248               		.loc 1 199 73 view -0
+ 249               		.cfi_startproc
+ 250               		.loc 1 199 73 is_stmt 0 view .LVU56
+ 251 0000 0F93      		push r16
+ 252               	.LCFI3:
+ 253               		.cfi_def_cfa_offset 3
+ 254               		.cfi_offset 16, -2
+ 255 0002 1F93      		push r17
+ 256               	.LCFI4:
+ 257               		.cfi_def_cfa_offset 4
+ 258               		.cfi_offset 17, -3
+ 259 0004 CF93      		push r28
+ 260               	.LCFI5:
+ 261               		.cfi_def_cfa_offset 5
+ 262               		.cfi_offset 28, -4
+ 263 0006 DF93      		push r29
+ 264               	.LCFI6:
+ 265               		.cfi_def_cfa_offset 6
+ 266               		.cfi_offset 29, -5
+ 267               	/* prologue: function */
+ 268               	/* frame size = 0 */
+ 269               	/* stack size = 4 */
+ 270               	.L__stack_usage = 4
+ 271 0008 EC01      		movw r28,r24
+ 200:keyboards/lily58/ssd1306.c ****   *matrix->cursor = c;
+ 272               		.loc 1 200 3 is_stmt 1 view .LVU57
+ 273               		.loc 1 200 10 is_stmt 0 view .LVU58
+ 274 000a 8C01      		movw r16,r24
+ 275 000c 0C5A      		subi r16,-84
+ 276 000e 1F4F      		sbci r17,-1
+ 277 0010 D801      		movw r26,r16
+ 278 0012 ED91      		ld r30,X+
+ 279 0014 FC91      		ld r31,X
+ 280 0016 1197      		sbiw r26,1
+ 281               		.loc 1 200 19 view .LVU59
+ 282 0018 6083      		st Z,r22
+ 201:keyboards/lily58/ssd1306.c ****   ++matrix->cursor;
+ 283               		.loc 1 201 3 is_stmt 1 view .LVU60
+ 284 001a 8D91      		ld r24,X+
+ 285 001c 9C91      		ld r25,X
+ 286 001e 1197      		sbiw r26,1
+ 287               	.LVL30:
+ 288               		.loc 1 201 3 is_stmt 0 view .LVU61
+ 289 0020 0196      		adiw r24,1
+ 290 0022 8D93      		st X+,r24
+ 291 0024 9C93      		st X,r25
+ 202:keyboards/lily58/ssd1306.c **** 
+ 203:keyboards/lily58/ssd1306.c ****   if (matrix->cursor - &matrix->display[0][0] == sizeof(matrix->display)) {
+ 292               		.loc 1 203 3 is_stmt 1 view .LVU62
+ 293               		.loc 1 203 22 is_stmt 0 view .LVU63
+ 294 0026 8C1B      		sub r24,r28
+ 295 0028 9D0B      		sbc r25,r29
+ 296               		.loc 1 203 6 view .LVU64
+ 297 002a 8435      		cpi r24,84
+ 298 002c 9105      		cpc r25,__zero_reg__
+ 299 002e 01F4      		brne .L21
+ 204:keyboards/lily58/ssd1306.c ****     // We went off the end; scroll the display upwards by one line
+ 205:keyboards/lily58/ssd1306.c ****     memmove(&matrix->display[0], &matrix->display[1],
+ 300               		.loc 1 205 5 is_stmt 1 view .LVU65
+ 301 0030 BE01      		movw r22,r28
+ 302               	.LVL31:
+ 303               		.loc 1 205 5 is_stmt 0 view .LVU66
+ 304 0032 6B5E      		subi r22,-21
+ 305 0034 7F4F      		sbci r23,-1
+ 306 0036 4FE3      		ldi r20,lo8(63)
+ 307 0038 50E0      		ldi r21,0
+ 308 003a CE01      		movw r24,r28
+ 309 003c 0E94 0000 		call memmove
+ 310               	.LVL32:
+ 206:keyboards/lily58/ssd1306.c ****             MatrixCols * (MatrixRows - 1));
+ 207:keyboards/lily58/ssd1306.c ****     matrix->cursor = &matrix->display[MatrixRows - 1][0];
+ 311               		.loc 1 207 5 is_stmt 1 view .LVU67
+ 312               		.loc 1 207 22 is_stmt 0 view .LVU68
+ 313 0040 CE01      		movw r24,r28
+ 314 0042 CF96      		adiw r24,63
+ 315               		.loc 1 207 20 view .LVU69
+ 316 0044 F801      		movw r30,r16
+ 317 0046 9183      		std Z+1,r25
+ 318 0048 8083      		st Z,r24
+ 208:keyboards/lily58/ssd1306.c ****     memset(matrix->cursor, ' ', MatrixCols);
+ 319               		.loc 1 208 5 is_stmt 1 view .LVU70
+ 320 004a 45E1      		ldi r20,lo8(21)
+ 321 004c 50E0      		ldi r21,0
+ 322 004e 60E2      		ldi r22,lo8(32)
+ 323 0050 70E0      		ldi r23,0
+ 324               	/* epilogue start */
+ 209:keyboards/lily58/ssd1306.c ****   }
+ 210:keyboards/lily58/ssd1306.c **** }
+ 325               		.loc 1 210 1 is_stmt 0 view .LVU71
+ 326 0052 DF91      		pop r29
+ 327 0054 CF91      		pop r28
+ 328               	.LVL33:
+ 329               		.loc 1 210 1 view .LVU72
+ 330 0056 1F91      		pop r17
+ 331 0058 0F91      		pop r16
+ 208:keyboards/lily58/ssd1306.c ****     memset(matrix->cursor, ' ', MatrixCols);
+ 332               		.loc 1 208 5 view .LVU73
+ 333 005a 0C94 0000 		jmp memset
+ 334               	.LVL34:
+ 335               	.L21:
+ 336               	/* epilogue start */
+ 337               		.loc 1 210 1 view .LVU74
+ 338 005e DF91      		pop r29
+ 339 0060 CF91      		pop r28
+ 340               	.LVL35:
+ 341               		.loc 1 210 1 view .LVU75
+ 342 0062 1F91      		pop r17
+ 343 0064 0F91      		pop r16
+ 344               	.LVL36:
+ 345               		.loc 1 210 1 view .LVU76
+ 346 0066 0895      		ret
+ 347               		.cfi_endproc
+ 348               	.LFE122:
+ 350               		.section	.text.matrix_write_char,"ax",@progbits
+ 351               	.global	matrix_write_char
+ 353               	matrix_write_char:
+ 354               	.LVL37:
+ 355               	.LFB123:
+ 211:keyboards/lily58/ssd1306.c **** 
+ 212:keyboards/lily58/ssd1306.c **** void matrix_write_char(struct CharacterMatrix *matrix, uint8_t c) {
+ 356               		.loc 1 212 67 is_stmt 1 view -0
+ 357               		.cfi_startproc
+ 358               		.loc 1 212 67 is_stmt 0 view .LVU78
+ 359 0000 1F93      		push r17
+ 360               	.LCFI7:
+ 361               		.cfi_def_cfa_offset 3
+ 362               		.cfi_offset 17, -2
+ 363 0002 CF93      		push r28
+ 364               	.LCFI8:
+ 365               		.cfi_def_cfa_offset 4
+ 366               		.cfi_offset 28, -3
+ 367 0004 DF93      		push r29
+ 368               	.LCFI9:
+ 369               		.cfi_def_cfa_offset 5
+ 370               		.cfi_offset 29, -4
+ 371               	/* prologue: function */
+ 372               	/* frame size = 0 */
+ 373               	/* stack size = 3 */
+ 374               	.L__stack_usage = 3
+ 375 0006 EC01      		movw r28,r24
+ 213:keyboards/lily58/ssd1306.c ****   matrix->dirty = true;
+ 376               		.loc 1 213 3 is_stmt 1 view .LVU79
+ 377               		.loc 1 213 17 is_stmt 0 view .LVU80
+ 378 0008 FC01      		movw r30,r24
+ 379 000a EA5A      		subi r30,-86
+ 380 000c FF4F      		sbci r31,-1
+ 381 000e 81E0      		ldi r24,lo8(1)
+ 382               	.LVL38:
+ 383               		.loc 1 213 17 view .LVU81
+ 384 0010 8083      		st Z,r24
+ 214:keyboards/lily58/ssd1306.c **** 
+ 215:keyboards/lily58/ssd1306.c ****   if (c == '\n') {
+ 385               		.loc 1 215 3 is_stmt 1 view .LVU82
+ 386               		.loc 1 215 6 is_stmt 0 view .LVU83
+ 387 0012 6A30      		cpi r22,lo8(10)
+ 388 0014 01F4      		brne .L24
+ 389               	.LBB24:
+ 216:keyboards/lily58/ssd1306.c ****     // Clear to end of line from the cursor and then move to the
+ 217:keyboards/lily58/ssd1306.c ****     // start of the next line
+ 218:keyboards/lily58/ssd1306.c ****     uint8_t cursor_col = (matrix->cursor - &matrix->display[0][0]) % MatrixCols;
+ 390               		.loc 1 218 5 is_stmt 1 view .LVU84
+ 391               		.loc 1 218 33 is_stmt 0 view .LVU85
+ 392 0016 3297      		sbiw r30,2
+ 393               		.loc 1 218 42 view .LVU86
+ 394 0018 8081      		ld r24,Z
+ 395 001a 9181      		ldd r25,Z+1
+ 396 001c 8C1B      		sub r24,r28
+ 397 001e 9D0B      		sbc r25,r29
+ 398               		.loc 1 218 68 view .LVU87
+ 399 0020 65E1      		ldi r22,lo8(21)
+ 400 0022 70E0      		ldi r23,0
+ 401               	.LVL39:
+ 402               		.loc 1 218 68 view .LVU88
+ 403 0024 0E94 0000 		call __divmodhi4
+ 404               		.loc 1 218 13 view .LVU89
+ 405 0028 182F      		mov r17,r24
+ 406               	.LVL40:
+ 219:keyboards/lily58/ssd1306.c **** 
+ 220:keyboards/lily58/ssd1306.c ****     while (cursor_col++ < MatrixCols) {
+ 407               		.loc 1 220 5 is_stmt 1 view .LVU90
+ 408               	.L25:
+ 409               		.loc 1 220 11 is_stmt 0 view .LVU91
+ 410 002a 1531      		cpi r17,lo8(21)
+ 411 002c 00F0      		brlo .L26
+ 412               	/* epilogue start */
+ 413               	.LBE24:
+ 221:keyboards/lily58/ssd1306.c ****       matrix_write_char_inner(matrix, ' ');
+ 222:keyboards/lily58/ssd1306.c ****     }
+ 223:keyboards/lily58/ssd1306.c ****     return;
+ 224:keyboards/lily58/ssd1306.c ****   }
+ 225:keyboards/lily58/ssd1306.c **** 
+ 226:keyboards/lily58/ssd1306.c ****   matrix_write_char_inner(matrix, c);
+ 227:keyboards/lily58/ssd1306.c **** }
+ 414               		.loc 1 227 1 view .LVU92
+ 415 002e DF91      		pop r29
+ 416 0030 CF91      		pop r28
+ 417               	.LVL41:
+ 418               		.loc 1 227 1 view .LVU93
+ 419 0032 1F91      		pop r17
+ 420               	.LVL42:
+ 421               		.loc 1 227 1 view .LVU94
+ 422 0034 0895      		ret
+ 423               	.LVL43:
+ 424               	.L26:
+ 425               	.LBB25:
+ 221:keyboards/lily58/ssd1306.c ****       matrix_write_char_inner(matrix, ' ');
+ 426               		.loc 1 221 7 is_stmt 1 view .LVU95
+ 427 0036 60E2      		ldi r22,lo8(32)
+ 428 0038 CE01      		movw r24,r28
+ 429 003a 0E94 0000 		call matrix_write_char_inner
+ 430               	.LVL44:
+ 431 003e 1F5F      		subi r17,lo8(-(1))
+ 432               	.LVL45:
+ 221:keyboards/lily58/ssd1306.c ****       matrix_write_char_inner(matrix, ' ');
+ 433               		.loc 1 221 7 is_stmt 0 view .LVU96
+ 434 0040 00C0      		rjmp .L25
+ 435               	.LVL46:
+ 436               	.L24:
+ 221:keyboards/lily58/ssd1306.c ****       matrix_write_char_inner(matrix, ' ');
+ 437               		.loc 1 221 7 view .LVU97
+ 438               	.LBE25:
+ 226:keyboards/lily58/ssd1306.c **** }
+ 439               		.loc 1 226 3 is_stmt 1 view .LVU98
+ 440 0042 CE01      		movw r24,r28
+ 441               	/* epilogue start */
+ 442               		.loc 1 227 1 is_stmt 0 view .LVU99
+ 443 0044 DF91      		pop r29
+ 444 0046 CF91      		pop r28
+ 445               	.LVL47:
+ 446               		.loc 1 227 1 view .LVU100
+ 447 0048 1F91      		pop r17
+ 226:keyboards/lily58/ssd1306.c **** }
+ 448               		.loc 1 226 3 view .LVU101
+ 449 004a 0C94 0000 		jmp matrix_write_char_inner
+ 450               	.LVL48:
+ 226:keyboards/lily58/ssd1306.c **** }
+ 451               		.loc 1 226 3 view .LVU102
+ 452               		.cfi_endproc
+ 453               	.LFE123:
+ 455               		.section	.text.iota_gfx_write_char,"ax",@progbits
+ 456               	.global	iota_gfx_write_char
+ 458               	iota_gfx_write_char:
+ 459               	.LVL49:
+ 460               	.LFB124:
+ 228:keyboards/lily58/ssd1306.c **** 
+ 229:keyboards/lily58/ssd1306.c **** void iota_gfx_write_char(uint8_t c) {
+ 461               		.loc 1 229 37 is_stmt 1 view -0
+ 462               		.cfi_startproc
+ 463               	/* prologue: function */
+ 464               	/* frame size = 0 */
+ 465               	/* stack size = 0 */
+ 466               	.L__stack_usage = 0
+ 230:keyboards/lily58/ssd1306.c ****   matrix_write_char(&display, c);
+ 467               		.loc 1 230 3 view .LVU104
+ 468 0000 682F      		mov r22,r24
+ 469 0002 80E0      		ldi r24,lo8(display)
+ 470 0004 90E0      		ldi r25,hi8(display)
+ 471               	.LVL50:
+ 472               		.loc 1 230 3 is_stmt 0 view .LVU105
+ 473 0006 0C94 0000 		jmp matrix_write_char
+ 474               	.LVL51:
+ 475               		.loc 1 230 3 view .LVU106
+ 476               		.cfi_endproc
+ 477               	.LFE124:
+ 479               		.section	.text.matrix_write,"ax",@progbits
+ 480               	.global	matrix_write
+ 482               	matrix_write:
+ 483               	.LVL52:
+ 484               	.LFB125:
+ 231:keyboards/lily58/ssd1306.c **** }
+ 232:keyboards/lily58/ssd1306.c **** 
+ 233:keyboards/lily58/ssd1306.c **** void matrix_write(struct CharacterMatrix *matrix, const char *data) {
+ 485               		.loc 1 233 69 is_stmt 1 view -0
+ 486               		.cfi_startproc
+ 487               		.loc 1 233 69 is_stmt 0 view .LVU108
+ 488 0000 EF92      		push r14
+ 489               	.LCFI10:
+ 490               		.cfi_def_cfa_offset 3
+ 491               		.cfi_offset 14, -2
+ 492 0002 FF92      		push r15
+ 493               	.LCFI11:
+ 494               		.cfi_def_cfa_offset 4
+ 495               		.cfi_offset 15, -3
+ 496 0004 0F93      		push r16
+ 497               	.LCFI12:
+ 498               		.cfi_def_cfa_offset 5
+ 499               		.cfi_offset 16, -4
+ 500 0006 1F93      		push r17
+ 501               	.LCFI13:
+ 502               		.cfi_def_cfa_offset 6
+ 503               		.cfi_offset 17, -5
+ 504 0008 CF93      		push r28
+ 505               	.LCFI14:
+ 506               		.cfi_def_cfa_offset 7
+ 507               		.cfi_offset 28, -6
+ 508 000a DF93      		push r29
+ 509               	.LCFI15:
+ 510               		.cfi_def_cfa_offset 8
+ 511               		.cfi_offset 29, -7
+ 512               	/* prologue: function */
+ 513               	/* frame size = 0 */
+ 514               	/* stack size = 6 */
+ 515               	.L__stack_usage = 6
+ 516 000c 7C01      		movw r14,r24
+ 517 000e EB01      		movw r28,r22
+ 234:keyboards/lily58/ssd1306.c ****   const char *end = data + strlen(data);
+ 518               		.loc 1 234 3 is_stmt 1 view .LVU109
+ 519               		.loc 1 234 28 is_stmt 0 view .LVU110
+ 520 0010 FB01      		movw r30,r22
+ 521               		0:
+ 522 0012 0190      		ld __tmp_reg__,Z+
+ 523 0014 0020      		tst __tmp_reg__
+ 524 0016 01F4      		brne 0b
+ 525               		.loc 1 234 15 view .LVU111
+ 526 0018 8F01      		movw r16,r30
+ 527 001a 0150      		subi r16,1
+ 528 001c 1109      		sbc r17,__zero_reg__
+ 529               	.LVL53:
+ 235:keyboards/lily58/ssd1306.c ****   while (data < end) {
+ 530               		.loc 1 235 3 is_stmt 1 view .LVU112
+ 531               	.L31:
+ 532               		.loc 1 235 9 is_stmt 0 view .LVU113
+ 533 001e C017      		cp r28,r16
+ 534 0020 D107      		cpc r29,r17
+ 535 0022 00F0      		brlo .L32
+ 536               	/* epilogue start */
+ 236:keyboards/lily58/ssd1306.c ****     matrix_write_char(matrix, *data);
+ 237:keyboards/lily58/ssd1306.c ****     ++data;
+ 238:keyboards/lily58/ssd1306.c ****   }
+ 239:keyboards/lily58/ssd1306.c **** }
+ 537               		.loc 1 239 1 view .LVU114
+ 538 0024 DF91      		pop r29
+ 539 0026 CF91      		pop r28
+ 540               	.LVL54:
+ 541               		.loc 1 239 1 view .LVU115
+ 542 0028 1F91      		pop r17
+ 543 002a 0F91      		pop r16
+ 544               	.LVL55:
+ 545               		.loc 1 239 1 view .LVU116
+ 546 002c FF90      		pop r15
+ 547 002e EF90      		pop r14
+ 548               	.LVL56:
+ 549               		.loc 1 239 1 view .LVU117
+ 550 0030 0895      		ret
+ 551               	.LVL57:
+ 552               	.L32:
+ 236:keyboards/lily58/ssd1306.c ****     matrix_write_char(matrix, *data);
+ 553               		.loc 1 236 5 is_stmt 1 view .LVU118
+ 554 0032 6991      		ld r22,Y+
+ 555               	.LVL58:
+ 236:keyboards/lily58/ssd1306.c ****     matrix_write_char(matrix, *data);
+ 556               		.loc 1 236 5 is_stmt 0 view .LVU119
+ 557 0034 C701      		movw r24,r14
+ 558 0036 0E94 0000 		call matrix_write_char
+ 559               	.LVL59:
+ 237:keyboards/lily58/ssd1306.c ****   }
+ 560               		.loc 1 237 5 is_stmt 1 view .LVU120
+ 237:keyboards/lily58/ssd1306.c ****   }
+ 561               		.loc 1 237 5 is_stmt 0 view .LVU121
+ 562 003a 00C0      		rjmp .L31
+ 563               		.cfi_endproc
+ 564               	.LFE125:
+ 566               		.section	.rodata.matrix_write_ln.str1.1,"aMS",@progbits,1
+ 567               	.LC0:
+ 568 0000 2573 0A00 		.string	"%s\n"
+ 569               		.section	.text.matrix_write_ln,"ax",@progbits
+ 570               	.global	matrix_write_ln
+ 572               	matrix_write_ln:
+ 573               	.LVL60:
+ 574               	.LFB126:
+ 240:keyboards/lily58/ssd1306.c **** 
+ 241:keyboards/lily58/ssd1306.c **** void matrix_write_ln(struct CharacterMatrix *matrix, const char *data) {
+ 575               		.loc 1 241 72 is_stmt 1 view -0
+ 576               		.cfi_startproc
+ 577               		.loc 1 241 72 is_stmt 0 view .LVU123
+ 578 0000 CF92      		push r12
+ 579               	.LCFI16:
+ 580               		.cfi_def_cfa_offset 3
+ 581               		.cfi_offset 12, -2
+ 582 0002 DF92      		push r13
+ 583               	.LCFI17:
+ 584               		.cfi_def_cfa_offset 4
+ 585               		.cfi_offset 13, -3
+ 586 0004 EF92      		push r14
+ 587               	.LCFI18:
+ 588               		.cfi_def_cfa_offset 5
+ 589               		.cfi_offset 14, -4
+ 590 0006 FF92      		push r15
+ 591               	.LCFI19:
+ 592               		.cfi_def_cfa_offset 6
+ 593               		.cfi_offset 15, -5
+ 594 0008 0F93      		push r16
+ 595               	.LCFI20:
+ 596               		.cfi_def_cfa_offset 7
+ 597               		.cfi_offset 16, -6
+ 598 000a 1F93      		push r17
+ 599               	.LCFI21:
+ 600               		.cfi_def_cfa_offset 8
+ 601               		.cfi_offset 17, -7
+ 602 000c CF93      		push r28
+ 603               	.LCFI22:
+ 604               		.cfi_def_cfa_offset 9
+ 605               		.cfi_offset 28, -8
+ 606 000e DF93      		push r29
+ 607               	.LCFI23:
+ 608               		.cfi_def_cfa_offset 10
+ 609               		.cfi_offset 29, -9
+ 610 0010 CDB7      		in r28,__SP_L__
+ 611 0012 DEB7      		in r29,__SP_H__
+ 612               	.LCFI24:
+ 613               		.cfi_def_cfa_register 28
+ 614               	/* prologue: function */
+ 615               	/* frame size = 0 */
+ 616               	/* stack size = 8 */
+ 617               	.L__stack_usage = 8
+ 618 0014 7C01      		movw r14,r24
+ 242:keyboards/lily58/ssd1306.c ****   char data_ln[strlen(data)+2];
+ 243:keyboards/lily58/ssd1306.c ****   snprintf(data_ln, sizeof(data_ln), "%s\n", data);
+ 244:keyboards/lily58/ssd1306.c ****   matrix_write(matrix, data_ln);
+ 245:keyboards/lily58/ssd1306.c **** }
+ 619               		.loc 1 245 1 view .LVU124
+ 620 0016 0DB7      		in r16,__SP_L__
+ 621 0018 1EB7      		in r17,__SP_H__
+ 242:keyboards/lily58/ssd1306.c ****   char data_ln[strlen(data)+2];
+ 622               		.loc 1 242 3 is_stmt 1 view .LVU125
+ 242:keyboards/lily58/ssd1306.c ****   char data_ln[strlen(data)+2];
+ 623               		.loc 1 242 16 is_stmt 0 view .LVU126
+ 624 001a DB01      		movw r26,r22
+ 625               		0:
+ 626 001c 0D90      		ld __tmp_reg__,X+
+ 627 001e 0020      		tst __tmp_reg__
+ 628 0020 01F4      		brne 0b
+ 629 0022 CD01      		movw r24,r26
+ 630               	.LVL61:
+ 242:keyboards/lily58/ssd1306.c ****   char data_ln[strlen(data)+2];
+ 631               		.loc 1 242 16 view .LVU127
+ 632 0024 861B      		sub r24,r22
+ 633 0026 970B      		sbc r25,r23
+ 242:keyboards/lily58/ssd1306.c ****   char data_ln[strlen(data)+2];
+ 634               		.loc 1 242 28 view .LVU128
+ 635 0028 0196      		adiw r24,1
+ 636               	.LVL62:
+ 242:keyboards/lily58/ssd1306.c ****   char data_ln[strlen(data)+2];
+ 637               		.loc 1 242 8 view .LVU129
+ 638 002a 2DB7      		in r18,__SP_L__
+ 639 002c 3EB7      		in r19,__SP_H__
+ 640 002e 281B      		sub r18,r24
+ 641 0030 390B      		sbc r19,r25
+ 642 0032 0FB6      		in __tmp_reg__,__SREG__
+ 643 0034 F894      		cli
+ 644 0036 3EBF      		out __SP_H__,r19
+ 645 0038 0FBE      		out __SREG__,__tmp_reg__
+ 646 003a 2DBF      		out __SP_L__,r18
+ 647 003c ADB7      		in r26,__SP_L__
+ 648 003e BEB7      		in r27,__SP_H__
+ 649               	.LVL63:
+ 242:keyboards/lily58/ssd1306.c ****   char data_ln[strlen(data)+2];
+ 650               		.loc 1 242 8 view .LVU130
+ 651 0040 1196      		adiw r26,1
+ 652 0042 6D01      		movw r12,r26
+ 653               	.LVL64:
+ 243:keyboards/lily58/ssd1306.c ****   matrix_write(matrix, data_ln);
+ 654               		.loc 1 243 3 is_stmt 1 view .LVU131
+ 655 0044 7F93      		push r23
+ 656 0046 6F93      		push r22
+ 657 0048 20E0      		ldi r18,lo8(.LC0)
+ 658 004a 30E0      		ldi r19,hi8(.LC0)
+ 659 004c 3F93      		push r19
+ 660 004e 2F93      		push r18
+ 661 0050 9F93      		push r25
+ 662 0052 8F93      		push r24
+ 663 0054 DF92      		push r13
+ 664 0056 AF93      		push r26
+ 665 0058 0E94 0000 		call snprintf
+ 666               	.LVL65:
+ 244:keyboards/lily58/ssd1306.c **** }
+ 667               		.loc 1 244 3 view .LVU132
+ 668 005c B601      		movw r22,r12
+ 669 005e C701      		movw r24,r14
+ 670 0060 0E94 0000 		call matrix_write
+ 671               	.LVL66:
+ 672               		.loc 1 245 1 is_stmt 0 view .LVU133
+ 673 0064 2DB7      		in r18,__SP_L__
+ 674 0066 3EB7      		in r19,__SP_H__
+ 675 0068 285F      		subi r18,-8
+ 676 006a 3F4F      		sbci r19,-1
+ 677 006c 0FB6      		in __tmp_reg__,__SREG__
+ 678 006e F894      		cli
+ 679 0070 3EBF      		out __SP_H__,r19
+ 680 0072 0FBE      		out __SREG__,__tmp_reg__
+ 681 0074 2DBF      		out __SP_L__,r18
+ 682 0076 0FB6      		in __tmp_reg__,__SREG__
+ 683 0078 F894      		cli
+ 684 007a 1EBF      		out __SP_H__,r17
+ 685 007c 0FBE      		out __SREG__,__tmp_reg__
+ 686 007e 0DBF      		out __SP_L__,r16
+ 687               	/* epilogue start */
+ 688 0080 DF91      		pop r29
+ 689 0082 CF91      		pop r28
+ 690 0084 1F91      		pop r17
+ 691 0086 0F91      		pop r16
+ 692 0088 FF90      		pop r15
+ 693 008a EF90      		pop r14
+ 694               	.LVL67:
+ 695               		.loc 1 245 1 view .LVU134
+ 696 008c DF90      		pop r13
+ 697 008e CF90      		pop r12
+ 698               	.LVL68:
+ 699               		.loc 1 245 1 view .LVU135
+ 700 0090 0895      		ret
+ 701               		.cfi_endproc
+ 702               	.LFE126:
+ 704               		.section	.text.iota_gfx_write,"ax",@progbits
+ 705               	.global	iota_gfx_write
+ 707               	iota_gfx_write:
+ 708               	.LVL69:
+ 709               	.LFB127:
+ 246:keyboards/lily58/ssd1306.c **** 
+ 247:keyboards/lily58/ssd1306.c **** void iota_gfx_write(const char *data) {
+ 710               		.loc 1 247 39 is_stmt 1 view -0
+ 711               		.cfi_startproc
+ 712               	/* prologue: function */
+ 713               	/* frame size = 0 */
+ 714               	/* stack size = 0 */
+ 715               	.L__stack_usage = 0
+ 248:keyboards/lily58/ssd1306.c ****   matrix_write(&display, data);
+ 716               		.loc 1 248 3 view .LVU137
+ 717 0000 BC01      		movw r22,r24
+ 718 0002 80E0      		ldi r24,lo8(display)
+ 719 0004 90E0      		ldi r25,hi8(display)
+ 720               	.LVL70:
+ 721               		.loc 1 248 3 is_stmt 0 view .LVU138
+ 722 0006 0C94 0000 		jmp matrix_write
+ 723               	.LVL71:
+ 724               		.loc 1 248 3 view .LVU139
+ 725               		.cfi_endproc
+ 726               	.LFE127:
+ 728               		.section	.text.matrix_write_P,"ax",@progbits
+ 729               	.global	matrix_write_P
+ 731               	matrix_write_P:
+ 732               	.LVL72:
+ 733               	.LFB128:
+ 249:keyboards/lily58/ssd1306.c **** }
+ 250:keyboards/lily58/ssd1306.c **** 
+ 251:keyboards/lily58/ssd1306.c **** void matrix_write_P(struct CharacterMatrix *matrix, const char *data) {
+ 734               		.loc 1 251 71 is_stmt 1 view -0
+ 735               		.cfi_startproc
+ 736               		.loc 1 251 71 is_stmt 0 view .LVU141
+ 737 0000 0F93      		push r16
+ 738               	.LCFI25:
+ 739               		.cfi_def_cfa_offset 3
+ 740               		.cfi_offset 16, -2
+ 741 0002 1F93      		push r17
+ 742               	.LCFI26:
+ 743               		.cfi_def_cfa_offset 4
+ 744               		.cfi_offset 17, -3
+ 745 0004 CF93      		push r28
+ 746               	.LCFI27:
+ 747               		.cfi_def_cfa_offset 5
+ 748               		.cfi_offset 28, -4
+ 749 0006 DF93      		push r29
+ 750               	.LCFI28:
+ 751               		.cfi_def_cfa_offset 6
+ 752               		.cfi_offset 29, -5
+ 753               	/* prologue: function */
+ 754               	/* frame size = 0 */
+ 755               	/* stack size = 4 */
+ 756               	.L__stack_usage = 4
+ 757 0008 8C01      		movw r16,r24
+ 758 000a EB01      		movw r28,r22
+ 759               	.LVL73:
+ 760               	.L37:
+ 252:keyboards/lily58/ssd1306.c ****   while (true) {
+ 761               		.loc 1 252 3 is_stmt 1 view .LVU142
+ 762               	.LBB26:
+ 253:keyboards/lily58/ssd1306.c ****     uint8_t c = pgm_read_byte(data);
+ 763               		.loc 1 253 5 view .LVU143
+ 764               	.LBB27:
+ 765               		.loc 1 253 17 view .LVU144
+ 766               		.loc 1 253 17 view .LVU145
+ 767               		.loc 1 253 17 view .LVU146
+ 768 000c FE01      		movw r30,r28
+ 769               	/* #APP */
+ 770               	 ;  253 "keyboards/lily58/ssd1306.c" 1
+ 771 000e 6491      		lpm r22, Z
+ 772               		
+ 773               	 ;  0 "" 2
+ 774               	.LVL74:
+ 775               		.loc 1 253 17 view .LVU147
+ 776               		.loc 1 253 17 is_stmt 0 view .LVU148
+ 777               	/* #NOAPP */
+ 778               	.LBE27:
+ 254:keyboards/lily58/ssd1306.c ****     if (c == 0) {
+ 779               		.loc 1 254 5 is_stmt 1 view .LVU149
+ 780               		.loc 1 254 8 is_stmt 0 view .LVU150
+ 781 0010 6623      		tst r22
+ 782 0012 01F0      		breq .L38
+ 255:keyboards/lily58/ssd1306.c ****       return;
+ 256:keyboards/lily58/ssd1306.c ****     }
+ 257:keyboards/lily58/ssd1306.c ****     matrix_write_char(matrix, c);
+ 783               		.loc 1 257 5 is_stmt 1 view .LVU151
+ 784 0014 C801      		movw r24,r16
+ 785 0016 0E94 0000 		call matrix_write_char
+ 786               	.LVL75:
+ 258:keyboards/lily58/ssd1306.c ****     ++data;
+ 787               		.loc 1 258 5 view .LVU152
+ 788 001a 2196      		adiw r28,1
+ 789               	.LVL76:
+ 790               		.loc 1 258 5 is_stmt 0 view .LVU153
+ 791               	.LBE26:
+ 252:keyboards/lily58/ssd1306.c ****     uint8_t c = pgm_read_byte(data);
+ 792               		.loc 1 252 16 view .LVU154
+ 793 001c 00C0      		rjmp .L37
+ 794               	.LVL77:
+ 795               	.L38:
+ 796               	/* epilogue start */
+ 259:keyboards/lily58/ssd1306.c ****   }
+ 260:keyboards/lily58/ssd1306.c **** }
+ 797               		.loc 1 260 1 view .LVU155
+ 798 001e DF91      		pop r29
+ 799 0020 CF91      		pop r28
+ 800               	.LVL78:
+ 801               		.loc 1 260 1 view .LVU156
+ 802 0022 1F91      		pop r17
+ 803 0024 0F91      		pop r16
+ 804               	.LVL79:
+ 805               		.loc 1 260 1 view .LVU157
+ 806 0026 0895      		ret
+ 807               		.cfi_endproc
+ 808               	.LFE128:
+ 810               		.section	.text.iota_gfx_write_P,"ax",@progbits
+ 811               	.global	iota_gfx_write_P
+ 813               	iota_gfx_write_P:
+ 814               	.LVL80:
+ 815               	.LFB129:
+ 261:keyboards/lily58/ssd1306.c **** 
+ 262:keyboards/lily58/ssd1306.c **** void iota_gfx_write_P(const char *data) {
+ 816               		.loc 1 262 41 is_stmt 1 view -0
+ 817               		.cfi_startproc
+ 818               	/* prologue: function */
+ 819               	/* frame size = 0 */
+ 820               	/* stack size = 0 */
+ 821               	.L__stack_usage = 0
+ 263:keyboards/lily58/ssd1306.c ****   matrix_write_P(&display, data);
+ 822               		.loc 1 263 3 view .LVU159
+ 823 0000 BC01      		movw r22,r24
+ 824 0002 80E0      		ldi r24,lo8(display)
+ 825 0004 90E0      		ldi r25,hi8(display)
+ 826               	.LVL81:
+ 827               		.loc 1 263 3 is_stmt 0 view .LVU160
+ 828 0006 0C94 0000 		jmp matrix_write_P
+ 829               	.LVL82:
+ 830               		.loc 1 263 3 view .LVU161
+ 831               		.cfi_endproc
+ 832               	.LFE129:
+ 834               		.section	.text.matrix_clear,"ax",@progbits
+ 835               	.global	matrix_clear
+ 837               	matrix_clear:
+ 838               	.LVL83:
+ 839               	.LFB130:
+ 264:keyboards/lily58/ssd1306.c **** }
+ 265:keyboards/lily58/ssd1306.c **** 
+ 266:keyboards/lily58/ssd1306.c **** void matrix_clear(struct CharacterMatrix *matrix) {
+ 840               		.loc 1 266 51 is_stmt 1 view -0
+ 841               		.cfi_startproc
+ 842               		.loc 1 266 51 is_stmt 0 view .LVU163
+ 843 0000 CF93      		push r28
+ 844               	.LCFI29:
+ 845               		.cfi_def_cfa_offset 3
+ 846               		.cfi_offset 28, -2
+ 847 0002 DF93      		push r29
+ 848               	.LCFI30:
+ 849               		.cfi_def_cfa_offset 4
+ 850               		.cfi_offset 29, -3
+ 851               	/* prologue: function */
+ 852               	/* frame size = 0 */
+ 853               	/* stack size = 2 */
+ 854               	.L__stack_usage = 2
+ 855 0004 EC01      		movw r28,r24
+ 267:keyboards/lily58/ssd1306.c ****   memset(matrix->display, ' ', sizeof(matrix->display));
+ 856               		.loc 1 267 3 is_stmt 1 view .LVU164
+ 857 0006 44E5      		ldi r20,lo8(84)
+ 858 0008 50E0      		ldi r21,0
+ 859 000a 60E2      		ldi r22,lo8(32)
+ 860 000c 70E0      		ldi r23,0
+ 861 000e 0E94 0000 		call memset
+ 862               	.LVL84:
+ 268:keyboards/lily58/ssd1306.c ****   matrix->cursor = &matrix->display[0][0];
+ 863               		.loc 1 268 3 view .LVU165
+ 864               		.loc 1 268 18 is_stmt 0 view .LVU166
+ 865 0012 FE01      		movw r30,r28
+ 866 0014 EC5A      		subi r30,-84
+ 867 0016 FF4F      		sbci r31,-1
+ 868 0018 D183      		std Z+1,r29
+ 869 001a C083      		st Z,r28
+ 269:keyboards/lily58/ssd1306.c ****   matrix->dirty = true;
+ 870               		.loc 1 269 3 is_stmt 1 view .LVU167
+ 871               		.loc 1 269 17 is_stmt 0 view .LVU168
+ 872 001c CA5A      		subi r28,-86
+ 873 001e DF4F      		sbci r29,-1
+ 874               	.LVL85:
+ 875               		.loc 1 269 17 view .LVU169
+ 876 0020 81E0      		ldi r24,lo8(1)
+ 877 0022 8883      		st Y,r24
+ 878               	/* epilogue start */
+ 270:keyboards/lily58/ssd1306.c **** }
+ 879               		.loc 1 270 1 view .LVU170
+ 880 0024 DF91      		pop r29
+ 881 0026 CF91      		pop r28
+ 882 0028 0895      		ret
+ 883               		.cfi_endproc
+ 884               	.LFE130:
+ 886               		.section	.text.iota_gfx_clear_screen,"ax",@progbits
+ 887               	.global	iota_gfx_clear_screen
+ 889               	iota_gfx_clear_screen:
+ 890               	.LFB131:
+ 271:keyboards/lily58/ssd1306.c **** 
+ 272:keyboards/lily58/ssd1306.c **** void iota_gfx_clear_screen(void) {
+ 891               		.loc 1 272 34 is_stmt 1 view -0
+ 892               		.cfi_startproc
+ 893               	/* prologue: function */
+ 894               	/* frame size = 0 */
+ 895               	/* stack size = 0 */
+ 896               	.L__stack_usage = 0
+ 273:keyboards/lily58/ssd1306.c ****   matrix_clear(&display);
+ 897               		.loc 1 273 3 view .LVU172
+ 898 0000 80E0      		ldi r24,lo8(display)
+ 899 0002 90E0      		ldi r25,hi8(display)
+ 900 0004 0C94 0000 		jmp matrix_clear
+ 901               	.LVL86:
+ 902               		.cfi_endproc
+ 903               	.LFE131:
+ 905               		.section	.text.matrix_render,"ax",@progbits
+ 906               	.global	matrix_render
+ 908               	matrix_render:
+ 909               	.LVL87:
+ 910               	.LFB132:
+ 274:keyboards/lily58/ssd1306.c **** }
+ 275:keyboards/lily58/ssd1306.c **** 
+ 276:keyboards/lily58/ssd1306.c **** void matrix_render(struct CharacterMatrix *matrix) {
+ 911               		.loc 1 276 52 view -0
+ 912               		.cfi_startproc
+ 913               		.loc 1 276 52 is_stmt 0 view .LVU174
+ 914 0000 7F92      		push r7
+ 915               	.LCFI31:
+ 916               		.cfi_def_cfa_offset 3
+ 917               		.cfi_offset 7, -2
+ 918 0002 8F92      		push r8
+ 919               	.LCFI32:
+ 920               		.cfi_def_cfa_offset 4
+ 921               		.cfi_offset 8, -3
+ 922 0004 9F92      		push r9
+ 923               	.LCFI33:
+ 924               		.cfi_def_cfa_offset 5
+ 925               		.cfi_offset 9, -4
+ 926 0006 AF92      		push r10
+ 927               	.LCFI34:
+ 928               		.cfi_def_cfa_offset 6
+ 929               		.cfi_offset 10, -5
+ 930 0008 BF92      		push r11
+ 931               	.LCFI35:
+ 932               		.cfi_def_cfa_offset 7
+ 933               		.cfi_offset 11, -6
+ 934 000a CF92      		push r12
+ 935               	.LCFI36:
+ 936               		.cfi_def_cfa_offset 8
+ 937               		.cfi_offset 12, -7
+ 938 000c DF92      		push r13
+ 939               	.LCFI37:
+ 940               		.cfi_def_cfa_offset 9
+ 941               		.cfi_offset 13, -8
+ 942 000e EF92      		push r14
+ 943               	.LCFI38:
+ 944               		.cfi_def_cfa_offset 10
+ 945               		.cfi_offset 14, -9
+ 946 0010 FF92      		push r15
+ 947               	.LCFI39:
+ 948               		.cfi_def_cfa_offset 11
+ 949               		.cfi_offset 15, -10
+ 950 0012 0F93      		push r16
+ 951               	.LCFI40:
+ 952               		.cfi_def_cfa_offset 12
+ 953               		.cfi_offset 16, -11
+ 954 0014 1F93      		push r17
+ 955               	.LCFI41:
+ 956               		.cfi_def_cfa_offset 13
+ 957               		.cfi_offset 17, -12
+ 958 0016 CF93      		push r28
+ 959               	.LCFI42:
+ 960               		.cfi_def_cfa_offset 14
+ 961               		.cfi_offset 28, -13
+ 962 0018 DF93      		push r29
+ 963               	.LCFI43:
+ 964               		.cfi_def_cfa_offset 15
+ 965               		.cfi_offset 29, -14
+ 966               	/* prologue: function */
+ 967               	/* frame size = 0 */
+ 968               	/* stack size = 13 */
+ 969               	.L__stack_usage = 13
+ 970 001a 8C01      		movw r16,r24
+ 277:keyboards/lily58/ssd1306.c ****   last_flush = timer_read();
+ 971               		.loc 1 277 3 is_stmt 1 view .LVU175
+ 972               		.loc 1 277 16 is_stmt 0 view .LVU176
+ 973 001c 0E94 0000 		call timer_read
+ 974               	.LVL88:
+ 975               		.loc 1 277 14 view .LVU177
+ 976 0020 9093 0000 		sts last_flush+1,r25
+ 977 0024 8093 0000 		sts last_flush,r24
+ 278:keyboards/lily58/ssd1306.c ****   iota_gfx_on();
+ 978               		.loc 1 278 3 is_stmt 1 view .LVU178
+ 979 0028 0E94 0000 		call iota_gfx_on
+ 980               	.LVL89:
+ 279:keyboards/lily58/ssd1306.c **** #if DEBUG_TO_SCREEN
+ 280:keyboards/lily58/ssd1306.c ****   ++displaying;
+ 281:keyboards/lily58/ssd1306.c **** #endif
+ 282:keyboards/lily58/ssd1306.c **** 
+ 283:keyboards/lily58/ssd1306.c ****   // Move to the home position
+ 284:keyboards/lily58/ssd1306.c ****   send_cmd3(PageAddr, 0, MatrixRows - 1);
+ 981               		.loc 1 284 3 view .LVU179
+ 982 002c 63E0      		ldi r22,lo8(3)
+ 983 002e 82E2      		ldi r24,lo8(34)
+ 984 0030 0E94 0000 		call _send_cmd3.constprop.1
+ 985               	.LVL90:
+ 986 0034 8823      		tst r24
+ 987 0036 01F0      		breq .L44
+ 988               		.loc 1 284 41 discriminator 2 view .LVU180
+ 285:keyboards/lily58/ssd1306.c ****   send_cmd3(ColumnAddr, 0, (MatrixCols * FontWidth) - 1);
+ 989               		.loc 1 285 3 discriminator 2 view .LVU181
+ 990 0038 6DE7      		ldi r22,lo8(125)
+ 991 003a 81E2      		ldi r24,lo8(33)
+ 992 003c 0E94 0000 		call _send_cmd3.constprop.1
+ 993               	.LVL91:
+ 994 0040 8823      		tst r24
+ 995 0042 01F0      		breq .L44
+ 996               		.loc 1 285 57 view .LVU182
+ 286:keyboards/lily58/ssd1306.c **** 
+ 287:keyboards/lily58/ssd1306.c ****   if (i2c_start_write(SSD1306_ADDRESS)) {
+ 997               		.loc 1 287 3 view .LVU183
+ 998               	.LVL92:
+ 999               	.LBB28:
+ 1000               	.LBI28:
+  35:keyboards/lily58/i2c.h ****   return i2c_master_start((addr << 1) | I2C_WRITE);
+ 1001               		.loc 2 35 29 view .LVU184
+ 1002               	.LBB29:
+ 1003               		.loc 2 36 3 view .LVU185
+ 1004               		.loc 2 36 10 is_stmt 0 view .LVU186
+ 1005 0044 88E7      		ldi r24,lo8(120)
+ 1006 0046 0E94 0000 		call i2c_master_start
+ 1007               	.LVL93:
+ 1008               		.loc 2 36 10 view .LVU187
+ 1009               	.LBE29:
+ 1010               	.LBE28:
+ 1011               		.loc 1 287 6 view .LVU188
+ 1012 004a 8111      		cpse r24,__zero_reg__
+ 1013 004c 00C0      		rjmp .L44
+ 288:keyboards/lily58/ssd1306.c ****     goto done;
+ 289:keyboards/lily58/ssd1306.c ****   }
+ 290:keyboards/lily58/ssd1306.c ****   if (i2c_master_write(0x40)) {
+ 1014               		.loc 1 290 3 is_stmt 1 view .LVU189
+ 1015               		.loc 1 290 7 is_stmt 0 view .LVU190
+ 1016 004e 80E4      		ldi r24,lo8(64)
+ 1017 0050 0E94 0000 		call i2c_master_write
+ 1018               	.LVL94:
+ 1019               		.loc 1 290 6 view .LVU191
+ 1020 0054 8111      		cpse r24,__zero_reg__
+ 1021 0056 00C0      		rjmp .L44
+ 1022 0058 7801      		movw r14,r16
+ 1023 005a 4801      		movw r8,r16
+ 1024 005c 84E5      		ldi r24,84
+ 1025 005e 880E      		add r8,r24
+ 1026 0060 911C      		adc r9,__zero_reg__
+ 1027               	.LBB30:
+ 1028               	.LBB31:
+ 1029               	.LBB32:
+ 291:keyboards/lily58/ssd1306.c ****     // Data mode
+ 292:keyboards/lily58/ssd1306.c ****     goto done;
+ 293:keyboards/lily58/ssd1306.c ****   }
+ 294:keyboards/lily58/ssd1306.c **** 
+ 295:keyboards/lily58/ssd1306.c ****   for (uint8_t row = 0; row < MatrixRows; ++row) {
+ 296:keyboards/lily58/ssd1306.c ****     for (uint8_t col = 0; col < MatrixCols; ++col) {
+ 297:keyboards/lily58/ssd1306.c ****       const uint8_t *glyph = font + (matrix->display[row][col] * FontWidth);
+ 1030               		.loc 1 297 64 view .LVU192
+ 1031 0062 96E0      		ldi r25,lo8(6)
+ 1032 0064 792E      		mov r7,r25
+ 1033               	.L46:
+ 1034               	.LVL95:
+ 1035               		.loc 1 297 64 view .LVU193
+ 1036               	.LBE32:
+ 1037               	.LBE31:
+ 1038               	.LBE30:
+ 276:keyboards/lily58/ssd1306.c ****   last_flush = timer_read();
+ 1039               		.loc 1 276 52 view .LVU194
+ 1040 0066 5701      		movw r10,r14
+ 1041               	.LBB39:
+ 1042               	.LBB38:
+ 296:keyboards/lily58/ssd1306.c ****       const uint8_t *glyph = font + (matrix->display[row][col] * FontWidth);
+ 1043               		.loc 1 296 18 view .LVU195
+ 1044 0068 D12C      		mov r13,__zero_reg__
+ 1045               	.LVL96:
+ 1046               	.L48:
+ 1047               	.LBB37:
+ 1048               		.loc 1 297 7 is_stmt 1 view .LVU196
+ 1049               		.loc 1 297 58 is_stmt 0 view .LVU197
+ 1050 006a F501      		movw r30,r10
+ 1051 006c C191      		ld r28,Z+
+ 1052 006e 5F01      		movw r10,r30
+ 1053               	.LVL97:
+ 298:keyboards/lily58/ssd1306.c **** 
+ 299:keyboards/lily58/ssd1306.c ****       for (uint8_t glyphCol = 0; glyphCol < FontWidth; ++glyphCol) {
+ 1054               		.loc 1 299 7 is_stmt 1 view .LVU198
+ 1055               	.LBB33:
+ 1056               		.loc 1 299 12 view .LVU199
+ 1057               		.loc 1 299 12 is_stmt 0 view .LVU200
+ 1058               	.LBE33:
+ 297:keyboards/lily58/ssd1306.c **** 
+ 1059               		.loc 1 297 64 view .LVU201
+ 1060 0070 C79D      		mul r28,r7
+ 1061 0072 E001      		movw r28,r0
+ 1062 0074 1124      		clr __zero_reg__
+ 1063               	.LVL98:
+ 297:keyboards/lily58/ssd1306.c **** 
+ 1064               		.loc 1 297 64 view .LVU202
+ 1065 0076 C050      		subi r28,lo8(-(font))
+ 1066 0078 D040      		sbci r29,hi8(-(font))
+ 1067 007a 86E0      		ldi r24,lo8(6)
+ 1068 007c C82E      		mov r12,r24
+ 1069               	.LVL99:
+ 1070               	.L47:
+ 1071               	.LBB36:
+ 1072               	.LBB34:
+ 300:keyboards/lily58/ssd1306.c ****         uint8_t colBits = pgm_read_byte(glyph + glyphCol);
+ 1073               		.loc 1 300 9 is_stmt 1 discriminator 3 view .LVU203
+ 1074               	.LBB35:
+ 1075               		.loc 1 300 27 discriminator 3 view .LVU204
+ 1076               		.loc 1 300 27 discriminator 3 view .LVU205
+ 1077               		.loc 1 300 27 discriminator 3 view .LVU206
+ 1078 007e FE01      		movw r30,r28
+ 1079               	/* #APP */
+ 1080               	 ;  300 "keyboards/lily58/ssd1306.c" 1
+ 1081 0080 8491      		lpm r24, Z
+ 1082               		
+ 1083               	 ;  0 "" 2
+ 1084               	.LVL100:
+ 1085               		.loc 1 300 27 discriminator 3 view .LVU207
+ 1086               		.loc 1 300 27 is_stmt 0 discriminator 3 view .LVU208
+ 1087               	/* #NOAPP */
+ 1088               	.LBE35:
+ 301:keyboards/lily58/ssd1306.c ****         i2c_master_write(colBits);
+ 1089               		.loc 1 301 9 is_stmt 1 discriminator 3 view .LVU209
+ 1090 0082 0E94 0000 		call i2c_master_write
+ 1091               	.LVL101:
+ 1092               		.loc 1 301 9 is_stmt 0 discriminator 3 view .LVU210
+ 1093 0086 CA94      		dec r12
+ 1094 0088 2196      		adiw r28,1
+ 1095               	.LVL102:
+ 1096               		.loc 1 301 9 discriminator 3 view .LVU211
+ 1097               	.LBE34:
+ 299:keyboards/lily58/ssd1306.c ****         uint8_t colBits = pgm_read_byte(glyph + glyphCol);
+ 1098               		.loc 1 299 7 discriminator 3 view .LVU212
+ 1099 008a C110      		cpse r12,__zero_reg__
+ 1100 008c 00C0      		rjmp .L47
+ 1101               	.LBE36:
+ 1102               	.LBE37:
+ 296:keyboards/lily58/ssd1306.c ****       const uint8_t *glyph = font + (matrix->display[row][col] * FontWidth);
+ 1103               		.loc 1 296 45 discriminator 2 view .LVU213
+ 1104 008e D394      		inc r13
+ 1105               	.LVL103:
+ 296:keyboards/lily58/ssd1306.c ****       const uint8_t *glyph = font + (matrix->display[row][col] * FontWidth);
+ 1106               		.loc 1 296 5 discriminator 2 view .LVU214
+ 1107 0090 F5E1      		ldi r31,lo8(21)
+ 1108 0092 DF12      		cpse r13,r31
+ 1109 0094 00C0      		rjmp .L48
+ 1110               	.LVL104:
+ 296:keyboards/lily58/ssd1306.c ****       const uint8_t *glyph = font + (matrix->display[row][col] * FontWidth);
+ 1111               		.loc 1 296 5 discriminator 2 view .LVU215
+ 1112 0096 85E1      		ldi r24,21
+ 1113 0098 E80E      		add r14,r24
+ 1114 009a F11C      		adc r15,__zero_reg__
+ 1115               	.LBE38:
+ 295:keyboards/lily58/ssd1306.c ****     for (uint8_t col = 0; col < MatrixCols; ++col) {
+ 1116               		.loc 1 295 3 discriminator 2 view .LVU216
+ 1117 009c 8E14      		cp r8,r14
+ 1118 009e 9F04      		cpc r9,r15
+ 1119 00a0 01F4      		brne .L46
+ 1120               	.LBE39:
+ 302:keyboards/lily58/ssd1306.c ****       }
+ 303:keyboards/lily58/ssd1306.c **** 
+ 304:keyboards/lily58/ssd1306.c ****       // 1 column of space between chars (it's not included in the glyph)
+ 305:keyboards/lily58/ssd1306.c ****       //i2c_master_write(0);
+ 306:keyboards/lily58/ssd1306.c ****     }
+ 307:keyboards/lily58/ssd1306.c ****   }
+ 308:keyboards/lily58/ssd1306.c **** 
+ 309:keyboards/lily58/ssd1306.c ****   matrix->dirty = false;
+ 1121               		.loc 1 309 3 is_stmt 1 view .LVU217
+ 1122               		.loc 1 309 17 is_stmt 0 view .LVU218
+ 1123 00a2 F801      		movw r30,r16
+ 1124 00a4 EA5A      		subi r30,-86
+ 1125 00a6 FF4F      		sbci r31,-1
+ 1126 00a8 1082      		st Z,__zero_reg__
+ 1127               	.LVL105:
+ 1128               	.L44:
+ 310:keyboards/lily58/ssd1306.c **** 
+ 311:keyboards/lily58/ssd1306.c **** done:
+ 312:keyboards/lily58/ssd1306.c ****   i2c_master_stop();
+ 1129               		.loc 1 312 3 is_stmt 1 view .LVU219
+ 1130               	/* epilogue start */
+ 313:keyboards/lily58/ssd1306.c **** #if DEBUG_TO_SCREEN
+ 314:keyboards/lily58/ssd1306.c ****   --displaying;
+ 315:keyboards/lily58/ssd1306.c **** #endif
+ 316:keyboards/lily58/ssd1306.c **** }
+ 1131               		.loc 1 316 1 is_stmt 0 view .LVU220
+ 1132 00aa DF91      		pop r29
+ 1133 00ac CF91      		pop r28
+ 1134 00ae 1F91      		pop r17
+ 1135 00b0 0F91      		pop r16
+ 1136               	.LVL106:
+ 1137               		.loc 1 316 1 view .LVU221
+ 1138 00b2 FF90      		pop r15
+ 1139 00b4 EF90      		pop r14
+ 1140 00b6 DF90      		pop r13
+ 1141 00b8 CF90      		pop r12
+ 1142 00ba BF90      		pop r11
+ 1143 00bc AF90      		pop r10
+ 1144 00be 9F90      		pop r9
+ 1145 00c0 8F90      		pop r8
+ 1146 00c2 7F90      		pop r7
+ 312:keyboards/lily58/ssd1306.c **** #if DEBUG_TO_SCREEN
+ 1147               		.loc 1 312 3 view .LVU222
+ 1148 00c4 0C94 0000 		jmp i2c_master_stop
+ 1149               	.LVL107:
+ 1150               		.cfi_endproc
+ 1151               	.LFE132:
+ 1153               		.section	.text.iota_gfx_flush,"ax",@progbits
+ 1154               	.global	iota_gfx_flush
+ 1156               	iota_gfx_flush:
+ 1157               	.LFB133:
+ 317:keyboards/lily58/ssd1306.c **** 
+ 318:keyboards/lily58/ssd1306.c **** void iota_gfx_flush(void) {
+ 1158               		.loc 1 318 27 is_stmt 1 view -0
+ 1159               		.cfi_startproc
+ 1160               	/* prologue: function */
+ 1161               	/* frame size = 0 */
+ 1162               	/* stack size = 0 */
+ 1163               	.L__stack_usage = 0
+ 319:keyboards/lily58/ssd1306.c ****   matrix_render(&display);
+ 1164               		.loc 1 319 3 view .LVU224
+ 1165 0000 80E0      		ldi r24,lo8(display)
+ 1166 0002 90E0      		ldi r25,hi8(display)
+ 1167 0004 0C94 0000 		jmp matrix_render
+ 1168               	.LVL108:
+ 1169               		.cfi_endproc
+ 1170               	.LFE133:
+ 1172               		.section	.text.iota_gfx_init,"ax",@progbits
+ 1173               	.global	iota_gfx_init
+ 1175               	iota_gfx_init:
+ 1176               	.LVL109:
+ 1177               	.LFB119:
+ 129:keyboards/lily58/ssd1306.c ****   bool success = false;
+ 1178               		.loc 1 129 33 view -0
+ 1179               		.cfi_startproc
+ 129:keyboards/lily58/ssd1306.c ****   bool success = false;
+ 1180               		.loc 1 129 33 is_stmt 0 view .LVU226
+ 1181 0000 1F93      		push r17
+ 1182               	.LCFI44:
+ 1183               		.cfi_def_cfa_offset 3
+ 1184               		.cfi_offset 17, -2
+ 1185 0002 CF93      		push r28
+ 1186               	.LCFI45:
+ 1187               		.cfi_def_cfa_offset 4
+ 1188               		.cfi_offset 28, -3
+ 1189 0004 DF93      		push r29
+ 1190               	.LCFI46:
+ 1191               		.cfi_def_cfa_offset 5
+ 1192               		.cfi_offset 29, -4
+ 1193               	/* prologue: function */
+ 1194               	/* frame size = 0 */
+ 1195               	/* stack size = 3 */
+ 1196               	.L__stack_usage = 3
+ 1197 0006 C82F      		mov r28,r24
+ 130:keyboards/lily58/ssd1306.c **** 
+ 1198               		.loc 1 130 3 is_stmt 1 view .LVU227
+ 1199               	.LVL110:
+ 132:keyboards/lily58/ssd1306.c ****   send_cmd1(DisplayOff);
+ 1200               		.loc 1 132 3 view .LVU228
+ 1201 0008 0E94 0000 		call i2c_master_init
+ 1202               	.LVL111:
+ 133:keyboards/lily58/ssd1306.c ****   send_cmd2(SetDisplayClockDiv, 0x80);
+ 1203               		.loc 1 133 3 view .LVU229
+ 1204 000c 8EEA      		ldi r24,lo8(-82)
+ 1205 000e 0E94 0000 		call _send_cmd1
+ 1206               	.LVL112:
+ 1207 0012 8111      		cpse r24,__zero_reg__
+ 1208 0014 00C0      		rjmp .L57
+ 1209               	.LVL113:
+ 1210               	.L59:
+ 130:keyboards/lily58/ssd1306.c **** 
+ 1211               		.loc 1 130 8 is_stmt 0 view .LVU230
+ 1212 0016 C0E0      		ldi r28,0
+ 1213               	.LVL114:
+ 1214               	.L56:
+ 177:keyboards/lily58/ssd1306.c **** 
+ 1215               		.loc 1 177 1 view .LVU231
+ 1216 0018 8C2F      		mov r24,r28
+ 1217               	/* epilogue start */
+ 1218 001a DF91      		pop r29
+ 1219 001c CF91      		pop r28
+ 1220 001e 1F91      		pop r17
+ 1221 0020 0895      		ret
+ 1222               	.LVL115:
+ 1223               	.L57:
+ 133:keyboards/lily58/ssd1306.c ****   send_cmd2(SetDisplayClockDiv, 0x80);
+ 1224               		.loc 1 133 24 is_stmt 1 discriminator 2 view .LVU232
+ 134:keyboards/lily58/ssd1306.c ****   send_cmd2(SetMultiPlex, DisplayHeight - 1);
+ 1225               		.loc 1 134 3 discriminator 2 view .LVU233
+ 1226 0022 60E8      		ldi r22,lo8(-128)
+ 1227 0024 85ED      		ldi r24,lo8(-43)
+ 1228 0026 0E94 0000 		call _send_cmd2
+ 1229               	.LVL116:
+ 1230 002a 8823      		tst r24
+ 1231 002c 01F0      		breq .L59
+ 134:keyboards/lily58/ssd1306.c ****   send_cmd2(SetMultiPlex, DisplayHeight - 1);
+ 1232               		.loc 1 134 38 discriminator 2 view .LVU234
+ 135:keyboards/lily58/ssd1306.c **** 
+ 1233               		.loc 1 135 3 discriminator 2 view .LVU235
+ 1234 002e 6FE1      		ldi r22,lo8(31)
+ 1235 0030 88EA      		ldi r24,lo8(-88)
+ 1236 0032 0E94 0000 		call _send_cmd2
+ 1237               	.LVL117:
+ 1238 0036 8823      		tst r24
+ 1239 0038 01F0      		breq .L59
+ 135:keyboards/lily58/ssd1306.c **** 
+ 1240               		.loc 1 135 45 discriminator 2 view .LVU236
+ 137:keyboards/lily58/ssd1306.c **** 
+ 1241               		.loc 1 137 3 discriminator 2 view .LVU237
+ 1242 003a 60E0      		ldi r22,0
+ 1243 003c 83ED      		ldi r24,lo8(-45)
+ 1244 003e 0E94 0000 		call _send_cmd2
+ 1245               	.LVL118:
+ 1246 0042 8823      		tst r24
+ 1247 0044 01F0      		breq .L59
+ 137:keyboards/lily58/ssd1306.c **** 
+ 1248               		.loc 1 137 33 discriminator 2 view .LVU238
+ 140:keyboards/lily58/ssd1306.c ****   send_cmd2(SetChargePump, 0x14 /* Enable */);
+ 1249               		.loc 1 140 3 discriminator 2 view .LVU239
+ 1250 0046 80E4      		ldi r24,lo8(64)
+ 1251 0048 0E94 0000 		call _send_cmd1
+ 1252               	.LVL119:
+ 1253 004c 8823      		tst r24
+ 1254 004e 01F0      		breq .L59
+ 140:keyboards/lily58/ssd1306.c ****   send_cmd2(SetChargePump, 0x14 /* Enable */);
+ 1255               		.loc 1 140 32 discriminator 2 view .LVU240
+ 141:keyboards/lily58/ssd1306.c ****   send_cmd2(SetMemoryMode, 0 /* horizontal addressing */);
+ 1256               		.loc 1 141 3 discriminator 2 view .LVU241
+ 1257 0050 64E1      		ldi r22,lo8(20)
+ 1258 0052 8DE8      		ldi r24,lo8(-115)
+ 1259 0054 0E94 0000 		call _send_cmd2
+ 1260               	.LVL120:
+ 1261 0058 8823      		tst r24
+ 1262 005a 01F0      		breq .L59
+ 141:keyboards/lily58/ssd1306.c ****   send_cmd2(SetMemoryMode, 0 /* horizontal addressing */);
+ 1263               		.loc 1 141 46 discriminator 2 view .LVU242
+ 142:keyboards/lily58/ssd1306.c **** 
+ 1264               		.loc 1 142 3 discriminator 2 view .LVU243
+ 1265 005c 60E0      		ldi r22,0
+ 1266 005e 80E2      		ldi r24,lo8(32)
+ 1267 0060 0E94 0000 		call _send_cmd2
+ 1268               	.LVL121:
+ 1269 0064 8823      		tst r24
+ 1270 0066 01F0      		breq .L59
+ 142:keyboards/lily58/ssd1306.c **** 
+ 1271               		.loc 1 142 58 discriminator 2 view .LVU244
+ 144:keyboards/lily58/ssd1306.c ****     // the following Flip the display orientation 180 degrees
+ 1272               		.loc 1 144 3 discriminator 2 view .LVU245
+ 144:keyboards/lily58/ssd1306.c ****     // the following Flip the display orientation 180 degrees
+ 1273               		.loc 1 144 5 is_stmt 0 discriminator 2 view .LVU246
+ 1274 0068 CC23      		tst r28
+ 1275 006a 01F4      		brne .+2
+ 1276 006c 00C0      		rjmp .L60
+ 146:keyboards/lily58/ssd1306.c ****     send_cmd1(ComScanInc);
+ 1277               		.loc 1 146 5 is_stmt 1 view .LVU247
+ 1278 006e 80EA      		ldi r24,lo8(-96)
+ 1279 0070 0E94 0000 		call _send_cmd1
+ 1280               	.LVL122:
+ 1281 0074 8823      		tst r24
+ 1282 0076 01F0      		breq .L59
+ 146:keyboards/lily58/ssd1306.c ****     send_cmd1(ComScanInc);
+ 1283               		.loc 1 146 24 discriminator 2 view .LVU248
+ 147:keyboards/lily58/ssd1306.c ****   }else{
+ 1284               		.loc 1 147 5 discriminator 2 view .LVU249
+ 1285 0078 80EC      		ldi r24,lo8(-64)
+ 1286               	.L124:
+ 151:keyboards/lily58/ssd1306.c ****   }
+ 1287               		.loc 1 151 5 is_stmt 0 discriminator 2 view .LVU250
+ 1288 007a 0E94 0000 		call _send_cmd1
+ 1289               	.LVL123:
+ 1290 007e 8823      		tst r24
+ 1291 0080 01F0      		breq .L59
+ 151:keyboards/lily58/ssd1306.c ****   }
+ 1292               		.loc 1 151 26 is_stmt 1 view .LVU251
+ 154:keyboards/lily58/ssd1306.c ****   send_cmd2(SetContrast, 0x8f);
+ 1293               		.loc 1 154 3 view .LVU252
+ 1294 0082 62E0      		ldi r22,lo8(2)
+ 1295 0084 8AED      		ldi r24,lo8(-38)
+ 1296 0086 0E94 0000 		call _send_cmd2
+ 1297               	.LVL124:
+ 1298 008a 8823      		tst r24
+ 1299 008c 01F0      		breq .L59
+ 154:keyboards/lily58/ssd1306.c ****   send_cmd2(SetContrast, 0x8f);
+ 1300               		.loc 1 154 29 discriminator 2 view .LVU253
+ 155:keyboards/lily58/ssd1306.c ****   send_cmd2(SetPreCharge, 0xf1);
+ 1301               		.loc 1 155 3 discriminator 2 view .LVU254
+ 1302 008e 6FE8      		ldi r22,lo8(-113)
+ 1303 0090 81E8      		ldi r24,lo8(-127)
+ 1304 0092 0E94 0000 		call _send_cmd2
+ 1305               	.LVL125:
+ 1306 0096 8823      		tst r24
+ 1307 0098 01F4      		brne .+2
+ 1308 009a 00C0      		rjmp .L59
+ 155:keyboards/lily58/ssd1306.c ****   send_cmd2(SetPreCharge, 0xf1);
+ 1309               		.loc 1 155 31 discriminator 2 view .LVU255
+ 156:keyboards/lily58/ssd1306.c ****   send_cmd2(SetVComDetect, 0x40);
+ 1310               		.loc 1 156 3 discriminator 2 view .LVU256
+ 1311 009c 61EF      		ldi r22,lo8(-15)
+ 1312 009e 89ED      		ldi r24,lo8(-39)
+ 1313 00a0 0E94 0000 		call _send_cmd2
+ 1314               	.LVL126:
+ 1315 00a4 8823      		tst r24
+ 1316 00a6 01F4      		brne .+2
+ 1317 00a8 00C0      		rjmp .L59
+ 156:keyboards/lily58/ssd1306.c ****   send_cmd2(SetVComDetect, 0x40);
+ 1318               		.loc 1 156 32 discriminator 2 view .LVU257
+ 157:keyboards/lily58/ssd1306.c ****   send_cmd1(DisplayAllOnResume);
+ 1319               		.loc 1 157 3 discriminator 2 view .LVU258
+ 1320 00aa 60E4      		ldi r22,lo8(64)
+ 1321 00ac 8BED      		ldi r24,lo8(-37)
+ 1322 00ae 0E94 0000 		call _send_cmd2
+ 1323               	.LVL127:
+ 1324 00b2 8823      		tst r24
+ 1325 00b4 01F4      		brne .+2
+ 1326 00b6 00C0      		rjmp .L59
+ 157:keyboards/lily58/ssd1306.c ****   send_cmd1(DisplayAllOnResume);
+ 1327               		.loc 1 157 33 discriminator 2 view .LVU259
+ 158:keyboards/lily58/ssd1306.c ****   send_cmd1(NormalDisplay);
+ 1328               		.loc 1 158 3 discriminator 2 view .LVU260
+ 1329 00b8 84EA      		ldi r24,lo8(-92)
+ 1330 00ba 0E94 0000 		call _send_cmd1
+ 1331               	.LVL128:
+ 1332 00be 8823      		tst r24
+ 1333 00c0 01F4      		brne .+2
+ 1334 00c2 00C0      		rjmp .L59
+ 158:keyboards/lily58/ssd1306.c ****   send_cmd1(NormalDisplay);
+ 1335               		.loc 1 158 32 discriminator 2 view .LVU261
+ 159:keyboards/lily58/ssd1306.c ****   send_cmd1(DeActivateScroll);
+ 1336               		.loc 1 159 3 discriminator 2 view .LVU262
+ 1337 00c4 86EA      		ldi r24,lo8(-90)
+ 1338 00c6 0E94 0000 		call _send_cmd1
+ 1339               	.LVL129:
+ 1340 00ca 8823      		tst r24
+ 1341 00cc 01F4      		brne .+2
+ 1342 00ce 00C0      		rjmp .L59
+ 159:keyboards/lily58/ssd1306.c ****   send_cmd1(DeActivateScroll);
+ 1343               		.loc 1 159 27 discriminator 2 view .LVU263
+ 160:keyboards/lily58/ssd1306.c ****   send_cmd1(DisplayOn);
+ 1344               		.loc 1 160 3 discriminator 2 view .LVU264
+ 1345 00d0 8EE2      		ldi r24,lo8(46)
+ 1346 00d2 0E94 0000 		call _send_cmd1
+ 1347               	.LVL130:
+ 1348 00d6 8823      		tst r24
+ 1349 00d8 01F4      		brne .+2
+ 1350 00da 00C0      		rjmp .L59
+ 160:keyboards/lily58/ssd1306.c ****   send_cmd1(DisplayOn);
+ 1351               		.loc 1 160 30 discriminator 2 view .LVU265
+ 161:keyboards/lily58/ssd1306.c **** 
+ 1352               		.loc 1 161 3 discriminator 2 view .LVU266
+ 1353 00dc 8FEA      		ldi r24,lo8(-81)
+ 1354 00de 0E94 0000 		call _send_cmd1
+ 1355               	.LVL131:
+ 1356 00e2 8823      		tst r24
+ 1357 00e4 01F4      		brne .+2
+ 1358 00e6 00C0      		rjmp .L59
+ 161:keyboards/lily58/ssd1306.c **** 
+ 1359               		.loc 1 161 23 discriminator 2 view .LVU267
+ 163:keyboards/lily58/ssd1306.c **** 
+ 1360               		.loc 1 163 3 discriminator 2 view .LVU268
+ 1361 00e8 60E0      		ldi r22,0
+ 1362 00ea 81E8      		ldi r24,lo8(-127)
+ 1363 00ec 0E94 0000 		call _send_cmd2
+ 1364               	.LVL132:
+ 1365 00f0 C82F      		mov r28,r24
+ 1366               	.LVL133:
+ 163:keyboards/lily58/ssd1306.c **** 
+ 1367               		.loc 1 163 3 is_stmt 0 discriminator 2 view .LVU269
+ 1368 00f2 8823      		tst r24
+ 1369 00f4 01F4      		brne .+2
+ 1370 00f6 00C0      		rjmp .L59
+ 163:keyboards/lily58/ssd1306.c **** 
+ 1371               		.loc 1 163 28 is_stmt 1 view .LVU270
+ 165:keyboards/lily58/ssd1306.c **** 
+ 1372               		.loc 1 165 3 view .LVU271
+ 1373               	.LBB46:
+ 1374               	.LBI46:
+  89:keyboards/lily58/ssd1306.c ****   matrix_clear(&display);
+ 1375               		.loc 1 89 13 view .LVU272
+ 1376               	.LBB47:
+  90:keyboards/lily58/ssd1306.c **** 
+ 1377               		.loc 1 90 3 view .LVU273
+ 1378 00f8 80E0      		ldi r24,lo8(display)
+ 1379 00fa 90E0      		ldi r25,hi8(display)
+ 1380 00fc 0E94 0000 		call matrix_clear
+ 1381               	.LVL134:
+  94:keyboards/lily58/ssd1306.c ****   send_cmd3(ColumnAddr, 0, DisplayWidth - 1);
+ 1382               		.loc 1 94 3 view .LVU274
+ 1383 0100 63E0      		ldi r22,lo8(3)
+ 1384 0102 82E2      		ldi r24,lo8(34)
+ 1385 0104 0E94 0000 		call _send_cmd3.constprop.1
+ 1386               	.LVL135:
+ 1387 0108 8823      		tst r24
+ 1388 010a 01F0      		breq .L64
+  94:keyboards/lily58/ssd1306.c ****   send_cmd3(ColumnAddr, 0, DisplayWidth - 1);
+ 1389               		.loc 1 94 50 view .LVU275
+  95:keyboards/lily58/ssd1306.c **** 
+ 1390               		.loc 1 95 3 view .LVU276
+ 1391 010c 6FE7      		ldi r22,lo8(127)
+ 1392 010e 81E2      		ldi r24,lo8(33)
+ 1393 0110 0E94 0000 		call _send_cmd3.constprop.1
+ 1394               	.LVL136:
+ 1395 0114 8823      		tst r24
+ 1396 0116 01F0      		breq .L64
+  95:keyboards/lily58/ssd1306.c **** 
+ 1397               		.loc 1 95 45 view .LVU277
+  97:keyboards/lily58/ssd1306.c ****     goto done;
+ 1398               		.loc 1 97 3 view .LVU278
+ 1399               	.LVL137:
+ 1400               	.LBB48:
+ 1401               	.LBI48:
+  35:keyboards/lily58/i2c.h ****   return i2c_master_start((addr << 1) | I2C_WRITE);
+ 1402               		.loc 2 35 29 view .LVU279
+ 1403               	.LBB49:
+ 1404               		.loc 2 36 3 view .LVU280
+ 1405               		.loc 2 36 10 is_stmt 0 view .LVU281
+ 1406 0118 88E7      		ldi r24,lo8(120)
+ 1407 011a 0E94 0000 		call i2c_master_start
+ 1408               	.LVL138:
+ 1409               		.loc 2 36 10 view .LVU282
+ 1410               	.LBE49:
+ 1411               	.LBE48:
+  97:keyboards/lily58/ssd1306.c ****     goto done;
+ 1412               		.loc 1 97 6 view .LVU283
+ 1413 011e 8111      		cpse r24,__zero_reg__
+ 1414 0120 00C0      		rjmp .L64
+ 100:keyboards/lily58/ssd1306.c ****     // Data mode
+ 1415               		.loc 1 100 3 is_stmt 1 view .LVU284
+ 100:keyboards/lily58/ssd1306.c ****     // Data mode
+ 1416               		.loc 1 100 7 is_stmt 0 view .LVU285
+ 1417 0122 80E4      		ldi r24,lo8(64)
+ 1418 0124 0E94 0000 		call i2c_master_write
+ 1419               	.LVL139:
+ 100:keyboards/lily58/ssd1306.c ****     // Data mode
+ 1420               		.loc 1 100 6 view .LVU286
+ 1421 0128 14E0      		ldi r17,lo8(4)
+ 1422 012a 8823      		tst r24
+ 1423 012c 01F0      		breq .L66
+ 1424               	.L64:
+ 113:keyboards/lily58/ssd1306.c **** }
+ 1425               		.loc 1 113 3 is_stmt 1 view .LVU287
+ 1426 012e 0E94 0000 		call i2c_master_stop
+ 1427               	.LVL140:
+ 1428               	.LBE47:
+ 1429               	.LBE46:
+ 167:keyboards/lily58/ssd1306.c **** 
+ 1430               		.loc 1 167 3 view .LVU288
+ 169:keyboards/lily58/ssd1306.c **** 
+ 1431               		.loc 1 169 3 view .LVU289
+ 1432 0132 0E94 0000 		call iota_gfx_flush
+ 1433               	.LVL141:
+ 1434               	.L58:
+ 176:keyboards/lily58/ssd1306.c **** }
+ 1435               		.loc 1 176 3 view .LVU290
+ 176:keyboards/lily58/ssd1306.c **** }
+ 1436               		.loc 1 176 10 is_stmt 0 view .LVU291
+ 1437 0136 00C0      		rjmp .L56
+ 1438               	.LVL142:
+ 1439               	.L60:
+ 150:keyboards/lily58/ssd1306.c ****     send_cmd1(ComScanDec);
+ 1440               		.loc 1 150 5 is_stmt 1 view .LVU292
+ 1441 0138 81EA      		ldi r24,lo8(-95)
+ 1442 013a 0E94 0000 		call _send_cmd1
+ 1443               	.LVL143:
+ 1444 013e 8823      		tst r24
+ 1445 0140 01F4      		brne .+2
+ 1446 0142 00C0      		rjmp .L59
+ 150:keyboards/lily58/ssd1306.c ****     send_cmd1(ComScanDec);
+ 1447               		.loc 1 150 30 discriminator 2 view .LVU293
+ 151:keyboards/lily58/ssd1306.c ****   }
+ 1448               		.loc 1 151 5 discriminator 2 view .LVU294
+ 1449 0144 88EC      		ldi r24,lo8(-56)
+ 1450 0146 00C0      		rjmp .L124
+ 1451               	.LVL144:
+ 1452               	.L67:
+ 1453               	.LBB54:
+ 1454               	.LBB53:
+ 1455               	.LBB50:
+ 1456               	.LBB51:
+ 106:keyboards/lily58/ssd1306.c ****     }
+ 1457               		.loc 1 106 7 view .LVU295
+ 1458 0148 80E0      		ldi r24,0
+ 1459 014a 0E94 0000 		call i2c_master_write
+ 1460               	.LVL145:
+ 105:keyboards/lily58/ssd1306.c ****       i2c_master_write(0);
+ 1461               		.loc 1 105 47 is_stmt 0 view .LVU296
+ 1462 014e DF5F      		subi r29,lo8(-(1))
+ 1463               	.LVL146:
+ 105:keyboards/lily58/ssd1306.c ****       i2c_master_write(0);
+ 1464               		.loc 1 105 5 view .LVU297
+ 1465 0150 D038      		cpi r29,lo8(-128)
+ 1466 0152 01F4      		brne .L67
+ 1467               	.LVL147:
+ 105:keyboards/lily58/ssd1306.c ****       i2c_master_write(0);
+ 1468               		.loc 1 105 5 view .LVU298
+ 1469 0154 1150      		subi r17,lo8(-(-1))
+ 1470               	.LVL148:
+ 105:keyboards/lily58/ssd1306.c ****       i2c_master_write(0);
+ 1471               		.loc 1 105 5 view .LVU299
+ 1472               	.LBE51:
+ 104:keyboards/lily58/ssd1306.c ****     for (uint8_t col = 0; col < DisplayWidth; ++col) {
+ 1473               		.loc 1 104 3 view .LVU300
+ 1474 0156 01F0      		breq .L68
+ 1475               	.LVL149:
+ 1476               	.L66:
+ 1477               	.LBB52:
+ 105:keyboards/lily58/ssd1306.c ****       i2c_master_write(0);
+ 1478               		.loc 1 105 18 view .LVU301
+ 1479 0158 D0E0      		ldi r29,0
+ 1480 015a 00C0      		rjmp .L67
+ 1481               	.LVL150:
+ 1482               	.L68:
+ 105:keyboards/lily58/ssd1306.c ****       i2c_master_write(0);
+ 1483               		.loc 1 105 18 view .LVU302
+ 1484               	.LBE52:
+ 1485               	.LBE50:
+ 110:keyboards/lily58/ssd1306.c **** 
+ 1486               		.loc 1 110 3 is_stmt 1 view .LVU303
+ 110:keyboards/lily58/ssd1306.c **** 
+ 1487               		.loc 1 110 17 is_stmt 0 view .LVU304
+ 1488 015c 1092 0000 		sts display+86,__zero_reg__
+ 1489 0160 00C0      		rjmp .L64
+ 1490               	.LBE53:
+ 1491               	.LBE54:
+ 1492               		.cfi_endproc
+ 1493               	.LFE119:
+ 1495               		.section	.text.iota_gfx_task_user,"ax",@progbits
+ 1496               		.weak	iota_gfx_task_user
+ 1498               	iota_gfx_task_user:
+ 1499               	.LFB134:
+ 320:keyboards/lily58/ssd1306.c **** }
+ 321:keyboards/lily58/ssd1306.c **** 
+ 322:keyboards/lily58/ssd1306.c **** __attribute__ ((weak))
+ 323:keyboards/lily58/ssd1306.c **** void iota_gfx_task_user(void) {
+ 1500               		.loc 1 323 31 is_stmt 1 view -0
+ 1501               		.cfi_startproc
+ 1502               	/* prologue: function */
+ 1503               	/* frame size = 0 */
+ 1504               	/* stack size = 0 */
+ 1505               	.L__stack_usage = 0
+ 324:keyboards/lily58/ssd1306.c **** }
+ 1506               		.loc 1 324 1 view .LVU306
+ 1507               	/* epilogue start */
+ 1508 0000 0895      		ret
+ 1509               		.cfi_endproc
+ 1510               	.LFE134:
+ 1512               		.section	.text.iota_gfx_task,"ax",@progbits
+ 1513               	.global	iota_gfx_task
+ 1515               	iota_gfx_task:
+ 1516               	.LFB135:
+ 325:keyboards/lily58/ssd1306.c **** 
+ 326:keyboards/lily58/ssd1306.c **** void iota_gfx_task(void) {
+ 1517               		.loc 1 326 26 view -0
+ 1518               		.cfi_startproc
+ 1519               	/* prologue: function */
+ 1520               	/* frame size = 0 */
+ 1521               	/* stack size = 0 */
+ 1522               	.L__stack_usage = 0
+ 327:keyboards/lily58/ssd1306.c ****   iota_gfx_task_user();
+ 1523               		.loc 1 327 3 view .LVU308
+ 1524 0000 0E94 0000 		call iota_gfx_task_user
+ 1525               	.LVL151:
+ 328:keyboards/lily58/ssd1306.c **** 
+ 329:keyboards/lily58/ssd1306.c ****   if (display.dirty|| force_dirty) {
+ 1526               		.loc 1 329 3 view .LVU309
+ 1527               		.loc 1 329 6 is_stmt 0 view .LVU310
+ 1528 0004 8091 0000 		lds r24,display+86
+ 1529 0008 8111      		cpse r24,__zero_reg__
+ 1530 000a 00C0      		rjmp .L127
+ 1531               		.loc 1 329 20 discriminator 1 view .LVU311
+ 1532 000c 8091 0000 		lds r24,force_dirty
+ 1533 0010 8823      		tst r24
+ 1534 0012 01F0      		breq .L128
+ 1535               	.L127:
+ 330:keyboards/lily58/ssd1306.c ****     iota_gfx_flush();
+ 1536               		.loc 1 330 5 is_stmt 1 view .LVU312
+ 1537 0014 0E94 0000 		call iota_gfx_flush
+ 1538               	.LVL152:
+ 331:keyboards/lily58/ssd1306.c ****     force_dirty = false;
+ 1539               		.loc 1 331 5 view .LVU313
+ 1540               		.loc 1 331 17 is_stmt 0 view .LVU314
+ 1541 0018 1092 0000 		sts force_dirty,__zero_reg__
+ 1542               	.L128:
+ 332:keyboards/lily58/ssd1306.c ****   }
+ 333:keyboards/lily58/ssd1306.c **** 
+ 334:keyboards/lily58/ssd1306.c ****   if (timer_elapsed(last_flush) > ScreenOffInterval) {
+ 1543               		.loc 1 334 3 is_stmt 1 view .LVU315
+ 1544               		.loc 1 334 7 is_stmt 0 view .LVU316
+ 1545 001c 8091 0000 		lds r24,last_flush
+ 1546 0020 9091 0000 		lds r25,last_flush+1
+ 1547 0024 0E94 0000 		call timer_elapsed
+ 1548               	.LVL153:
+ 1549               		.loc 1 334 6 view .LVU317
+ 1550 0028 8136      		cpi r24,97
+ 1551 002a 9A4E      		sbci r25,-22
+ 1552 002c 00F0      		brlo .L126
+ 335:keyboards/lily58/ssd1306.c ****     iota_gfx_off();
+ 1553               		.loc 1 335 5 is_stmt 1 view .LVU318
+ 1554 002e 0C94 0000 		jmp iota_gfx_off
+ 1555               	.LVL154:
+ 1556               	.L126:
+ 1557               	/* epilogue start */
+ 336:keyboards/lily58/ssd1306.c ****   }
+ 337:keyboards/lily58/ssd1306.c **** }
+ 1558               		.loc 1 337 1 is_stmt 0 view .LVU319
+ 1559 0032 0895      		ret
+ 1560               		.cfi_endproc
+ 1561               	.LFE135:
+ 1563               		.section	.text.process_record_gfx,"ax",@progbits
+ 1564               	.global	process_record_gfx
+ 1566               	process_record_gfx:
+ 1567               	.LVL155:
+ 1568               	.LFB136:
+ 338:keyboards/lily58/ssd1306.c **** 
+ 339:keyboards/lily58/ssd1306.c **** bool process_record_gfx(uint16_t keycode, keyrecord_t *record) {
+ 1569               		.loc 1 339 64 is_stmt 1 view -0
+ 1570               		.cfi_startproc
+ 1571               	/* prologue: function */
+ 1572               	/* frame size = 0 */
+ 1573               	/* stack size = 0 */
+ 1574               	.L__stack_usage = 0
+ 340:keyboards/lily58/ssd1306.c ****   force_dirty = true;
+ 1575               		.loc 1 340 3 view .LVU321
+ 1576               		.loc 1 340 15 is_stmt 0 view .LVU322
+ 1577 0000 81E0      		ldi r24,lo8(1)
+ 1578               	.LVL156:
+ 1579               		.loc 1 340 15 view .LVU323
+ 1580 0002 8093 0000 		sts force_dirty,r24
+ 341:keyboards/lily58/ssd1306.c ****   return true;
+ 1581               		.loc 1 341 3 is_stmt 1 view .LVU324
+ 1582               	/* epilogue start */
+ 342:keyboards/lily58/ssd1306.c **** }
+ 1583               		.loc 1 342 1 is_stmt 0 view .LVU325
+ 1584 0006 0895      		ret
+ 1585               		.cfi_endproc
+ 1586               	.LFE136:
+ 1588               		.section	.data.force_dirty,"aw"
+ 1591               	force_dirty:
+ 1592 0000 01        		.byte	1
+ 1593               		.section	.bss.last_flush,"aw",@nobits
+ 1596               	last_flush:
+ 1597 0000 0000      		.zero	2
+ 1598               		.comm	display,87,1
+ 1599               		.text
+ 1600               	.Letext0:
+ 1601               		.file 3 "c:\\msys64\\home\\kyleo\\qmk_utils\\avr8-gnu-toolchain\\avr\\include\\stdint.h"
+ 1602               		.file 4 "c:\\msys64\\home\\kyleo\\qmk_utils\\avr8-gnu-toolchain\\avr\\include\\stdio.h"
+ 1603               		.file 5 "tmk_core/common/keyboard.h"
+ 1604               		.file 6 "tmk_core/common/action.h"
+ 1605               		.file 7 "keyboards/lily58/ssd1306.h"
+ 1606               		.file 8 "lib/lufa/LUFA/Drivers/USB/Core/AVR8/../StdRequestType.h"
+ 1607               		.file 9 "lib/lufa/LUFA/Drivers/USB/Core/AVR8/../DeviceStandardReq.h"
+ 1608               		.file 10 "lib/lufa/LUFA/Drivers/USB/Core/USBTask.h"
+ 1609               		.file 11 "lib/lufa/LUFA/Drivers/USB/Core/HostStandardReq.h"
+ 1610               		.file 12 "tmk_core/common/report.h"
+ 1611               		.file 13 "tmk_core/common/host_driver.h"
+ 1612               		.file 14 "tmk_core/common/host.h"
+ 1613               		.file 15 "tmk_core/protocol/lufa/lufa.h"
+ 1614               		.file 16 "tmk_core/common/timer.h"
+ 1615               		.file 17 "c:\\msys64\\home\\kyleo\\qmk_utils\\avr8-gnu-toolchain\\avr\\include\\string.h"
+DEFINED SYMBOLS
+                            *ABS*:00000000 ssd1306.c
+C:\Users\kyleo\AppData\Local\Temp\ccufK8Fv.s:2      *ABS*:0000003e __SP_H__
+C:\Users\kyleo\AppData\Local\Temp\ccufK8Fv.s:3      *ABS*:0000003d __SP_L__
+C:\Users\kyleo\AppData\Local\Temp\ccufK8Fv.s:4      *ABS*:0000003f __SREG__
+C:\Users\kyleo\AppData\Local\Temp\ccufK8Fv.s:5      *ABS*:00000000 __tmp_reg__
+C:\Users\kyleo\AppData\Local\Temp\ccufK8Fv.s:6      *ABS*:00000001 __zero_reg__
+C:\Users\kyleo\AppData\Local\Temp\ccufK8Fv.s:12     .text._send_cmd1:00000000 _send_cmd1
+C:\Users\kyleo\AppData\Local\Temp\ccufK8Fv.s:93     .text._send_cmd2:00000000 _send_cmd2
+C:\Users\kyleo\AppData\Local\Temp\ccufK8Fv.s:138    .text._send_cmd3.constprop.1:00000000 _send_cmd3.constprop.1
+C:\Users\kyleo\AppData\Local\Temp\ccufK8Fv.s:205    .text.iota_gfx_off:00000000 iota_gfx_off
+C:\Users\kyleo\AppData\Local\Temp\ccufK8Fv.s:225    .text.iota_gfx_on:00000000 iota_gfx_on
+C:\Users\kyleo\AppData\Local\Temp\ccufK8Fv.s:245    .text.matrix_write_char_inner:00000000 matrix_write_char_inner
+C:\Users\kyleo\AppData\Local\Temp\ccufK8Fv.s:353    .text.matrix_write_char:00000000 matrix_write_char
+C:\Users\kyleo\AppData\Local\Temp\ccufK8Fv.s:458    .text.iota_gfx_write_char:00000000 iota_gfx_write_char
+                            *COM*:00000057 display
+C:\Users\kyleo\AppData\Local\Temp\ccufK8Fv.s:482    .text.matrix_write:00000000 matrix_write
+C:\Users\kyleo\AppData\Local\Temp\ccufK8Fv.s:572    .text.matrix_write_ln:00000000 matrix_write_ln
+C:\Users\kyleo\AppData\Local\Temp\ccufK8Fv.s:707    .text.iota_gfx_write:00000000 iota_gfx_write
+C:\Users\kyleo\AppData\Local\Temp\ccufK8Fv.s:731    .text.matrix_write_P:00000000 matrix_write_P
+C:\Users\kyleo\AppData\Local\Temp\ccufK8Fv.s:813    .text.iota_gfx_write_P:00000000 iota_gfx_write_P
+C:\Users\kyleo\AppData\Local\Temp\ccufK8Fv.s:837    .text.matrix_clear:00000000 matrix_clear
+C:\Users\kyleo\AppData\Local\Temp\ccufK8Fv.s:889    .text.iota_gfx_clear_screen:00000000 iota_gfx_clear_screen
+C:\Users\kyleo\AppData\Local\Temp\ccufK8Fv.s:908    .text.matrix_render:00000000 matrix_render
+C:\Users\kyleo\AppData\Local\Temp\ccufK8Fv.s:1596   .bss.last_flush:00000000 last_flush
+C:\Users\kyleo\AppData\Local\Temp\ccufK8Fv.s:1156   .text.iota_gfx_flush:00000000 iota_gfx_flush
+C:\Users\kyleo\AppData\Local\Temp\ccufK8Fv.s:1175   .text.iota_gfx_init:00000000 iota_gfx_init
+C:\Users\kyleo\AppData\Local\Temp\ccufK8Fv.s:1498   .text.iota_gfx_task_user:00000000 iota_gfx_task_user
+C:\Users\kyleo\AppData\Local\Temp\ccufK8Fv.s:1515   .text.iota_gfx_task:00000000 iota_gfx_task
+C:\Users\kyleo\AppData\Local\Temp\ccufK8Fv.s:1591   .data.force_dirty:00000000 force_dirty
+C:\Users\kyleo\AppData\Local\Temp\ccufK8Fv.s:1566   .text.process_record_gfx:00000000 process_record_gfx
+
+UNDEFINED SYMBOLS
+i2c_master_start
+i2c_master_write
+i2c_master_stop
+memmove
+memset
+__divmodhi4
+snprintf
+timer_read
+font
+i2c_master_init
+timer_elapsed
+__do_copy_data
+__do_clear_bss

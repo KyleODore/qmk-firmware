@@ -1,0 +1,1683 @@
+   1              		.cpu cortex-m0
+   2              		.eabi_attribute 20, 1
+   3              		.eabi_attribute 21, 1
+   4              		.eabi_attribute 23, 3
+   5              		.eabi_attribute 24, 1
+   6              		.eabi_attribute 25, 1
+   7              		.eabi_attribute 26, 1
+   8              		.eabi_attribute 30, 4
+   9              		.eabi_attribute 34, 0
+  10              		.eabi_attribute 18, 2
+  11              		.file	"chmsg.c"
+  12              		.text
+  13              	.Ltext0:
+  14              		.cfi_sections	.debug_frame
+  15              		.section	.text.chMsgSend,"ax",%progbits
+  16              		.align	1
+  17              		.global	chMsgSend
+  18              		.arch armv6s-m
+  19              		.syntax unified
+  20              		.code	16
+  21              		.thumb_func
+  22              		.fpu softvfp
+  24              	chMsgSend:
+  25              	.LVL0:
+  26              	.LFB154:
+  27              		.file 1 "lib/chibios/os/rt/src/chmsg.c"
+   1:lib/chibios/os/rt/src/chmsg.c **** /*
+   2:lib/chibios/os/rt/src/chmsg.c ****     ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio.
+   3:lib/chibios/os/rt/src/chmsg.c **** 
+   4:lib/chibios/os/rt/src/chmsg.c ****     This file is part of ChibiOS.
+   5:lib/chibios/os/rt/src/chmsg.c **** 
+   6:lib/chibios/os/rt/src/chmsg.c ****     ChibiOS is free software; you can redistribute it and/or modify
+   7:lib/chibios/os/rt/src/chmsg.c ****     it under the terms of the GNU General Public License as published by
+   8:lib/chibios/os/rt/src/chmsg.c ****     the Free Software Foundation; either version 3 of the License, or
+   9:lib/chibios/os/rt/src/chmsg.c ****     (at your option) any later version.
+  10:lib/chibios/os/rt/src/chmsg.c **** 
+  11:lib/chibios/os/rt/src/chmsg.c ****     ChibiOS is distributed in the hope that it will be useful,
+  12:lib/chibios/os/rt/src/chmsg.c ****     but WITHOUT ANY WARRANTY; without even the implied warranty of
+  13:lib/chibios/os/rt/src/chmsg.c ****     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  14:lib/chibios/os/rt/src/chmsg.c ****     GNU General Public License for more details.
+  15:lib/chibios/os/rt/src/chmsg.c **** 
+  16:lib/chibios/os/rt/src/chmsg.c ****     You should have received a copy of the GNU General Public License
+  17:lib/chibios/os/rt/src/chmsg.c ****     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  18:lib/chibios/os/rt/src/chmsg.c **** */
+  19:lib/chibios/os/rt/src/chmsg.c **** 
+  20:lib/chibios/os/rt/src/chmsg.c **** /**
+  21:lib/chibios/os/rt/src/chmsg.c ****  * @file    chmsg.c
+  22:lib/chibios/os/rt/src/chmsg.c ****  * @brief   Messages code.
+  23:lib/chibios/os/rt/src/chmsg.c ****  *
+  24:lib/chibios/os/rt/src/chmsg.c ****  * @addtogroup messages
+  25:lib/chibios/os/rt/src/chmsg.c ****  * @details Synchronous inter-thread messages APIs and services.
+  26:lib/chibios/os/rt/src/chmsg.c ****  *          <h2>Operation Mode</h2>
+  27:lib/chibios/os/rt/src/chmsg.c ****  *          Synchronous messages are an easy to use and fast IPC mechanism,
+  28:lib/chibios/os/rt/src/chmsg.c ****  *          threads can both act as message servers and/or message clients,
+  29:lib/chibios/os/rt/src/chmsg.c ****  *          the mechanism allows data to be carried in both directions. Note
+  30:lib/chibios/os/rt/src/chmsg.c ****  *          that messages are not copied between the client and server threads
+  31:lib/chibios/os/rt/src/chmsg.c ****  *          but just a pointer passed so the exchange is very time
+  32:lib/chibios/os/rt/src/chmsg.c ****  *          efficient.<br>
+  33:lib/chibios/os/rt/src/chmsg.c ****  *          Messages are scalar data types of type @p msg_t that are guaranteed
+  34:lib/chibios/os/rt/src/chmsg.c ****  *          to be size compatible with data pointers. Note that on some
+  35:lib/chibios/os/rt/src/chmsg.c ****  *          architectures function pointers can be larger that @p msg_t.<br>
+  36:lib/chibios/os/rt/src/chmsg.c ****  *          Messages are usually processed in FIFO order but it is possible to
+  37:lib/chibios/os/rt/src/chmsg.c ****  *          process them in priority order by enabling the
+  38:lib/chibios/os/rt/src/chmsg.c ****  *          @p CH_CFG_USE_MESSAGES_PRIORITY option in @p chconf.h.<br>
+  39:lib/chibios/os/rt/src/chmsg.c ****  * @pre     In order to use the message APIs the @p CH_CFG_USE_MESSAGES option
+  40:lib/chibios/os/rt/src/chmsg.c ****  *          must be enabled in @p chconf.h.
+  41:lib/chibios/os/rt/src/chmsg.c ****  * @post    Enabling messages requires 6-12 (depending on the architecture)
+  42:lib/chibios/os/rt/src/chmsg.c ****  *          extra bytes in the @p thread_t structure.
+  43:lib/chibios/os/rt/src/chmsg.c ****  * @{
+  44:lib/chibios/os/rt/src/chmsg.c ****  */
+  45:lib/chibios/os/rt/src/chmsg.c **** 
+  46:lib/chibios/os/rt/src/chmsg.c **** #include "ch.h"
+  47:lib/chibios/os/rt/src/chmsg.c **** 
+  48:lib/chibios/os/rt/src/chmsg.c **** #if (CH_CFG_USE_MESSAGES == TRUE) || defined(__DOXYGEN__)
+  49:lib/chibios/os/rt/src/chmsg.c **** 
+  50:lib/chibios/os/rt/src/chmsg.c **** /*===========================================================================*/
+  51:lib/chibios/os/rt/src/chmsg.c **** /* Module exported variables.                                                */
+  52:lib/chibios/os/rt/src/chmsg.c **** /*===========================================================================*/
+  53:lib/chibios/os/rt/src/chmsg.c **** 
+  54:lib/chibios/os/rt/src/chmsg.c **** /*===========================================================================*/
+  55:lib/chibios/os/rt/src/chmsg.c **** /* Module local types.                                                       */
+  56:lib/chibios/os/rt/src/chmsg.c **** /*===========================================================================*/
+  57:lib/chibios/os/rt/src/chmsg.c **** 
+  58:lib/chibios/os/rt/src/chmsg.c **** /*===========================================================================*/
+  59:lib/chibios/os/rt/src/chmsg.c **** /* Module local variables.                                                   */
+  60:lib/chibios/os/rt/src/chmsg.c **** /*===========================================================================*/
+  61:lib/chibios/os/rt/src/chmsg.c **** 
+  62:lib/chibios/os/rt/src/chmsg.c **** /*===========================================================================*/
+  63:lib/chibios/os/rt/src/chmsg.c **** /* Module local functions.                                                   */
+  64:lib/chibios/os/rt/src/chmsg.c **** /*===========================================================================*/
+  65:lib/chibios/os/rt/src/chmsg.c **** 
+  66:lib/chibios/os/rt/src/chmsg.c **** #if CH_CFG_USE_MESSAGES_PRIORITY == TRUE
+  67:lib/chibios/os/rt/src/chmsg.c **** #define msg_insert(tp, qp) queue_prio_insert(tp, qp)
+  68:lib/chibios/os/rt/src/chmsg.c **** #else
+  69:lib/chibios/os/rt/src/chmsg.c **** #define msg_insert(tp, qp) queue_insert(tp, qp)
+  70:lib/chibios/os/rt/src/chmsg.c **** #endif
+  71:lib/chibios/os/rt/src/chmsg.c **** 
+  72:lib/chibios/os/rt/src/chmsg.c **** /*===========================================================================*/
+  73:lib/chibios/os/rt/src/chmsg.c **** /* Module exported functions.                                                */
+  74:lib/chibios/os/rt/src/chmsg.c **** /*===========================================================================*/
+  75:lib/chibios/os/rt/src/chmsg.c **** 
+  76:lib/chibios/os/rt/src/chmsg.c **** /**
+  77:lib/chibios/os/rt/src/chmsg.c ****  * @brief   Sends a message to the specified thread.
+  78:lib/chibios/os/rt/src/chmsg.c ****  * @details The sender is stopped until the receiver executes a
+  79:lib/chibios/os/rt/src/chmsg.c ****  *          @p chMsgRelease()after receiving the message.
+  80:lib/chibios/os/rt/src/chmsg.c ****  *
+  81:lib/chibios/os/rt/src/chmsg.c ****  * @param[in] tp        the pointer to the thread
+  82:lib/chibios/os/rt/src/chmsg.c ****  * @param[in] msg       the message
+  83:lib/chibios/os/rt/src/chmsg.c ****  * @return              The answer message from @p chMsgRelease().
+  84:lib/chibios/os/rt/src/chmsg.c ****  *
+  85:lib/chibios/os/rt/src/chmsg.c ****  * @api
+  86:lib/chibios/os/rt/src/chmsg.c ****  */
+  87:lib/chibios/os/rt/src/chmsg.c **** msg_t chMsgSend(thread_t *tp, msg_t msg) {
+  28              		.loc 1 87 42 view -0
+  29              		.cfi_startproc
+  30              		@ args = 0, pretend = 0, frame = 0
+  31              		@ frame_needed = 0, uses_anonymous_args = 0
+  88:lib/chibios/os/rt/src/chmsg.c ****   thread_t *ctp = currp;
+  32              		.loc 1 88 3 view .LVU1
+  33              		.loc 1 88 13 is_stmt 0 view .LVU2
+  34 0000 0B4B     		ldr	r3, .L3
+  87:lib/chibios/os/rt/src/chmsg.c ****   thread_t *ctp = currp;
+  35              		.loc 1 87 42 view .LVU3
+  36 0002 70B5     		push	{r4, r5, r6, lr}
+  37              		.cfi_def_cfa_offset 16
+  38              		.cfi_offset 4, -16
+  39              		.cfi_offset 5, -12
+  40              		.cfi_offset 6, -8
+  41              		.cfi_offset 14, -4
+  87:lib/chibios/os/rt/src/chmsg.c ****   thread_t *ctp = currp;
+  42              		.loc 1 87 42 view .LVU4
+  43 0004 0500     		movs	r5, r0
+  44              		.loc 1 88 13 view .LVU5
+  45 0006 9C69     		ldr	r4, [r3, #24]
+  46              	.LVL1:
+  89:lib/chibios/os/rt/src/chmsg.c **** 
+  90:lib/chibios/os/rt/src/chmsg.c ****   chDbgCheck(tp != NULL);
+  47              		.loc 1 90 3 is_stmt 1 view .LVU6
+  48              		.loc 1 90 3 view .LVU7
+  91:lib/chibios/os/rt/src/chmsg.c **** 
+  92:lib/chibios/os/rt/src/chmsg.c ****   chSysLock();
+  49              		.loc 1 92 3 view .LVU8
+  50              	.LBB48:
+  51              	.LBI48:
+  52              		.file 2 "./lib/chibios/os/rt/include/chsys.h"
+   1:./lib/chibios/os/rt/include/chsys.h **** /*
+   2:./lib/chibios/os/rt/include/chsys.h ****     ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio.
+   3:./lib/chibios/os/rt/include/chsys.h **** 
+   4:./lib/chibios/os/rt/include/chsys.h ****     This file is part of ChibiOS.
+   5:./lib/chibios/os/rt/include/chsys.h **** 
+   6:./lib/chibios/os/rt/include/chsys.h ****     ChibiOS is free software; you can redistribute it and/or modify
+   7:./lib/chibios/os/rt/include/chsys.h ****     it under the terms of the GNU General Public License as published by
+   8:./lib/chibios/os/rt/include/chsys.h ****     the Free Software Foundation; either version 3 of the License, or
+   9:./lib/chibios/os/rt/include/chsys.h ****     (at your option) any later version.
+  10:./lib/chibios/os/rt/include/chsys.h **** 
+  11:./lib/chibios/os/rt/include/chsys.h ****     ChibiOS is distributed in the hope that it will be useful,
+  12:./lib/chibios/os/rt/include/chsys.h ****     but WITHOUT ANY WARRANTY; without even the implied warranty of
+  13:./lib/chibios/os/rt/include/chsys.h ****     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  14:./lib/chibios/os/rt/include/chsys.h ****     GNU General Public License for more details.
+  15:./lib/chibios/os/rt/include/chsys.h **** 
+  16:./lib/chibios/os/rt/include/chsys.h ****     You should have received a copy of the GNU General Public License
+  17:./lib/chibios/os/rt/include/chsys.h ****     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  18:./lib/chibios/os/rt/include/chsys.h **** */
+  19:./lib/chibios/os/rt/include/chsys.h **** 
+  20:./lib/chibios/os/rt/include/chsys.h **** /**
+  21:./lib/chibios/os/rt/include/chsys.h ****  * @file    chsys.h
+  22:./lib/chibios/os/rt/include/chsys.h ****  * @brief   System related macros and structures.
+  23:./lib/chibios/os/rt/include/chsys.h ****  *
+  24:./lib/chibios/os/rt/include/chsys.h ****  * @addtogroup system
+  25:./lib/chibios/os/rt/include/chsys.h ****  * @{
+  26:./lib/chibios/os/rt/include/chsys.h ****  */
+  27:./lib/chibios/os/rt/include/chsys.h **** 
+  28:./lib/chibios/os/rt/include/chsys.h **** #ifndef CHSYS_H
+  29:./lib/chibios/os/rt/include/chsys.h **** #define CHSYS_H
+  30:./lib/chibios/os/rt/include/chsys.h **** 
+  31:./lib/chibios/os/rt/include/chsys.h **** /*lint -sem(chSysHalt, r_no)*/
+  32:./lib/chibios/os/rt/include/chsys.h **** 
+  33:./lib/chibios/os/rt/include/chsys.h **** /*===========================================================================*/
+  34:./lib/chibios/os/rt/include/chsys.h **** /* Module constants.                                                         */
+  35:./lib/chibios/os/rt/include/chsys.h **** /*===========================================================================*/
+  36:./lib/chibios/os/rt/include/chsys.h **** 
+  37:./lib/chibios/os/rt/include/chsys.h **** /**
+  38:./lib/chibios/os/rt/include/chsys.h ****  * @name    Masks of executable integrity checks.
+  39:./lib/chibios/os/rt/include/chsys.h ****  * @{
+  40:./lib/chibios/os/rt/include/chsys.h ****  */
+  41:./lib/chibios/os/rt/include/chsys.h **** #define CH_INTEGRITY_RLIST                  1U
+  42:./lib/chibios/os/rt/include/chsys.h **** #define CH_INTEGRITY_VTLIST                 2U
+  43:./lib/chibios/os/rt/include/chsys.h **** #define CH_INTEGRITY_REGISTRY               4U
+  44:./lib/chibios/os/rt/include/chsys.h **** #define CH_INTEGRITY_PORT                   8U
+  45:./lib/chibios/os/rt/include/chsys.h **** /** @} */
+  46:./lib/chibios/os/rt/include/chsys.h **** 
+  47:./lib/chibios/os/rt/include/chsys.h **** /*===========================================================================*/
+  48:./lib/chibios/os/rt/include/chsys.h **** /* Module pre-compile time settings.                                         */
+  49:./lib/chibios/os/rt/include/chsys.h **** /*===========================================================================*/
+  50:./lib/chibios/os/rt/include/chsys.h **** 
+  51:./lib/chibios/os/rt/include/chsys.h **** /*===========================================================================*/
+  52:./lib/chibios/os/rt/include/chsys.h **** /* Derived constants and error checks.                                       */
+  53:./lib/chibios/os/rt/include/chsys.h **** /*===========================================================================*/
+  54:./lib/chibios/os/rt/include/chsys.h **** 
+  55:./lib/chibios/os/rt/include/chsys.h **** /*===========================================================================*/
+  56:./lib/chibios/os/rt/include/chsys.h **** /* Module data structures and types.                                         */
+  57:./lib/chibios/os/rt/include/chsys.h **** /*===========================================================================*/
+  58:./lib/chibios/os/rt/include/chsys.h **** 
+  59:./lib/chibios/os/rt/include/chsys.h **** /*===========================================================================*/
+  60:./lib/chibios/os/rt/include/chsys.h **** /* Module macros.                                                            */
+  61:./lib/chibios/os/rt/include/chsys.h **** /*===========================================================================*/
+  62:./lib/chibios/os/rt/include/chsys.h **** 
+  63:./lib/chibios/os/rt/include/chsys.h **** /**
+  64:./lib/chibios/os/rt/include/chsys.h ****  * @name    ISRs abstraction macros
+  65:./lib/chibios/os/rt/include/chsys.h ****  */
+  66:./lib/chibios/os/rt/include/chsys.h **** /**
+  67:./lib/chibios/os/rt/include/chsys.h ****  * @brief   Priority level validation macro.
+  68:./lib/chibios/os/rt/include/chsys.h ****  * @details This macro determines if the passed value is a valid priority
+  69:./lib/chibios/os/rt/include/chsys.h ****  *          level for the underlying architecture.
+  70:./lib/chibios/os/rt/include/chsys.h ****  *
+  71:./lib/chibios/os/rt/include/chsys.h ****  * @param[in] prio      the priority level
+  72:./lib/chibios/os/rt/include/chsys.h ****  * @return              Priority range result.
+  73:./lib/chibios/os/rt/include/chsys.h ****  * @retval false        if the priority is invalid or if the architecture
+  74:./lib/chibios/os/rt/include/chsys.h ****  *                      does not support priorities.
+  75:./lib/chibios/os/rt/include/chsys.h ****  * @retval true         if the priority is valid.
+  76:./lib/chibios/os/rt/include/chsys.h ****  */
+  77:./lib/chibios/os/rt/include/chsys.h **** #if defined(PORT_IRQ_IS_VALID_PRIORITY) || defined(__DOXYGEN__)
+  78:./lib/chibios/os/rt/include/chsys.h **** #define CH_IRQ_IS_VALID_PRIORITY(prio)                                      \
+  79:./lib/chibios/os/rt/include/chsys.h ****   PORT_IRQ_IS_VALID_PRIORITY(prio)
+  80:./lib/chibios/os/rt/include/chsys.h **** #else
+  81:./lib/chibios/os/rt/include/chsys.h **** #define CH_IRQ_IS_VALID_PRIORITY(prio) false
+  82:./lib/chibios/os/rt/include/chsys.h **** #endif
+  83:./lib/chibios/os/rt/include/chsys.h **** 
+  84:./lib/chibios/os/rt/include/chsys.h **** /**
+  85:./lib/chibios/os/rt/include/chsys.h ****  * @brief   Priority level validation macro.
+  86:./lib/chibios/os/rt/include/chsys.h ****  * @details This macro determines if the passed value is a valid priority
+  87:./lib/chibios/os/rt/include/chsys.h ****  *          level that cannot preempt the kernel critical zone.
+  88:./lib/chibios/os/rt/include/chsys.h ****  *
+  89:./lib/chibios/os/rt/include/chsys.h ****  * @param[in] prio      the priority level
+  90:./lib/chibios/os/rt/include/chsys.h ****  * @return              Priority range result.
+  91:./lib/chibios/os/rt/include/chsys.h ****  * @retval false        if the priority is invalid or if the architecture
+  92:./lib/chibios/os/rt/include/chsys.h ****  *                      does not support priorities.
+  93:./lib/chibios/os/rt/include/chsys.h ****  * @retval true         if the priority is valid.
+  94:./lib/chibios/os/rt/include/chsys.h ****  */
+  95:./lib/chibios/os/rt/include/chsys.h **** #if defined(PORT_IRQ_IS_VALID_KERNEL_PRIORITY) || defined(__DOXYGEN__)
+  96:./lib/chibios/os/rt/include/chsys.h **** #define CH_IRQ_IS_VALID_KERNEL_PRIORITY(prio)                               \
+  97:./lib/chibios/os/rt/include/chsys.h ****   PORT_IRQ_IS_VALID_KERNEL_PRIORITY(prio)
+  98:./lib/chibios/os/rt/include/chsys.h **** #else
+  99:./lib/chibios/os/rt/include/chsys.h **** #define CH_IRQ_IS_VALID_KERNEL_PRIORITY(prio) false
+ 100:./lib/chibios/os/rt/include/chsys.h **** #endif
+ 101:./lib/chibios/os/rt/include/chsys.h **** 
+ 102:./lib/chibios/os/rt/include/chsys.h **** /**
+ 103:./lib/chibios/os/rt/include/chsys.h ****  * @brief   IRQ handler enter code.
+ 104:./lib/chibios/os/rt/include/chsys.h ****  * @note    Usually IRQ handlers functions are also declared naked.
+ 105:./lib/chibios/os/rt/include/chsys.h ****  * @note    On some architectures this macro can be empty.
+ 106:./lib/chibios/os/rt/include/chsys.h ****  *
+ 107:./lib/chibios/os/rt/include/chsys.h ****  * @special
+ 108:./lib/chibios/os/rt/include/chsys.h ****  */
+ 109:./lib/chibios/os/rt/include/chsys.h **** #define CH_IRQ_PROLOGUE()                                                   \
+ 110:./lib/chibios/os/rt/include/chsys.h ****   PORT_IRQ_PROLOGUE();                                                      \
+ 111:./lib/chibios/os/rt/include/chsys.h ****   CH_CFG_IRQ_PROLOGUE_HOOK();                                               \
+ 112:./lib/chibios/os/rt/include/chsys.h ****   _stats_increase_irq();                                                    \
+ 113:./lib/chibios/os/rt/include/chsys.h ****   _trace_isr_enter(__func__);                                               \
+ 114:./lib/chibios/os/rt/include/chsys.h ****   _dbg_check_enter_isr()
+ 115:./lib/chibios/os/rt/include/chsys.h **** 
+ 116:./lib/chibios/os/rt/include/chsys.h **** /**
+ 117:./lib/chibios/os/rt/include/chsys.h ****  * @brief   IRQ handler exit code.
+ 118:./lib/chibios/os/rt/include/chsys.h ****  * @note    Usually IRQ handlers function are also declared naked.
+ 119:./lib/chibios/os/rt/include/chsys.h ****  * @note    This macro usually performs the final reschedule by using
+ 120:./lib/chibios/os/rt/include/chsys.h ****  *          @p chSchIsPreemptionRequired() and @p chSchDoReschedule().
+ 121:./lib/chibios/os/rt/include/chsys.h ****  *
+ 122:./lib/chibios/os/rt/include/chsys.h ****  * @special
+ 123:./lib/chibios/os/rt/include/chsys.h ****  */
+ 124:./lib/chibios/os/rt/include/chsys.h **** #define CH_IRQ_EPILOGUE()                                                   \
+ 125:./lib/chibios/os/rt/include/chsys.h ****   _dbg_check_leave_isr();                                                   \
+ 126:./lib/chibios/os/rt/include/chsys.h ****   _trace_isr_leave(__func__);                                               \
+ 127:./lib/chibios/os/rt/include/chsys.h ****   CH_CFG_IRQ_EPILOGUE_HOOK();                                               \
+ 128:./lib/chibios/os/rt/include/chsys.h ****   PORT_IRQ_EPILOGUE()
+ 129:./lib/chibios/os/rt/include/chsys.h **** 
+ 130:./lib/chibios/os/rt/include/chsys.h **** /**
+ 131:./lib/chibios/os/rt/include/chsys.h ****  * @brief   Standard normal IRQ handler declaration.
+ 132:./lib/chibios/os/rt/include/chsys.h ****  * @note    @p id can be a function name or a vector number depending on the
+ 133:./lib/chibios/os/rt/include/chsys.h ****  *          port implementation.
+ 134:./lib/chibios/os/rt/include/chsys.h ****  *
+ 135:./lib/chibios/os/rt/include/chsys.h ****  * @special
+ 136:./lib/chibios/os/rt/include/chsys.h ****  */
+ 137:./lib/chibios/os/rt/include/chsys.h **** #define CH_IRQ_HANDLER(id) PORT_IRQ_HANDLER(id)
+ 138:./lib/chibios/os/rt/include/chsys.h **** /** @} */
+ 139:./lib/chibios/os/rt/include/chsys.h **** 
+ 140:./lib/chibios/os/rt/include/chsys.h **** /**
+ 141:./lib/chibios/os/rt/include/chsys.h ****  * @name    Fast ISRs abstraction macros
+ 142:./lib/chibios/os/rt/include/chsys.h ****  */
+ 143:./lib/chibios/os/rt/include/chsys.h **** /**
+ 144:./lib/chibios/os/rt/include/chsys.h ****  * @brief   Standard fast IRQ handler declaration.
+ 145:./lib/chibios/os/rt/include/chsys.h ****  * @note    @p id can be a function name or a vector number depending on the
+ 146:./lib/chibios/os/rt/include/chsys.h ****  *          port implementation.
+ 147:./lib/chibios/os/rt/include/chsys.h ****  * @note    Not all architectures support fast interrupts.
+ 148:./lib/chibios/os/rt/include/chsys.h ****  *
+ 149:./lib/chibios/os/rt/include/chsys.h ****  * @special
+ 150:./lib/chibios/os/rt/include/chsys.h ****  */
+ 151:./lib/chibios/os/rt/include/chsys.h **** #define CH_FAST_IRQ_HANDLER(id) PORT_FAST_IRQ_HANDLER(id)
+ 152:./lib/chibios/os/rt/include/chsys.h **** /** @} */
+ 153:./lib/chibios/os/rt/include/chsys.h **** 
+ 154:./lib/chibios/os/rt/include/chsys.h **** /**
+ 155:./lib/chibios/os/rt/include/chsys.h ****  * @name    Time conversion utilities for the realtime counter
+ 156:./lib/chibios/os/rt/include/chsys.h ****  * @{
+ 157:./lib/chibios/os/rt/include/chsys.h ****  */
+ 158:./lib/chibios/os/rt/include/chsys.h **** /**
+ 159:./lib/chibios/os/rt/include/chsys.h ****  * @brief   Seconds to realtime counter.
+ 160:./lib/chibios/os/rt/include/chsys.h ****  * @details Converts from seconds to realtime counter cycles.
+ 161:./lib/chibios/os/rt/include/chsys.h ****  * @note    The macro assumes that @p freq >= @p 1.
+ 162:./lib/chibios/os/rt/include/chsys.h ****  *
+ 163:./lib/chibios/os/rt/include/chsys.h ****  * @param[in] freq      clock frequency, in Hz, of the realtime counter
+ 164:./lib/chibios/os/rt/include/chsys.h ****  * @param[in] sec       number of seconds
+ 165:./lib/chibios/os/rt/include/chsys.h ****  * @return              The number of cycles.
+ 166:./lib/chibios/os/rt/include/chsys.h ****  *
+ 167:./lib/chibios/os/rt/include/chsys.h ****  * @api
+ 168:./lib/chibios/os/rt/include/chsys.h ****  */
+ 169:./lib/chibios/os/rt/include/chsys.h **** #define S2RTC(freq, sec) ((freq) * (sec))
+ 170:./lib/chibios/os/rt/include/chsys.h **** 
+ 171:./lib/chibios/os/rt/include/chsys.h **** /**
+ 172:./lib/chibios/os/rt/include/chsys.h ****  * @brief   Milliseconds to realtime counter.
+ 173:./lib/chibios/os/rt/include/chsys.h ****  * @details Converts from milliseconds to realtime counter cycles.
+ 174:./lib/chibios/os/rt/include/chsys.h ****  * @note    The result is rounded upward to the next millisecond boundary.
+ 175:./lib/chibios/os/rt/include/chsys.h ****  * @note    The macro assumes that @p freq >= @p 1000.
+ 176:./lib/chibios/os/rt/include/chsys.h ****  *
+ 177:./lib/chibios/os/rt/include/chsys.h ****  * @param[in] freq      clock frequency, in Hz, of the realtime counter
+ 178:./lib/chibios/os/rt/include/chsys.h ****  * @param[in] msec      number of milliseconds
+ 179:./lib/chibios/os/rt/include/chsys.h ****  * @return              The number of cycles.
+ 180:./lib/chibios/os/rt/include/chsys.h ****  *
+ 181:./lib/chibios/os/rt/include/chsys.h ****  * @api
+ 182:./lib/chibios/os/rt/include/chsys.h ****  */
+ 183:./lib/chibios/os/rt/include/chsys.h **** #define MS2RTC(freq, msec) (rtcnt_t)((((freq) + 999UL) / 1000UL) * (msec))
+ 184:./lib/chibios/os/rt/include/chsys.h **** 
+ 185:./lib/chibios/os/rt/include/chsys.h **** /**
+ 186:./lib/chibios/os/rt/include/chsys.h ****  * @brief   Microseconds to realtime counter.
+ 187:./lib/chibios/os/rt/include/chsys.h ****  * @details Converts from microseconds to realtime counter cycles.
+ 188:./lib/chibios/os/rt/include/chsys.h ****  * @note    The result is rounded upward to the next microsecond boundary.
+ 189:./lib/chibios/os/rt/include/chsys.h ****  * @note    The macro assumes that @p freq >= @p 1000000.
+ 190:./lib/chibios/os/rt/include/chsys.h ****  *
+ 191:./lib/chibios/os/rt/include/chsys.h ****  * @param[in] freq      clock frequency, in Hz, of the realtime counter
+ 192:./lib/chibios/os/rt/include/chsys.h ****  * @param[in] usec      number of microseconds
+ 193:./lib/chibios/os/rt/include/chsys.h ****  * @return              The number of cycles.
+ 194:./lib/chibios/os/rt/include/chsys.h ****  *
+ 195:./lib/chibios/os/rt/include/chsys.h ****  * @api
+ 196:./lib/chibios/os/rt/include/chsys.h ****  */
+ 197:./lib/chibios/os/rt/include/chsys.h **** #define US2RTC(freq, usec) (rtcnt_t)((((freq) + 999999UL) / 1000000UL) * (usec))
+ 198:./lib/chibios/os/rt/include/chsys.h **** 
+ 199:./lib/chibios/os/rt/include/chsys.h **** /**
+ 200:./lib/chibios/os/rt/include/chsys.h ****  * @brief   Realtime counter cycles to seconds.
+ 201:./lib/chibios/os/rt/include/chsys.h ****  * @details Converts from realtime counter cycles number to seconds.
+ 202:./lib/chibios/os/rt/include/chsys.h ****  * @note    The result is rounded up to the next second boundary.
+ 203:./lib/chibios/os/rt/include/chsys.h ****  * @note    The macro assumes that @p freq >= @p 1.
+ 204:./lib/chibios/os/rt/include/chsys.h ****  *
+ 205:./lib/chibios/os/rt/include/chsys.h ****  * @param[in] freq      clock frequency, in Hz, of the realtime counter
+ 206:./lib/chibios/os/rt/include/chsys.h ****  * @param[in] n         number of cycles
+ 207:./lib/chibios/os/rt/include/chsys.h ****  * @return              The number of seconds.
+ 208:./lib/chibios/os/rt/include/chsys.h ****  *
+ 209:./lib/chibios/os/rt/include/chsys.h ****  * @api
+ 210:./lib/chibios/os/rt/include/chsys.h ****  */
+ 211:./lib/chibios/os/rt/include/chsys.h **** #define RTC2S(freq, n) ((((n) - 1UL) / (freq)) + 1UL)
+ 212:./lib/chibios/os/rt/include/chsys.h **** 
+ 213:./lib/chibios/os/rt/include/chsys.h **** /**
+ 214:./lib/chibios/os/rt/include/chsys.h ****  * @brief   Realtime counter cycles to milliseconds.
+ 215:./lib/chibios/os/rt/include/chsys.h ****  * @details Converts from realtime counter cycles number to milliseconds.
+ 216:./lib/chibios/os/rt/include/chsys.h ****  * @note    The result is rounded up to the next millisecond boundary.
+ 217:./lib/chibios/os/rt/include/chsys.h ****  * @note    The macro assumes that @p freq >= @p 1000.
+ 218:./lib/chibios/os/rt/include/chsys.h ****  *
+ 219:./lib/chibios/os/rt/include/chsys.h ****  * @param[in] freq      clock frequency, in Hz, of the realtime counter
+ 220:./lib/chibios/os/rt/include/chsys.h ****  * @param[in] n         number of cycles
+ 221:./lib/chibios/os/rt/include/chsys.h ****  * @return              The number of milliseconds.
+ 222:./lib/chibios/os/rt/include/chsys.h ****  *
+ 223:./lib/chibios/os/rt/include/chsys.h ****  * @api
+ 224:./lib/chibios/os/rt/include/chsys.h ****  */
+ 225:./lib/chibios/os/rt/include/chsys.h **** #define RTC2MS(freq, n) ((((n) - 1UL) / ((freq) / 1000UL)) + 1UL)
+ 226:./lib/chibios/os/rt/include/chsys.h **** 
+ 227:./lib/chibios/os/rt/include/chsys.h **** /**
+ 228:./lib/chibios/os/rt/include/chsys.h ****  * @brief   Realtime counter cycles to microseconds.
+ 229:./lib/chibios/os/rt/include/chsys.h ****  * @details Converts from realtime counter cycles number to microseconds.
+ 230:./lib/chibios/os/rt/include/chsys.h ****  * @note    The result is rounded up to the next microsecond boundary.
+ 231:./lib/chibios/os/rt/include/chsys.h ****  * @note    The macro assumes that @p freq >= @p 1000000.
+ 232:./lib/chibios/os/rt/include/chsys.h ****  *
+ 233:./lib/chibios/os/rt/include/chsys.h ****  * @param[in] freq      clock frequency, in Hz, of the realtime counter
+ 234:./lib/chibios/os/rt/include/chsys.h ****  * @param[in] n         number of cycles
+ 235:./lib/chibios/os/rt/include/chsys.h ****  * @return              The number of microseconds.
+ 236:./lib/chibios/os/rt/include/chsys.h ****  *
+ 237:./lib/chibios/os/rt/include/chsys.h ****  * @api
+ 238:./lib/chibios/os/rt/include/chsys.h ****  */
+ 239:./lib/chibios/os/rt/include/chsys.h **** #define RTC2US(freq, n) ((((n) - 1UL) / ((freq) / 1000000UL)) + 1UL)
+ 240:./lib/chibios/os/rt/include/chsys.h **** /** @} */
+ 241:./lib/chibios/os/rt/include/chsys.h **** 
+ 242:./lib/chibios/os/rt/include/chsys.h **** /**
+ 243:./lib/chibios/os/rt/include/chsys.h ****  * @brief   Returns the current value of the system real time counter.
+ 244:./lib/chibios/os/rt/include/chsys.h ****  * @note    This function is only available if the port layer supports the
+ 245:./lib/chibios/os/rt/include/chsys.h ****  *          option @p PORT_SUPPORTS_RT.
+ 246:./lib/chibios/os/rt/include/chsys.h ****  *
+ 247:./lib/chibios/os/rt/include/chsys.h ****  * @return              The value of the system realtime counter of
+ 248:./lib/chibios/os/rt/include/chsys.h ****  *                      type rtcnt_t.
+ 249:./lib/chibios/os/rt/include/chsys.h ****  *
+ 250:./lib/chibios/os/rt/include/chsys.h ****  * @xclass
+ 251:./lib/chibios/os/rt/include/chsys.h ****  */
+ 252:./lib/chibios/os/rt/include/chsys.h **** #if (PORT_SUPPORTS_RT == TRUE) || defined(__DOXYGEN__)
+ 253:./lib/chibios/os/rt/include/chsys.h **** #define chSysGetRealtimeCounterX() (rtcnt_t)port_rt_get_counter_value()
+ 254:./lib/chibios/os/rt/include/chsys.h **** #endif
+ 255:./lib/chibios/os/rt/include/chsys.h **** 
+ 256:./lib/chibios/os/rt/include/chsys.h **** /**
+ 257:./lib/chibios/os/rt/include/chsys.h ****  * @brief   Performs a context switch.
+ 258:./lib/chibios/os/rt/include/chsys.h ****  * @note    Not a user function, it is meant to be invoked by the scheduler
+ 259:./lib/chibios/os/rt/include/chsys.h ****  *          itself or from within the port layer.
+ 260:./lib/chibios/os/rt/include/chsys.h ****  *
+ 261:./lib/chibios/os/rt/include/chsys.h ****  * @param[in] ntp       the thread to be switched in
+ 262:./lib/chibios/os/rt/include/chsys.h ****  * @param[in] otp       the thread to be switched out
+ 263:./lib/chibios/os/rt/include/chsys.h ****  *
+ 264:./lib/chibios/os/rt/include/chsys.h ****  * @special
+ 265:./lib/chibios/os/rt/include/chsys.h ****  */
+ 266:./lib/chibios/os/rt/include/chsys.h **** #define chSysSwitch(ntp, otp) {                                             \
+ 267:./lib/chibios/os/rt/include/chsys.h ****                                                                             \
+ 268:./lib/chibios/os/rt/include/chsys.h ****   _trace_switch(ntp, otp);                                                  \
+ 269:./lib/chibios/os/rt/include/chsys.h ****   _stats_ctxswc(ntp, otp);                                                  \
+ 270:./lib/chibios/os/rt/include/chsys.h ****   CH_CFG_CONTEXT_SWITCH_HOOK(ntp, otp);                                     \
+ 271:./lib/chibios/os/rt/include/chsys.h ****   port_switch(ntp, otp);                                                    \
+ 272:./lib/chibios/os/rt/include/chsys.h **** }
+ 273:./lib/chibios/os/rt/include/chsys.h **** 
+ 274:./lib/chibios/os/rt/include/chsys.h **** /*===========================================================================*/
+ 275:./lib/chibios/os/rt/include/chsys.h **** /* External declarations.                                                    */
+ 276:./lib/chibios/os/rt/include/chsys.h **** /*===========================================================================*/
+ 277:./lib/chibios/os/rt/include/chsys.h **** 
+ 278:./lib/chibios/os/rt/include/chsys.h **** #if !defined(__DOXYGEN__)
+ 279:./lib/chibios/os/rt/include/chsys.h **** extern stkalign_t ch_idle_thread_wa[];
+ 280:./lib/chibios/os/rt/include/chsys.h **** #endif
+ 281:./lib/chibios/os/rt/include/chsys.h **** 
+ 282:./lib/chibios/os/rt/include/chsys.h **** #ifdef __cplusplus
+ 283:./lib/chibios/os/rt/include/chsys.h **** extern "C" {
+ 284:./lib/chibios/os/rt/include/chsys.h **** #endif
+ 285:./lib/chibios/os/rt/include/chsys.h ****   void chSysInit(void);
+ 286:./lib/chibios/os/rt/include/chsys.h ****   bool chSysIntegrityCheckI(unsigned testmask);
+ 287:./lib/chibios/os/rt/include/chsys.h ****   void chSysTimerHandlerI(void);
+ 288:./lib/chibios/os/rt/include/chsys.h ****   syssts_t chSysGetStatusAndLockX(void);
+ 289:./lib/chibios/os/rt/include/chsys.h ****   void chSysRestoreStatusX(syssts_t sts);
+ 290:./lib/chibios/os/rt/include/chsys.h **** #if PORT_SUPPORTS_RT == TRUE
+ 291:./lib/chibios/os/rt/include/chsys.h ****   bool chSysIsCounterWithinX(rtcnt_t cnt, rtcnt_t start, rtcnt_t end);
+ 292:./lib/chibios/os/rt/include/chsys.h ****   void chSysPolledDelayX(rtcnt_t cycles);
+ 293:./lib/chibios/os/rt/include/chsys.h **** #endif
+ 294:./lib/chibios/os/rt/include/chsys.h **** #ifdef __cplusplus
+ 295:./lib/chibios/os/rt/include/chsys.h **** }
+ 296:./lib/chibios/os/rt/include/chsys.h **** #endif
+ 297:./lib/chibios/os/rt/include/chsys.h **** 
+ 298:./lib/chibios/os/rt/include/chsys.h **** /*===========================================================================*/
+ 299:./lib/chibios/os/rt/include/chsys.h **** /* Module inline functions.                                                  */
+ 300:./lib/chibios/os/rt/include/chsys.h **** /*===========================================================================*/
+ 301:./lib/chibios/os/rt/include/chsys.h **** 
+ 302:./lib/chibios/os/rt/include/chsys.h **** /**
+ 303:./lib/chibios/os/rt/include/chsys.h ****  * @brief   Raises the system interrupt priority mask to the maximum level.
+ 304:./lib/chibios/os/rt/include/chsys.h ****  * @details All the maskable interrupt sources are disabled regardless their
+ 305:./lib/chibios/os/rt/include/chsys.h ****  *          hardware priority.
+ 306:./lib/chibios/os/rt/include/chsys.h ****  * @note    Do not invoke this API from within a kernel lock.
+ 307:./lib/chibios/os/rt/include/chsys.h ****  *
+ 308:./lib/chibios/os/rt/include/chsys.h ****  * @special
+ 309:./lib/chibios/os/rt/include/chsys.h ****  */
+ 310:./lib/chibios/os/rt/include/chsys.h **** static inline void chSysDisable(void) {
+ 311:./lib/chibios/os/rt/include/chsys.h **** 
+ 312:./lib/chibios/os/rt/include/chsys.h ****   port_disable();
+ 313:./lib/chibios/os/rt/include/chsys.h ****   _dbg_check_disable();
+ 314:./lib/chibios/os/rt/include/chsys.h **** }
+ 315:./lib/chibios/os/rt/include/chsys.h **** 
+ 316:./lib/chibios/os/rt/include/chsys.h **** /**
+ 317:./lib/chibios/os/rt/include/chsys.h ****  * @brief   Raises the system interrupt priority mask to system level.
+ 318:./lib/chibios/os/rt/include/chsys.h ****  * @details The interrupt sources that should not be able to preempt the kernel
+ 319:./lib/chibios/os/rt/include/chsys.h ****  *          are disabled, interrupt sources with higher priority are still
+ 320:./lib/chibios/os/rt/include/chsys.h ****  *          enabled.
+ 321:./lib/chibios/os/rt/include/chsys.h ****  * @note    Do not invoke this API from within a kernel lock.
+ 322:./lib/chibios/os/rt/include/chsys.h ****  * @note    This API is no replacement for @p chSysLock(), the @p chSysLock()
+ 323:./lib/chibios/os/rt/include/chsys.h ****  *          could do more than just disable the interrupts.
+ 324:./lib/chibios/os/rt/include/chsys.h ****  *
+ 325:./lib/chibios/os/rt/include/chsys.h ****  * @special
+ 326:./lib/chibios/os/rt/include/chsys.h ****  */
+ 327:./lib/chibios/os/rt/include/chsys.h **** static inline void chSysSuspend(void) {
+ 328:./lib/chibios/os/rt/include/chsys.h **** 
+ 329:./lib/chibios/os/rt/include/chsys.h ****   port_suspend();
+ 330:./lib/chibios/os/rt/include/chsys.h ****   _dbg_check_suspend();
+ 331:./lib/chibios/os/rt/include/chsys.h **** }
+ 332:./lib/chibios/os/rt/include/chsys.h **** 
+ 333:./lib/chibios/os/rt/include/chsys.h **** /**
+ 334:./lib/chibios/os/rt/include/chsys.h ****  * @brief   Lowers the system interrupt priority mask to user level.
+ 335:./lib/chibios/os/rt/include/chsys.h ****  * @details All the interrupt sources are enabled.
+ 336:./lib/chibios/os/rt/include/chsys.h ****  * @note    Do not invoke this API from within a kernel lock.
+ 337:./lib/chibios/os/rt/include/chsys.h ****  * @note    This API is no replacement for @p chSysUnlock(), the
+ 338:./lib/chibios/os/rt/include/chsys.h ****  *          @p chSysUnlock() could do more than just enable the interrupts.
+ 339:./lib/chibios/os/rt/include/chsys.h ****  *
+ 340:./lib/chibios/os/rt/include/chsys.h ****  * @special
+ 341:./lib/chibios/os/rt/include/chsys.h ****  */
+ 342:./lib/chibios/os/rt/include/chsys.h **** static inline void chSysEnable(void) {
+ 343:./lib/chibios/os/rt/include/chsys.h **** 
+ 344:./lib/chibios/os/rt/include/chsys.h ****   _dbg_check_enable();
+ 345:./lib/chibios/os/rt/include/chsys.h ****   port_enable();
+ 346:./lib/chibios/os/rt/include/chsys.h **** }
+ 347:./lib/chibios/os/rt/include/chsys.h **** 
+ 348:./lib/chibios/os/rt/include/chsys.h **** /**
+ 349:./lib/chibios/os/rt/include/chsys.h ****  * @brief   Enters the kernel lock state.
+ 350:./lib/chibios/os/rt/include/chsys.h ****  *
+ 351:./lib/chibios/os/rt/include/chsys.h ****  * @special
+ 352:./lib/chibios/os/rt/include/chsys.h ****  */
+ 353:./lib/chibios/os/rt/include/chsys.h **** static inline void chSysLock(void) {
+  53              		.loc 2 353 20 view .LVU9
+  54              	.LBE48:
+ 354:./lib/chibios/os/rt/include/chsys.h **** 
+ 355:./lib/chibios/os/rt/include/chsys.h ****   port_lock();
+  55              		.loc 2 355 3 view .LVU10
+  56              	.LBB53:
+  57              	.LBB49:
+  58              	.LBI49:
+  59              		.file 3 "./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h"
+   1:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** /*
+   2:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****     ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio.
+   3:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** 
+   4:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****     This file is part of ChibiOS.
+   5:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** 
+   6:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****     ChibiOS is free software; you can redistribute it and/or modify
+   7:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****     it under the terms of the GNU General Public License as published by
+   8:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****     the Free Software Foundation; either version 3 of the License, or
+   9:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****     (at your option) any later version.
+  10:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** 
+  11:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****     ChibiOS is distributed in the hope that it will be useful,
+  12:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****     but WITHOUT ANY WARRANTY; without even the implied warranty of
+  13:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  14:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****     GNU General Public License for more details.
+  15:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** 
+  16:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****     You should have received a copy of the GNU General Public License
+  17:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  18:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** */
+  19:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** 
+  20:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** /**
+  21:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @file    chcore_v6m.h
+  22:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @brief   ARMv6-M architecture port macros and structures.
+  23:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  *
+  24:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @addtogroup ARMCMx_V6M_CORE
+  25:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @{
+  26:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  */
+  27:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** 
+  28:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #ifndef CHCORE_V6M_H
+  29:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #define CHCORE_V6M_H
+  30:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** 
+  31:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** /*===========================================================================*/
+  32:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** /* Module constants.                                                         */
+  33:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** /*===========================================================================*/
+  34:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** 
+  35:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** /**
+  36:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @name    Port Capabilities and Constants
+  37:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @{
+  38:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  */
+  39:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** /**
+  40:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @brief   This port supports a realtime counter.
+  41:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  */
+  42:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #define PORT_SUPPORTS_RT                FALSE
+  43:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** 
+  44:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** /**
+  45:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @brief   Natural alignment constant.
+  46:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @note    It is the minimum alignment for pointer-size variables.
+  47:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  */
+  48:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #define PORT_NATURAL_ALIGN              sizeof (void *)
+  49:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** 
+  50:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** /**
+  51:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @brief   Stack alignment constant.
+  52:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @note    It is the alignment required for the stack pointer.
+  53:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  */
+  54:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #define PORT_STACK_ALIGN                sizeof (stkalign_t)
+  55:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** 
+  56:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** /**
+  57:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @brief   Working Areas alignment constant.
+  58:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @note    It is the alignment to be enforced for thread working areas.
+  59:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  */
+  60:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #define PORT_WORKING_AREA_ALIGN         PORT_STACK_ALIGN
+  61:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** /** @} */
+  62:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** 
+  63:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** /**
+  64:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @brief   PendSV priority level.
+  65:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @note    This priority is enforced to be equal to @p 0,
+  66:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  *          this handler always has the highest priority that cannot preempt
+  67:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  *          the kernel.
+  68:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  */
+  69:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #define CORTEX_PRIORITY_PENDSV          0
+  70:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** 
+  71:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** /*===========================================================================*/
+  72:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** /* Module pre-compile time settings.                                         */
+  73:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** /*===========================================================================*/
+  74:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** 
+  75:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** /**
+  76:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @brief   Stack size for the system idle thread.
+  77:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @details This size depends on the idle thread implementation, usually
+  78:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  *          the idle thread should take no more space than those reserved
+  79:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  *          by @p PORT_INT_REQUIRED_STACK.
+  80:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @note    In this port it is set to 16 because the idle thread does have
+  81:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  *          a stack frame when compiling without optimizations. You may
+  82:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  *          reduce this value to zero when compiling with optimizations.
+  83:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  */
+  84:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #if !defined(PORT_IDLE_THREAD_STACK_SIZE)
+  85:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #define PORT_IDLE_THREAD_STACK_SIZE     16
+  86:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #endif
+  87:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** 
+  88:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** /**
+  89:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @brief   Per-thread stack overhead for interrupts servicing.
+  90:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @details This constant is used in the calculation of the correct working
+  91:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  *          area size.
+  92:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @note    In this port this value is conservatively set to 64 because the
+  93:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  *          function @p chSchDoReschedule() can have a stack frame, especially
+  94:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  *          with compiler optimizations disabled. The value can be reduced
+  95:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  *          when compiler optimizations are enabled.
+  96:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  */
+  97:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #if !defined(PORT_INT_REQUIRED_STACK)
+  98:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #define PORT_INT_REQUIRED_STACK         64
+  99:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #endif
+ 100:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** 
+ 101:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** /**
+ 102:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @brief   Enables the use of the WFI instruction in the idle thread loop.
+ 103:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  */
+ 104:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #if !defined(CORTEX_ENABLE_WFI_IDLE)
+ 105:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #define CORTEX_ENABLE_WFI_IDLE          FALSE
+ 106:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #endif
+ 107:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** 
+ 108:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** /**
+ 109:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @brief   Alternate preemption method.
+ 110:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @details Activating this option will make the Kernel use the PendSV
+ 111:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  *          handler for preemption instead of the NMI handler.
+ 112:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  */
+ 113:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #ifndef CORTEX_ALTERNATE_SWITCH
+ 114:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #define CORTEX_ALTERNATE_SWITCH         FALSE
+ 115:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #endif
+ 116:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** 
+ 117:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** /*===========================================================================*/
+ 118:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** /* Derived constants and error checks.                                       */
+ 119:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** /*===========================================================================*/
+ 120:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** 
+ 121:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #if !defined(CH_CUSTOMER_LIC_PORT_CM0)
+ 122:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #error "CH_CUSTOMER_LIC_PORT_CM0 not defined"
+ 123:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #endif
+ 124:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** 
+ 125:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #if CH_CUSTOMER_LIC_PORT_CM0 == FALSE
+ 126:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #error "ChibiOS Cortex-M0 port not licensed"
+ 127:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #endif
+ 128:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** 
+ 129:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** /* Handling a GCC problem impacting ARMv6-M.*/
+ 130:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #if defined(__GNUC__) && !defined(PORT_IGNORE_GCC_VERSION_CHECK)
+ 131:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #if __GNUC__ > 5
+ 132:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #warning "This compiler has a know problem with Cortex-M0, see bugs: 88167, 88656."
+ 133:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #warning "*** Use GCC version 5 or below ***"
+ 134:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #endif
+ 135:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #endif
+ 136:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** 
+ 137:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** /**
+ 138:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @name    Architecture and Compiler
+ 139:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @{
+ 140:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  */
+ 141:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #if ((CORTEX_MODEL == 0) && !defined(__CORE_CM0PLUS_H_DEPENDANT)) ||        \
+ 142:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****     defined(__DOXYGEN__)
+ 143:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** /**
+ 144:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @brief   Macro defining the specific ARM architecture.
+ 145:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  */
+ 146:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #define PORT_ARCHITECTURE_ARM_v6M
+ 147:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** 
+ 148:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** /**
+ 149:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @brief   Name of the implemented architecture.
+ 150:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  */
+ 151:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #define PORT_ARCHITECTURE_NAME          "ARMv6-M"
+ 152:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** 
+ 153:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** /**
+ 154:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @brief   Name of the architecture variant.
+ 155:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  */
+ 156:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #define PORT_CORE_VARIANT_NAME          "Cortex-M0"
+ 157:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** 
+ 158:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #elif (CORTEX_MODEL == 0) && defined(__CORE_CM0PLUS_H_DEPENDANT)
+ 159:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #define PORT_ARCHITECTURE_ARM_v6M
+ 160:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #define PORT_ARCHITECTURE_NAME          "ARMv6-M"
+ 161:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #define PORT_CORE_VARIANT_NAME          "Cortex-M0+"
+ 162:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #endif
+ 163:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** 
+ 164:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** /**
+ 165:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @brief   Port-specific information string.
+ 166:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  */
+ 167:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #if (CORTEX_ALTERNATE_SWITCH == FALSE) || defined(__DOXYGEN__)
+ 168:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #define PORT_INFO                       "Preemption through NMI"
+ 169:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #else
+ 170:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #define PORT_INFO                       "Preemption through PendSV"
+ 171:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #endif
+ 172:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** /** @} */
+ 173:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** 
+ 174:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** /**
+ 175:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @brief   Maximum usable priority for normal ISRs.
+ 176:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  */
+ 177:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #if (CORTEX_ALTERNATE_SWITCH == TRUE) || defined(__DOXYGEN__)
+ 178:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #define CORTEX_MAX_KERNEL_PRIORITY      1
+ 179:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #else
+ 180:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #define CORTEX_MAX_KERNEL_PRIORITY      0
+ 181:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #endif
+ 182:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** 
+ 183:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** /*===========================================================================*/
+ 184:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** /* Module data structures and types.                                         */
+ 185:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** /*===========================================================================*/
+ 186:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** 
+ 187:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #if !defined(_FROM_ASM_)
+ 188:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** 
+ 189:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  /* The documentation of the following declarations is in chconf.h in order
+ 190:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****     to not have duplicated structure names into the documentation.*/
+ 191:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #if !defined(__DOXYGEN__)
+ 192:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** struct port_extctx {
+ 193:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****   regarm_t      r0;
+ 194:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****   regarm_t      r1;
+ 195:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****   regarm_t      r2;
+ 196:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****   regarm_t      r3;
+ 197:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****   regarm_t      r12;
+ 198:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****   regarm_t      lr_thd;
+ 199:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****   regarm_t      pc;
+ 200:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****   regarm_t      xpsr;
+ 201:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** };
+ 202:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** 
+ 203:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** struct port_intctx {
+ 204:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****   regarm_t      r8;
+ 205:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****   regarm_t      r9;
+ 206:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****   regarm_t      r10;
+ 207:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****   regarm_t      r11;
+ 208:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****   regarm_t      r4;
+ 209:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****   regarm_t      r5;
+ 210:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****   regarm_t      r6;
+ 211:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****   regarm_t      r7;
+ 212:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****   regarm_t      lr;
+ 213:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** };
+ 214:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #endif /* !defined(__DOXYGEN__) */
+ 215:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** 
+ 216:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** /*===========================================================================*/
+ 217:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** /* Module macros.                                                            */
+ 218:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** /*===========================================================================*/
+ 219:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** 
+ 220:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** /**
+ 221:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @brief   Platform dependent part of the @p chThdCreateI() API.
+ 222:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @details This code usually setup the context switching frame represented
+ 223:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  *          by an @p port_intctx structure.
+ 224:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  */
+ 225:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #define PORT_SETUP_CONTEXT(tp, wbase, wtop, pf, arg) {                      \
+ 226:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****   (tp)->ctx.sp = (struct port_intctx *)((uint8_t *)(wtop) -                 \
+ 227:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****                                         sizeof (struct port_intctx));       \
+ 228:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****   (tp)->ctx.sp->r4 = (regarm_t)(pf);                                        \
+ 229:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****   (tp)->ctx.sp->r5 = (regarm_t)(arg);                                       \
+ 230:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****   (tp)->ctx.sp->lr = (regarm_t)_port_thread_start;                          \
+ 231:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** }
+ 232:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** 
+ 233:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** /**
+ 234:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @brief   Computes the thread working area global size.
+ 235:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @note    There is no need to perform alignments in this macro.
+ 236:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  */
+ 237:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #define PORT_WA_SIZE(n) (sizeof (struct port_intctx) +                      \
+ 238:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****                          sizeof (struct port_extctx) +                      \
+ 239:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****                          ((size_t)(n)) + ((size_t)(PORT_INT_REQUIRED_STACK)))
+ 240:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** 
+ 241:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** /**
+ 242:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @brief   Static working area allocation.
+ 243:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @details This macro is used to allocate a static thread working area
+ 244:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  *          aligned as both position and size.
+ 245:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  *
+ 246:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @param[in] s         the name to be assigned to the stack array
+ 247:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @param[in] n         the stack size to be assigned to the thread
+ 248:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  */
+ 249:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #define PORT_WORKING_AREA(s, n)                                             \
+ 250:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****   stkalign_t s[THD_WORKING_AREA_SIZE(n) / sizeof (stkalign_t)]
+ 251:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** 
+ 252:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** /**
+ 253:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @brief   IRQ prologue code.
+ 254:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @details This macro must be inserted at the start of all IRQ handlers
+ 255:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  *          enabled to invoke system APIs.
+ 256:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  */
+ 257:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #if defined(__GNUC__) || defined(__DOXYGEN__)
+ 258:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #define PORT_IRQ_PROLOGUE()                                                 \
+ 259:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****   regarm_t _saved_lr = (regarm_t)__builtin_return_address(0)
+ 260:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #elif defined(__ICCARM__)
+ 261:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #define PORT_IRQ_PROLOGUE()                                                 \
+ 262:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****   regarm_t _saved_lr = (regarm_t)__get_LR()
+ 263:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #elif defined(__CC_ARM)
+ 264:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #define PORT_IRQ_PROLOGUE()                                                 \
+ 265:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****   regarm_t _saved_lr = (regarm_t)__return_address()
+ 266:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #endif
+ 267:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** 
+ 268:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** /**
+ 269:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @brief   IRQ epilogue code.
+ 270:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @details This macro must be inserted at the end of all IRQ handlers
+ 271:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  *          enabled to invoke system APIs.
+ 272:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  */
+ 273:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #define PORT_IRQ_EPILOGUE() _port_irq_epilogue(_saved_lr)
+ 274:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** 
+ 275:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** /**
+ 276:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @brief   IRQ handler function declaration.
+ 277:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @note    @p id can be a function name or a vector number depending on the
+ 278:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  *          port implementation.
+ 279:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  */
+ 280:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #ifdef __cplusplus
+ 281:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #define PORT_IRQ_HANDLER(id) extern "C" void id(void)
+ 282:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #else
+ 283:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #define PORT_IRQ_HANDLER(id) void id(void)
+ 284:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #endif
+ 285:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** 
+ 286:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** /**
+ 287:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @brief   Fast IRQ handler function declaration.
+ 288:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @note    @p id can be a function name or a vector number depending on the
+ 289:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  *          port implementation.
+ 290:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  */
+ 291:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #ifdef __cplusplus
+ 292:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #define PORT_FAST_IRQ_HANDLER(id) extern "C" void id(void)
+ 293:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #else
+ 294:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #define PORT_FAST_IRQ_HANDLER(id) void id(void)
+ 295:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #endif
+ 296:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** 
+ 297:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** /**
+ 298:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @brief   Performs a context switch between two threads.
+ 299:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @details This is the most critical code in any port, this function
+ 300:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  *          is responsible for the context switch between 2 threads.
+ 301:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @note    The implementation of this code affects <b>directly</b> the context
+ 302:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  *          switch performance so optimize here as much as you can.
+ 303:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  *
+ 304:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @param[in] ntp       the thread to be switched in
+ 305:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @param[in] otp       the thread to be switched out
+ 306:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  */
+ 307:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #if (CH_DBG_ENABLE_STACK_CHECK == FALSE) || defined(__DOXYGEN__)
+ 308:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #define port_switch(ntp, otp) _port_switch(ntp, otp)
+ 309:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #else
+ 310:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #define port_switch(ntp, otp) {                                             \
+ 311:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****   struct port_intctx *r13 = (struct port_intctx *)__get_PSP();              \
+ 312:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****   if ((stkalign_t *)(r13 - 1) < (otp)->wabase) {                            \
+ 313:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****     chSysHalt("stack overflow");                                            \
+ 314:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****   }                                                                         \
+ 315:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****   _port_switch(ntp, otp);                                                   \
+ 316:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** }
+ 317:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #endif
+ 318:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** 
+ 319:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** /*===========================================================================*/
+ 320:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** /* External declarations.                                                    */
+ 321:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** /*===========================================================================*/
+ 322:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** 
+ 323:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #ifdef __cplusplus
+ 324:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** extern "C" {
+ 325:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #endif
+ 326:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****   void _port_irq_epilogue(regarm_t lr);
+ 327:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****   void _port_switch(thread_t *ntp, thread_t *otp);
+ 328:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****   void _port_thread_start(void);
+ 329:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****   void _port_switch_from_isr(void);
+ 330:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****   void _port_exit_from_isr(void);
+ 331:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #ifdef __cplusplus
+ 332:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** }
+ 333:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** #endif
+ 334:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** 
+ 335:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** /*===========================================================================*/
+ 336:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** /* Module inline functions.                                                  */
+ 337:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** /*===========================================================================*/
+ 338:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** 
+ 339:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** /**
+ 340:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @brief   Port-related initialization code.
+ 341:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  */
+ 342:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** static inline void port_init(void) {
+ 343:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** 
+ 344:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****   NVIC_SetPriority(PendSV_IRQn, CORTEX_PRIORITY_PENDSV);
+ 345:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** }
+ 346:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** 
+ 347:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** /**
+ 348:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @brief   Returns a word encoding the current interrupts status.
+ 349:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  *
+ 350:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @return              The interrupts status.
+ 351:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  */
+ 352:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** static inline syssts_t port_get_irq_status(void) {
+ 353:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** 
+ 354:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****   return (syssts_t)__get_PRIMASK();
+ 355:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** }
+ 356:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** 
+ 357:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** /**
+ 358:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @brief   Checks the interrupt status.
+ 359:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  *
+ 360:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @param[in] sts       the interrupt status word
+ 361:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  *
+ 362:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @return              The interrupt status.
+ 363:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @retval false        the word specified a disabled interrupts status.
+ 364:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @retval true         the word specified an enabled interrupts status.
+ 365:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  */
+ 366:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** static inline bool port_irq_enabled(syssts_t sts) {
+ 367:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** 
+ 368:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****   return (sts & (syssts_t)1) == (syssts_t)0;
+ 369:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** }
+ 370:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** 
+ 371:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** /**
+ 372:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @brief   Determines the current execution context.
+ 373:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  *
+ 374:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @return              The execution context.
+ 375:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @retval false        not running in ISR mode.
+ 376:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @retval true         running in ISR mode.
+ 377:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  */
+ 378:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** static inline bool port_is_isr_context(void) {
+ 379:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** 
+ 380:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****   return (bool)((__get_IPSR() & 0x1FFU) != 0U);
+ 381:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** }
+ 382:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** 
+ 383:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** /**
+ 384:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @brief   Kernel-lock action.
+ 385:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @details In this port this function disables interrupts globally.
+ 386:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  */
+ 387:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** static inline void port_lock(void) {
+  60              		.loc 3 387 20 view .LVU11
+  61              	.LBE49:
+  62              	.LBE53:
+ 388:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** 
+ 389:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****   __disable_irq();
+  63              		.loc 3 389 3 view .LVU12
+  64              	.LBB54:
+  65              	.LBB52:
+  66              	.LBB50:
+  67              	.LBI50:
+  68              		.file 4 "./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h"
+   1:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** /**************************************************************************//**
+   2:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****  * @file     cmsis_gcc.h
+   3:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****  * @brief    CMSIS compiler GCC header file
+   4:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****  * @version  V5.0.4
+   5:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****  * @date     09. April 2018
+   6:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****  ******************************************************************************/
+   7:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** /*
+   8:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****  * Copyright (c) 2009-2018 Arm Limited. All rights reserved.
+   9:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****  *
+  10:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****  * SPDX-License-Identifier: Apache-2.0
+  11:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****  *
+  12:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****  * Licensed under the Apache License, Version 2.0 (the License); you may
+  13:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****  * not use this file except in compliance with the License.
+  14:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****  * You may obtain a copy of the License at
+  15:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****  *
+  16:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****  * www.apache.org/licenses/LICENSE-2.0
+  17:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****  *
+  18:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****  * Unless required by applicable law or agreed to in writing, software
+  19:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****  * distributed under the License is distributed on an AS IS BASIS, WITHOUT
+  20:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  21:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****  * See the License for the specific language governing permissions and
+  22:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****  * limitations under the License.
+  23:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****  */
+  24:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** 
+  25:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** #ifndef __CMSIS_GCC_H
+  26:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** #define __CMSIS_GCC_H
+  27:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** 
+  28:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** /* ignore some GCC warnings */
+  29:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** #pragma GCC diagnostic push
+  30:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** #pragma GCC diagnostic ignored "-Wsign-conversion"
+  31:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** #pragma GCC diagnostic ignored "-Wconversion"
+  32:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** #pragma GCC diagnostic ignored "-Wunused-parameter"
+  33:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** 
+  34:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** /* Fallback for __has_builtin */
+  35:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** #ifndef __has_builtin
+  36:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****   #define __has_builtin(x) (0)
+  37:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** #endif
+  38:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** 
+  39:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** /* CMSIS compiler specific defines */
+  40:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** #ifndef   __ASM
+  41:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****   #define __ASM                                  __asm
+  42:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** #endif
+  43:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** #ifndef   __INLINE
+  44:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****   #define __INLINE                               inline
+  45:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** #endif
+  46:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** #ifndef   __STATIC_INLINE
+  47:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****   #define __STATIC_INLINE                        static inline
+  48:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** #endif
+  49:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** #ifndef   __STATIC_FORCEINLINE                 
+  50:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****   #define __STATIC_FORCEINLINE                   __attribute__((always_inline)) static inline
+  51:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** #endif                                           
+  52:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** #ifndef   __NO_RETURN
+  53:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****   #define __NO_RETURN                            __attribute__((__noreturn__))
+  54:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** #endif
+  55:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** #ifndef   __USED
+  56:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****   #define __USED                                 __attribute__((used))
+  57:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** #endif
+  58:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** #ifndef   __WEAK
+  59:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****   #define __WEAK                                 __attribute__((weak))
+  60:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** #endif
+  61:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** #ifndef   __PACKED
+  62:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****   #define __PACKED                               __attribute__((packed, aligned(1)))
+  63:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** #endif
+  64:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** #ifndef   __PACKED_STRUCT
+  65:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****   #define __PACKED_STRUCT                        struct __attribute__((packed, aligned(1)))
+  66:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** #endif
+  67:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** #ifndef   __PACKED_UNION
+  68:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****   #define __PACKED_UNION                         union __attribute__((packed, aligned(1)))
+  69:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** #endif
+  70:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** #ifndef   __UNALIGNED_UINT32        /* deprecated */
+  71:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****   #pragma GCC diagnostic push
+  72:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****   #pragma GCC diagnostic ignored "-Wpacked"
+  73:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****   #pragma GCC diagnostic ignored "-Wattributes"
+  74:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****   struct __attribute__((packed)) T_UINT32 { uint32_t v; };
+  75:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****   #pragma GCC diagnostic pop
+  76:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****   #define __UNALIGNED_UINT32(x)                  (((struct T_UINT32 *)(x))->v)
+  77:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** #endif
+  78:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** #ifndef   __UNALIGNED_UINT16_WRITE
+  79:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****   #pragma GCC diagnostic push
+  80:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****   #pragma GCC diagnostic ignored "-Wpacked"
+  81:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****   #pragma GCC diagnostic ignored "-Wattributes"
+  82:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****   __PACKED_STRUCT T_UINT16_WRITE { uint16_t v; };
+  83:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****   #pragma GCC diagnostic pop
+  84:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****   #define __UNALIGNED_UINT16_WRITE(addr, val)    (void)((((struct T_UINT16_WRITE *)(void *)(addr))-
+  85:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** #endif
+  86:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** #ifndef   __UNALIGNED_UINT16_READ
+  87:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****   #pragma GCC diagnostic push
+  88:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****   #pragma GCC diagnostic ignored "-Wpacked"
+  89:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****   #pragma GCC diagnostic ignored "-Wattributes"
+  90:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****   __PACKED_STRUCT T_UINT16_READ { uint16_t v; };
+  91:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****   #pragma GCC diagnostic pop
+  92:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****   #define __UNALIGNED_UINT16_READ(addr)          (((const struct T_UINT16_READ *)(const void *)(add
+  93:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** #endif
+  94:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** #ifndef   __UNALIGNED_UINT32_WRITE
+  95:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****   #pragma GCC diagnostic push
+  96:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****   #pragma GCC diagnostic ignored "-Wpacked"
+  97:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****   #pragma GCC diagnostic ignored "-Wattributes"
+  98:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****   __PACKED_STRUCT T_UINT32_WRITE { uint32_t v; };
+  99:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****   #pragma GCC diagnostic pop
+ 100:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****   #define __UNALIGNED_UINT32_WRITE(addr, val)    (void)((((struct T_UINT32_WRITE *)(void *)(addr))-
+ 101:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** #endif
+ 102:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** #ifndef   __UNALIGNED_UINT32_READ
+ 103:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****   #pragma GCC diagnostic push
+ 104:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****   #pragma GCC diagnostic ignored "-Wpacked"
+ 105:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****   #pragma GCC diagnostic ignored "-Wattributes"
+ 106:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****   __PACKED_STRUCT T_UINT32_READ { uint32_t v; };
+ 107:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****   #pragma GCC diagnostic pop
+ 108:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****   #define __UNALIGNED_UINT32_READ(addr)          (((const struct T_UINT32_READ *)(const void *)(add
+ 109:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** #endif
+ 110:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** #ifndef   __ALIGNED
+ 111:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****   #define __ALIGNED(x)                           __attribute__((aligned(x)))
+ 112:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** #endif
+ 113:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** #ifndef   __RESTRICT
+ 114:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****   #define __RESTRICT                             __restrict
+ 115:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** #endif
+ 116:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** 
+ 117:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** 
+ 118:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** /* ###########################  Core Function Access  ########################### */
+ 119:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** /** \ingroup  CMSIS_Core_FunctionInterface
+ 120:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****     \defgroup CMSIS_Core_RegAccFunctions CMSIS Core Register Access Functions
+ 121:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****   @{
+ 122:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****  */
+ 123:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** 
+ 124:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** /**
+ 125:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****   \brief   Enable IRQ Interrupts
+ 126:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****   \details Enables IRQ interrupts by clearing the I-bit in the CPSR.
+ 127:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****            Can only be executed in Privileged modes.
+ 128:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****  */
+ 129:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** __STATIC_FORCEINLINE void __enable_irq(void)
+ 130:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** {
+ 131:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****   __ASM volatile ("cpsie i" : : : "memory");
+ 132:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** }
+ 133:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** 
+ 134:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** 
+ 135:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** /**
+ 136:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****   \brief   Disable IRQ Interrupts
+ 137:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****   \details Disables IRQ interrupts by setting the I-bit in the CPSR.
+ 138:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****            Can only be executed in Privileged modes.
+ 139:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****  */
+ 140:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** __STATIC_FORCEINLINE void __disable_irq(void)
+  69              		.loc 4 140 27 view .LVU13
+  70              	.LBB51:
+ 141:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** {
+ 142:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h ****   __ASM volatile ("cpsid i" : : : "memory");
+  71              		.loc 4 142 3 view .LVU14
+  72              		.syntax divided
+  73              	@ 142 "./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h" 1
+  74 0008 72B6     		cpsid i
+  75              	@ 0 "" 2
+  76              		.thumb
+  77              		.syntax unified
+  78              	.LBE51:
+  79              	.LBE50:
+  80              	.LBE52:
+  81              	.LBE54:
+ 356:./lib/chibios/os/rt/include/chsys.h ****   _stats_start_measure_crit_thd();
+  82              		.loc 2 356 34 view .LVU15
+ 357:./lib/chibios/os/rt/include/chsys.h ****   _dbg_check_lock();
+  83              		.loc 2 357 20 view .LVU16
+  93:lib/chibios/os/rt/src/chmsg.c ****   ctp->u.sentmsg = msg;
+  84              		.loc 1 93 3 view .LVU17
+  85              		.loc 1 93 18 is_stmt 0 view .LVU18
+  86 000a 2162     		str	r1, [r4, #32]
+  94:lib/chibios/os/rt/src/chmsg.c ****   msg_insert(ctp, &tp->msgqueue);
+  87              		.loc 1 94 3 is_stmt 1 view .LVU19
+  88 000c 0100     		movs	r1, r0
+  89              	.LVL2:
+  90              		.loc 1 94 3 is_stmt 0 view .LVU20
+  91 000e 2000     		movs	r0, r4
+  92              	.LVL3:
+  93              		.loc 1 94 3 view .LVU21
+  94 0010 2831     		adds	r1, r1, #40
+  95              	.LVL4:
+  96              		.loc 1 94 3 view .LVU22
+  97 0012 FFF7FEFF 		bl	queue_insert
+  98              	.LVL5:
+  95:lib/chibios/os/rt/src/chmsg.c ****   if (tp->state == CH_STATE_WTMSG) {
+  99              		.loc 1 95 3 is_stmt 1 view .LVU23
+ 100              		.loc 1 95 6 is_stmt 0 view .LVU24
+ 101 0016 2B7F     		ldrb	r3, [r5, #28]
+ 102 0018 0E2B     		cmp	r3, #14
+ 103 001a 02D1     		bne	.L2
+  96:lib/chibios/os/rt/src/chmsg.c ****     (void) chSchReadyI(tp);
+ 104              		.loc 1 96 5 is_stmt 1 view .LVU25
+ 105              		.loc 1 96 12 is_stmt 0 view .LVU26
+ 106 001c 2800     		movs	r0, r5
+ 107 001e FFF7FEFF 		bl	chSchReadyI
+ 108              	.LVL6:
+ 109              	.L2:
+  97:lib/chibios/os/rt/src/chmsg.c ****   }
+  98:lib/chibios/os/rt/src/chmsg.c ****   chSchGoSleepS(CH_STATE_SNDMSGQ);
+ 110              		.loc 1 98 3 is_stmt 1 view .LVU27
+ 111 0022 0C20     		movs	r0, #12
+ 112 0024 FFF7FEFF 		bl	chSchGoSleepS
+ 113              	.LVL7:
+  99:lib/chibios/os/rt/src/chmsg.c ****   msg = ctp->u.rdymsg;
+ 114              		.loc 1 99 3 view .LVU28
+ 115              		.loc 1 99 7 is_stmt 0 view .LVU29
+ 116 0028 206A     		ldr	r0, [r4, #32]
+ 117              	.LVL8:
+ 100:lib/chibios/os/rt/src/chmsg.c ****   chSysUnlock();
+ 118              		.loc 1 100 3 is_stmt 1 view .LVU30
+ 119              	.LBB55:
+ 120              	.LBI55:
+ 358:./lib/chibios/os/rt/include/chsys.h **** }
+ 359:./lib/chibios/os/rt/include/chsys.h **** 
+ 360:./lib/chibios/os/rt/include/chsys.h **** /**
+ 361:./lib/chibios/os/rt/include/chsys.h ****  * @brief   Leaves the kernel lock state.
+ 362:./lib/chibios/os/rt/include/chsys.h ****  *
+ 363:./lib/chibios/os/rt/include/chsys.h ****  * @special
+ 364:./lib/chibios/os/rt/include/chsys.h ****  */
+ 365:./lib/chibios/os/rt/include/chsys.h **** static inline void chSysUnlock(void) {
+ 121              		.loc 2 365 20 view .LVU31
+ 122              	.LBB56:
+ 366:./lib/chibios/os/rt/include/chsys.h **** 
+ 367:./lib/chibios/os/rt/include/chsys.h ****   _dbg_check_unlock();
+ 123              		.loc 2 367 22 view .LVU32
+ 368:./lib/chibios/os/rt/include/chsys.h ****   _stats_stop_measure_crit_thd();
+ 124              		.loc 2 368 33 view .LVU33
+ 369:./lib/chibios/os/rt/include/chsys.h **** 
+ 370:./lib/chibios/os/rt/include/chsys.h ****   /* The following condition can be triggered by the use of i-class functions
+ 371:./lib/chibios/os/rt/include/chsys.h ****      in a critical section not followed by a chSchResceduleS(), this means
+ 372:./lib/chibios/os/rt/include/chsys.h ****      that the current thread has a lower priority than the next thread in
+ 373:./lib/chibios/os/rt/include/chsys.h ****      the ready list.*/
+ 374:./lib/chibios/os/rt/include/chsys.h ****   chDbgAssert((ch.rlist.queue.next == (thread_t *)&ch.rlist.queue) ||
+ 125              		.loc 2 374 3 view .LVU34
+ 126              		.loc 2 374 3 view .LVU35
+ 375:./lib/chibios/os/rt/include/chsys.h ****               (ch.rlist.current->prio >= ch.rlist.queue.next->prio),
+ 376:./lib/chibios/os/rt/include/chsys.h ****               "priority order violation");
+ 377:./lib/chibios/os/rt/include/chsys.h **** 
+ 378:./lib/chibios/os/rt/include/chsys.h ****   port_unlock();
+ 127              		.loc 2 378 3 view .LVU36
+ 128              	.LBB57:
+ 129              	.LBI57:
+ 390:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** }
+ 391:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** 
+ 392:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** /**
+ 393:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @brief   Kernel-unlock action.
+ 394:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  * @details In this port this function enables interrupts globally.
+ 395:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****  */
+ 396:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** static inline void port_unlock(void) {
+ 130              		.loc 3 396 20 view .LVU37
+ 131              	.LBE57:
+ 132              	.LBE56:
+ 133              	.LBE55:
+ 397:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** 
+ 398:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h ****   __enable_irq();
+ 134              		.loc 3 398 3 view .LVU38
+ 135              	.LBB62:
+ 136              	.LBB61:
+ 137              	.LBB60:
+ 138              	.LBB58:
+ 139              	.LBI58:
+ 129:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** {
+ 140              		.loc 4 129 27 view .LVU39
+ 141              	.LBB59:
+ 131:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** }
+ 142              		.loc 4 131 3 view .LVU40
+ 143              		.syntax divided
+ 144              	@ 131 "./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h" 1
+ 145 002a 62B6     		cpsie i
+ 146              	@ 0 "" 2
+ 147              		.thumb
+ 148              		.syntax unified
+ 149              	.LBE59:
+ 150              	.LBE58:
+ 151              	.LBE60:
+ 152              	.LBE61:
+ 153              	.LBE62:
+ 101:lib/chibios/os/rt/src/chmsg.c **** 
+ 102:lib/chibios/os/rt/src/chmsg.c ****   return msg;
+ 154              		.loc 1 102 3 view .LVU41
+ 103:lib/chibios/os/rt/src/chmsg.c **** }
+ 155              		.loc 1 103 1 is_stmt 0 view .LVU42
+ 156              		@ sp needed
+ 157              	.LVL9:
+ 158              	.LVL10:
+ 159              		.loc 1 103 1 view .LVU43
+ 160 002c 70BD     		pop	{r4, r5, r6, pc}
+ 161              	.L4:
+ 162 002e C046     		.align	2
+ 163              	.L3:
+ 164 0030 00000000 		.word	ch
+ 165              		.cfi_endproc
+ 166              	.LFE154:
+ 168              		.section	.text.chMsgWait,"ax",%progbits
+ 169              		.align	1
+ 170              		.global	chMsgWait
+ 171              		.syntax unified
+ 172              		.code	16
+ 173              		.thumb_func
+ 174              		.fpu softvfp
+ 176              	chMsgWait:
+ 177              	.LFB155:
+ 104:lib/chibios/os/rt/src/chmsg.c **** 
+ 105:lib/chibios/os/rt/src/chmsg.c **** /**
+ 106:lib/chibios/os/rt/src/chmsg.c ****  * @brief   Suspends the thread and waits for an incoming message.
+ 107:lib/chibios/os/rt/src/chmsg.c ****  * @post    After receiving a message the function @p chMsgGet() must be
+ 108:lib/chibios/os/rt/src/chmsg.c ****  *          called in order to retrieve the message and then @p chMsgRelease()
+ 109:lib/chibios/os/rt/src/chmsg.c ****  *          must be invoked in order to acknowledge the reception and send
+ 110:lib/chibios/os/rt/src/chmsg.c ****  *          the answer.
+ 111:lib/chibios/os/rt/src/chmsg.c ****  * @note    If the message is a pointer then you can assume that the data
+ 112:lib/chibios/os/rt/src/chmsg.c ****  *          pointed by the message is stable until you invoke @p chMsgRelease()
+ 113:lib/chibios/os/rt/src/chmsg.c ****  *          because the sending thread is suspended until then.
+ 114:lib/chibios/os/rt/src/chmsg.c ****  * @note    The reference counter of the sender thread is not increased, the
+ 115:lib/chibios/os/rt/src/chmsg.c ****  *          returned pointer is a temporary reference.
+ 116:lib/chibios/os/rt/src/chmsg.c ****  *
+ 117:lib/chibios/os/rt/src/chmsg.c ****  * @return              A pointer to the thread carrying the message.
+ 118:lib/chibios/os/rt/src/chmsg.c ****  *
+ 119:lib/chibios/os/rt/src/chmsg.c ****  * @api
+ 120:lib/chibios/os/rt/src/chmsg.c ****  */
+ 121:lib/chibios/os/rt/src/chmsg.c **** thread_t *chMsgWait(void) {
+ 178              		.loc 1 121 27 is_stmt 1 view -0
+ 179              		.cfi_startproc
+ 180              		@ args = 0, pretend = 0, frame = 0
+ 181              		@ frame_needed = 0, uses_anonymous_args = 0
+ 122:lib/chibios/os/rt/src/chmsg.c ****   thread_t *tp;
+ 182              		.loc 1 122 3 view .LVU45
+ 123:lib/chibios/os/rt/src/chmsg.c **** 
+ 124:lib/chibios/os/rt/src/chmsg.c ****   chSysLock();
+ 183              		.loc 1 124 3 view .LVU46
+ 184              	.LBB63:
+ 185              	.LBI63:
+ 353:./lib/chibios/os/rt/include/chsys.h **** 
+ 186              		.loc 2 353 20 view .LVU47
+ 187              	.LBE63:
+ 355:./lib/chibios/os/rt/include/chsys.h ****   _stats_start_measure_crit_thd();
+ 188              		.loc 2 355 3 view .LVU48
+ 189              	.LBB71:
+ 190              	.LBB64:
+ 191              	.LBI64:
+ 387:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** 
+ 192              		.loc 3 387 20 view .LVU49
+ 193              	.LBE64:
+ 194              	.LBE71:
+ 389:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** }
+ 195              		.loc 3 389 3 view .LVU50
+ 196              	.LBB72:
+ 197              	.LBB69:
+ 198              	.LBB65:
+ 199              	.LBI65:
+ 140:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** {
+ 200              		.loc 4 140 27 view .LVU51
+ 201              	.LBB66:
+ 202              		.loc 4 142 3 view .LVU52
+ 203              	.LBE66:
+ 204              	.LBE65:
+ 205              	.LBE69:
+ 206              	.LBE72:
+ 121:lib/chibios/os/rt/src/chmsg.c ****   thread_t *tp;
+ 207              		.loc 1 121 27 is_stmt 0 view .LVU53
+ 208 0000 10B5     		push	{r4, lr}
+ 209              		.cfi_def_cfa_offset 8
+ 210              		.cfi_offset 4, -8
+ 211              		.cfi_offset 14, -4
+ 212              	.LBB73:
+ 213              	.LBB70:
+ 214              	.LBB68:
+ 215              	.LBB67:
+ 216              		.loc 4 142 3 view .LVU54
+ 217              		.syntax divided
+ 218              	@ 142 "./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h" 1
+ 219 0002 72B6     		cpsid i
+ 220              	@ 0 "" 2
+ 221              		.thumb
+ 222              		.syntax unified
+ 223              	.LBE67:
+ 224              	.LBE68:
+ 225              	.LBE70:
+ 226              	.LBE73:
+ 356:./lib/chibios/os/rt/include/chsys.h ****   _dbg_check_lock();
+ 227              		.loc 2 356 34 is_stmt 1 view .LVU55
+ 357:./lib/chibios/os/rt/include/chsys.h **** }
+ 228              		.loc 2 357 20 view .LVU56
+ 125:lib/chibios/os/rt/src/chmsg.c ****   if (!chMsgIsPendingI(currp)) {
+ 229              		.loc 1 125 3 view .LVU57
+ 230              		.loc 1 125 8 is_stmt 0 view .LVU58
+ 231 0004 084C     		ldr	r4, .L7
+ 232 0006 A369     		ldr	r3, [r4, #24]
+ 233              	.LVL11:
+ 234              	.LBB74:
+ 235              	.LBI74:
+ 236              		.file 5 "./lib/chibios/os/rt/include/chmsg.h"
+   1:./lib/chibios/os/rt/include/chmsg.h **** /*
+   2:./lib/chibios/os/rt/include/chmsg.h ****     ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio.
+   3:./lib/chibios/os/rt/include/chmsg.h **** 
+   4:./lib/chibios/os/rt/include/chmsg.h ****     This file is part of ChibiOS.
+   5:./lib/chibios/os/rt/include/chmsg.h **** 
+   6:./lib/chibios/os/rt/include/chmsg.h ****     ChibiOS is free software; you can redistribute it and/or modify
+   7:./lib/chibios/os/rt/include/chmsg.h ****     it under the terms of the GNU General Public License as published by
+   8:./lib/chibios/os/rt/include/chmsg.h ****     the Free Software Foundation; either version 3 of the License, or
+   9:./lib/chibios/os/rt/include/chmsg.h ****     (at your option) any later version.
+  10:./lib/chibios/os/rt/include/chmsg.h **** 
+  11:./lib/chibios/os/rt/include/chmsg.h ****     ChibiOS is distributed in the hope that it will be useful,
+  12:./lib/chibios/os/rt/include/chmsg.h ****     but WITHOUT ANY WARRANTY; without even the implied warranty of
+  13:./lib/chibios/os/rt/include/chmsg.h ****     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  14:./lib/chibios/os/rt/include/chmsg.h ****     GNU General Public License for more details.
+  15:./lib/chibios/os/rt/include/chmsg.h **** 
+  16:./lib/chibios/os/rt/include/chmsg.h ****     You should have received a copy of the GNU General Public License
+  17:./lib/chibios/os/rt/include/chmsg.h ****     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  18:./lib/chibios/os/rt/include/chmsg.h **** */
+  19:./lib/chibios/os/rt/include/chmsg.h **** 
+  20:./lib/chibios/os/rt/include/chmsg.h **** /**
+  21:./lib/chibios/os/rt/include/chmsg.h ****  * @file    chmsg.h
+  22:./lib/chibios/os/rt/include/chmsg.h ****  * @brief   Messages macros and structures.
+  23:./lib/chibios/os/rt/include/chmsg.h ****  *
+  24:./lib/chibios/os/rt/include/chmsg.h ****  * @addtogroup messages
+  25:./lib/chibios/os/rt/include/chmsg.h ****  * @{
+  26:./lib/chibios/os/rt/include/chmsg.h ****  */
+  27:./lib/chibios/os/rt/include/chmsg.h **** 
+  28:./lib/chibios/os/rt/include/chmsg.h **** #ifndef CHMSG_H
+  29:./lib/chibios/os/rt/include/chmsg.h **** #define CHMSG_H
+  30:./lib/chibios/os/rt/include/chmsg.h **** 
+  31:./lib/chibios/os/rt/include/chmsg.h **** #if (CH_CFG_USE_MESSAGES == TRUE) || defined(__DOXYGEN__)
+  32:./lib/chibios/os/rt/include/chmsg.h **** 
+  33:./lib/chibios/os/rt/include/chmsg.h **** /*===========================================================================*/
+  34:./lib/chibios/os/rt/include/chmsg.h **** /* Module constants.                                                         */
+  35:./lib/chibios/os/rt/include/chmsg.h **** /*===========================================================================*/
+  36:./lib/chibios/os/rt/include/chmsg.h **** 
+  37:./lib/chibios/os/rt/include/chmsg.h **** /*===========================================================================*/
+  38:./lib/chibios/os/rt/include/chmsg.h **** /* Module pre-compile time settings.                                         */
+  39:./lib/chibios/os/rt/include/chmsg.h **** /*===========================================================================*/
+  40:./lib/chibios/os/rt/include/chmsg.h **** 
+  41:./lib/chibios/os/rt/include/chmsg.h **** /*===========================================================================*/
+  42:./lib/chibios/os/rt/include/chmsg.h **** /* Derived constants and error checks.                                       */
+  43:./lib/chibios/os/rt/include/chmsg.h **** /*===========================================================================*/
+  44:./lib/chibios/os/rt/include/chmsg.h **** 
+  45:./lib/chibios/os/rt/include/chmsg.h **** /*===========================================================================*/
+  46:./lib/chibios/os/rt/include/chmsg.h **** /* Module data structures and types.                                         */
+  47:./lib/chibios/os/rt/include/chmsg.h **** /*===========================================================================*/
+  48:./lib/chibios/os/rt/include/chmsg.h **** 
+  49:./lib/chibios/os/rt/include/chmsg.h **** /*===========================================================================*/
+  50:./lib/chibios/os/rt/include/chmsg.h **** /* Module macros.                                                            */
+  51:./lib/chibios/os/rt/include/chmsg.h **** /*===========================================================================*/
+  52:./lib/chibios/os/rt/include/chmsg.h **** 
+  53:./lib/chibios/os/rt/include/chmsg.h **** /*===========================================================================*/
+  54:./lib/chibios/os/rt/include/chmsg.h **** /* External declarations.                                                    */
+  55:./lib/chibios/os/rt/include/chmsg.h **** /*===========================================================================*/
+  56:./lib/chibios/os/rt/include/chmsg.h **** 
+  57:./lib/chibios/os/rt/include/chmsg.h **** #ifdef __cplusplus
+  58:./lib/chibios/os/rt/include/chmsg.h **** extern "C" {
+  59:./lib/chibios/os/rt/include/chmsg.h **** #endif
+  60:./lib/chibios/os/rt/include/chmsg.h ****   msg_t chMsgSend(thread_t *tp, msg_t msg);
+  61:./lib/chibios/os/rt/include/chmsg.h ****   thread_t * chMsgWait(void);
+  62:./lib/chibios/os/rt/include/chmsg.h ****   void chMsgRelease(thread_t *tp, msg_t msg);
+  63:./lib/chibios/os/rt/include/chmsg.h **** #ifdef __cplusplus
+  64:./lib/chibios/os/rt/include/chmsg.h **** }
+  65:./lib/chibios/os/rt/include/chmsg.h **** #endif
+  66:./lib/chibios/os/rt/include/chmsg.h **** 
+  67:./lib/chibios/os/rt/include/chmsg.h **** /*===========================================================================*/
+  68:./lib/chibios/os/rt/include/chmsg.h **** /* External declarations.                                                    */
+  69:./lib/chibios/os/rt/include/chmsg.h **** /*===========================================================================*/
+  70:./lib/chibios/os/rt/include/chmsg.h **** 
+  71:./lib/chibios/os/rt/include/chmsg.h **** /**
+  72:./lib/chibios/os/rt/include/chmsg.h ****  * @brief   Evaluates to @p true if the thread has pending messages.
+  73:./lib/chibios/os/rt/include/chmsg.h ****  *
+  74:./lib/chibios/os/rt/include/chmsg.h ****  * @param[in] tp        pointer to the thread
+  75:./lib/chibios/os/rt/include/chmsg.h ****  * @return              The pending messages status.
+  76:./lib/chibios/os/rt/include/chmsg.h ****  *
+  77:./lib/chibios/os/rt/include/chmsg.h ****  * @iclass
+  78:./lib/chibios/os/rt/include/chmsg.h ****  */
+  79:./lib/chibios/os/rt/include/chmsg.h **** static inline bool chMsgIsPendingI(thread_t *tp) {
+ 237              		.loc 5 79 20 is_stmt 1 view .LVU59
+ 238              	.LBB75:
+  80:./lib/chibios/os/rt/include/chmsg.h **** 
+  81:./lib/chibios/os/rt/include/chmsg.h ****   chDbgCheckClassI();
+ 239              		.loc 5 81 21 view .LVU60
+  82:./lib/chibios/os/rt/include/chmsg.h **** 
+  83:./lib/chibios/os/rt/include/chmsg.h ****   return (bool)(tp->msgqueue.next != (thread_t *)&tp->msgqueue);
+ 240              		.loc 5 83 3 view .LVU61
+ 241              		.loc 5 83 50 is_stmt 0 view .LVU62
+ 242 0008 1A00     		movs	r2, r3
+ 243              	.LBE75:
+ 244              	.LBE74:
+ 245              		.loc 1 125 6 view .LVU63
+ 246 000a 9B6A     		ldr	r3, [r3, #40]
+ 247              	.LBB77:
+ 248              	.LBB76:
+ 249              		.loc 5 83 50 view .LVU64
+ 250 000c 2832     		adds	r2, r2, #40
+ 251              	.LBE76:
+ 252              	.LBE77:
+ 253              		.loc 1 125 6 view .LVU65
+ 254 000e 9342     		cmp	r3, r2
+ 255 0010 02D1     		bne	.L6
+ 126:lib/chibios/os/rt/src/chmsg.c ****     chSchGoSleepS(CH_STATE_WTMSG);
+ 256              		.loc 1 126 5 is_stmt 1 view .LVU66
+ 257 0012 0E20     		movs	r0, #14
+ 258 0014 FFF7FEFF 		bl	chSchGoSleepS
+ 259              	.LVL12:
+ 260              	.L6:
+ 127:lib/chibios/os/rt/src/chmsg.c ****   }
+ 128:lib/chibios/os/rt/src/chmsg.c ****   tp = queue_fifo_remove(&currp->msgqueue);
+ 261              		.loc 1 128 3 view .LVU67
+ 262              		.loc 1 128 8 is_stmt 0 view .LVU68
+ 263 0018 A069     		ldr	r0, [r4, #24]
+ 264 001a 2830     		adds	r0, r0, #40
+ 265 001c FFF7FEFF 		bl	queue_fifo_remove
+ 266              	.LVL13:
+ 129:lib/chibios/os/rt/src/chmsg.c ****   tp->state = CH_STATE_SNDMSG;
+ 267              		.loc 1 129 3 is_stmt 1 view .LVU69
+ 268              		.loc 1 129 13 is_stmt 0 view .LVU70
+ 269 0020 0D23     		movs	r3, #13
+ 270 0022 0377     		strb	r3, [r0, #28]
+ 130:lib/chibios/os/rt/src/chmsg.c ****   chSysUnlock();
+ 271              		.loc 1 130 3 is_stmt 1 view .LVU71
+ 272              	.LBB78:
+ 273              	.LBI78:
+ 365:./lib/chibios/os/rt/include/chsys.h **** 
+ 274              		.loc 2 365 20 view .LVU72
+ 275              	.LBB79:
+ 367:./lib/chibios/os/rt/include/chsys.h ****   _stats_stop_measure_crit_thd();
+ 276              		.loc 2 367 22 view .LVU73
+ 368:./lib/chibios/os/rt/include/chsys.h **** 
+ 277              		.loc 2 368 33 view .LVU74
+ 374:./lib/chibios/os/rt/include/chsys.h ****               (ch.rlist.current->prio >= ch.rlist.queue.next->prio),
+ 278              		.loc 2 374 3 view .LVU75
+ 374:./lib/chibios/os/rt/include/chsys.h ****               (ch.rlist.current->prio >= ch.rlist.queue.next->prio),
+ 279              		.loc 2 374 3 view .LVU76
+ 280              		.loc 2 378 3 view .LVU77
+ 281              	.LBB80:
+ 282              	.LBI80:
+ 396:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** 
+ 283              		.loc 3 396 20 view .LVU78
+ 284              	.LBE80:
+ 285              	.LBE79:
+ 286              	.LBE78:
+ 287              		.loc 3 398 3 view .LVU79
+ 288              	.LBB85:
+ 289              	.LBB84:
+ 290              	.LBB83:
+ 291              	.LBB81:
+ 292              	.LBI81:
+ 129:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** {
+ 293              		.loc 4 129 27 view .LVU80
+ 294              	.LBB82:
+ 131:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** }
+ 295              		.loc 4 131 3 view .LVU81
+ 296              		.syntax divided
+ 297              	@ 131 "./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h" 1
+ 298 0024 62B6     		cpsie i
+ 299              	@ 0 "" 2
+ 300              		.thumb
+ 301              		.syntax unified
+ 302              	.LBE82:
+ 303              	.LBE81:
+ 304              	.LBE83:
+ 305              	.LBE84:
+ 306              	.LBE85:
+ 131:lib/chibios/os/rt/src/chmsg.c **** 
+ 132:lib/chibios/os/rt/src/chmsg.c ****   return tp;
+ 307              		.loc 1 132 3 view .LVU82
+ 133:lib/chibios/os/rt/src/chmsg.c **** }
+ 308              		.loc 1 133 1 is_stmt 0 view .LVU83
+ 309              		@ sp needed
+ 310 0026 10BD     		pop	{r4, pc}
+ 311              	.L8:
+ 312              		.align	2
+ 313              	.L7:
+ 314 0028 00000000 		.word	ch
+ 315              		.cfi_endproc
+ 316              	.LFE155:
+ 318              		.section	.text.chMsgRelease,"ax",%progbits
+ 319              		.align	1
+ 320              		.global	chMsgRelease
+ 321              		.syntax unified
+ 322              		.code	16
+ 323              		.thumb_func
+ 324              		.fpu softvfp
+ 326              	chMsgRelease:
+ 327              	.LVL14:
+ 328              	.LFB156:
+ 134:lib/chibios/os/rt/src/chmsg.c **** 
+ 135:lib/chibios/os/rt/src/chmsg.c **** /**
+ 136:lib/chibios/os/rt/src/chmsg.c ****  * @brief   Releases a sender thread specifying a response message.
+ 137:lib/chibios/os/rt/src/chmsg.c ****  * @pre     Invoke this function only after a message has been received
+ 138:lib/chibios/os/rt/src/chmsg.c ****  *          using @p chMsgWait().
+ 139:lib/chibios/os/rt/src/chmsg.c ****  *
+ 140:lib/chibios/os/rt/src/chmsg.c ****  * @param[in] tp        pointer to the thread
+ 141:lib/chibios/os/rt/src/chmsg.c ****  * @param[in] msg       message to be returned to the sender
+ 142:lib/chibios/os/rt/src/chmsg.c ****  *
+ 143:lib/chibios/os/rt/src/chmsg.c ****  * @api
+ 144:lib/chibios/os/rt/src/chmsg.c ****  */
+ 145:lib/chibios/os/rt/src/chmsg.c **** void chMsgRelease(thread_t *tp, msg_t msg) {
+ 329              		.loc 1 145 44 is_stmt 1 view -0
+ 330              		.cfi_startproc
+ 331              		@ args = 0, pretend = 0, frame = 0
+ 332              		@ frame_needed = 0, uses_anonymous_args = 0
+ 146:lib/chibios/os/rt/src/chmsg.c **** 
+ 147:lib/chibios/os/rt/src/chmsg.c ****   chSysLock();
+ 333              		.loc 1 147 3 view .LVU85
+ 334              	.LBB86:
+ 335              	.LBI86:
+ 353:./lib/chibios/os/rt/include/chsys.h **** 
+ 336              		.loc 2 353 20 view .LVU86
+ 337              	.LBE86:
+ 355:./lib/chibios/os/rt/include/chsys.h ****   _stats_start_measure_crit_thd();
+ 338              		.loc 2 355 3 view .LVU87
+ 339              	.LBB94:
+ 340              	.LBB87:
+ 341              	.LBI87:
+ 387:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** 
+ 342              		.loc 3 387 20 view .LVU88
+ 343              	.LBE87:
+ 344              	.LBE94:
+ 389:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** }
+ 345              		.loc 3 389 3 view .LVU89
+ 346              	.LBB95:
+ 347              	.LBB92:
+ 348              	.LBB88:
+ 349              	.LBI88:
+ 140:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** {
+ 350              		.loc 4 140 27 view .LVU90
+ 351              	.LBB89:
+ 352              		.loc 4 142 3 view .LVU91
+ 353              	.LBE89:
+ 354              	.LBE88:
+ 355              	.LBE92:
+ 356              	.LBE95:
+ 145:lib/chibios/os/rt/src/chmsg.c **** 
+ 357              		.loc 1 145 44 is_stmt 0 view .LVU92
+ 358 0000 10B5     		push	{r4, lr}
+ 359              		.cfi_def_cfa_offset 8
+ 360              		.cfi_offset 4, -8
+ 361              		.cfi_offset 14, -4
+ 362              	.LBB96:
+ 363              	.LBB93:
+ 364              	.LBB91:
+ 365              	.LBB90:
+ 366              		.loc 4 142 3 view .LVU93
+ 367              		.syntax divided
+ 368              	@ 142 "./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h" 1
+ 369 0002 72B6     		cpsid i
+ 370              	@ 0 "" 2
+ 371              		.thumb
+ 372              		.syntax unified
+ 373              	.LBE90:
+ 374              	.LBE91:
+ 375              	.LBE93:
+ 376              	.LBE96:
+ 356:./lib/chibios/os/rt/include/chsys.h ****   _dbg_check_lock();
+ 377              		.loc 2 356 34 is_stmt 1 view .LVU94
+ 357:./lib/chibios/os/rt/include/chsys.h **** }
+ 378              		.loc 2 357 20 view .LVU95
+ 148:lib/chibios/os/rt/src/chmsg.c ****   chDbgAssert(tp->state == CH_STATE_SNDMSG, "invalid state");
+ 379              		.loc 1 148 3 view .LVU96
+ 380              		.loc 1 148 3 view .LVU97
+ 149:lib/chibios/os/rt/src/chmsg.c ****   chMsgReleaseS(tp, msg);
+ 381              		.loc 1 149 3 view .LVU98
+ 382              	.LVL15:
+ 383              	.LBB97:
+ 384              	.LBI97:
+  84:./lib/chibios/os/rt/include/chmsg.h **** }
+  85:./lib/chibios/os/rt/include/chmsg.h **** 
+  86:./lib/chibios/os/rt/include/chmsg.h **** /**
+  87:./lib/chibios/os/rt/include/chmsg.h ****  * @brief   Returns the message carried by the specified thread.
+  88:./lib/chibios/os/rt/include/chmsg.h ****  * @pre     This function must be invoked immediately after exiting a call
+  89:./lib/chibios/os/rt/include/chmsg.h ****  *          to @p chMsgWait().
+  90:./lib/chibios/os/rt/include/chmsg.h ****  *
+  91:./lib/chibios/os/rt/include/chmsg.h ****  * @param[in] tp        pointer to the thread
+  92:./lib/chibios/os/rt/include/chmsg.h ****  * @return              The message carried by the sender.
+  93:./lib/chibios/os/rt/include/chmsg.h ****  *
+  94:./lib/chibios/os/rt/include/chmsg.h ****  * @api
+  95:./lib/chibios/os/rt/include/chmsg.h ****  */
+  96:./lib/chibios/os/rt/include/chmsg.h **** static inline msg_t chMsgGet(thread_t *tp) {
+  97:./lib/chibios/os/rt/include/chmsg.h **** 
+  98:./lib/chibios/os/rt/include/chmsg.h ****   chDbgAssert(tp->state == CH_STATE_SNDMSG, "invalid state");
+  99:./lib/chibios/os/rt/include/chmsg.h **** 
+ 100:./lib/chibios/os/rt/include/chmsg.h ****   return tp->u.sentmsg;
+ 101:./lib/chibios/os/rt/include/chmsg.h **** }
+ 102:./lib/chibios/os/rt/include/chmsg.h **** 
+ 103:./lib/chibios/os/rt/include/chmsg.h **** /**
+ 104:./lib/chibios/os/rt/include/chmsg.h ****  * @brief   Releases the thread waiting on top of the messages queue.
+ 105:./lib/chibios/os/rt/include/chmsg.h ****  * @pre     Invoke this function only after a message has been received
+ 106:./lib/chibios/os/rt/include/chmsg.h ****  *          using @p chMsgWait().
+ 107:./lib/chibios/os/rt/include/chmsg.h ****  *
+ 108:./lib/chibios/os/rt/include/chmsg.h ****  * @param[in] tp        pointer to the thread
+ 109:./lib/chibios/os/rt/include/chmsg.h ****  * @param[in] msg       message to be returned to the sender
+ 110:./lib/chibios/os/rt/include/chmsg.h ****  *
+ 111:./lib/chibios/os/rt/include/chmsg.h ****  * @sclass
+ 112:./lib/chibios/os/rt/include/chmsg.h ****  */
+ 113:./lib/chibios/os/rt/include/chmsg.h **** static inline void chMsgReleaseS(thread_t *tp, msg_t msg) {
+ 385              		.loc 5 113 20 view .LVU99
+ 386              	.LBB98:
+ 114:./lib/chibios/os/rt/include/chmsg.h **** 
+ 115:./lib/chibios/os/rt/include/chmsg.h ****   chDbgCheckClassS();
+ 387              		.loc 5 115 21 view .LVU100
+ 116:./lib/chibios/os/rt/include/chmsg.h **** 
+ 117:./lib/chibios/os/rt/include/chmsg.h ****   chSchWakeupS(tp, msg);
+ 388              		.loc 5 117 3 view .LVU101
+ 389 0004 FFF7FEFF 		bl	chSchWakeupS
+ 390              	.LVL16:
+ 391              		.loc 5 117 3 is_stmt 0 view .LVU102
+ 392              	.LBE98:
+ 393              	.LBE97:
+ 150:lib/chibios/os/rt/src/chmsg.c ****   chSysUnlock();
+ 394              		.loc 1 150 3 is_stmt 1 view .LVU103
+ 395              	.LBB99:
+ 396              	.LBI99:
+ 365:./lib/chibios/os/rt/include/chsys.h **** 
+ 397              		.loc 2 365 20 view .LVU104
+ 398              	.LBB100:
+ 367:./lib/chibios/os/rt/include/chsys.h ****   _stats_stop_measure_crit_thd();
+ 399              		.loc 2 367 22 view .LVU105
+ 368:./lib/chibios/os/rt/include/chsys.h **** 
+ 400              		.loc 2 368 33 view .LVU106
+ 374:./lib/chibios/os/rt/include/chsys.h ****               (ch.rlist.current->prio >= ch.rlist.queue.next->prio),
+ 401              		.loc 2 374 3 view .LVU107
+ 374:./lib/chibios/os/rt/include/chsys.h ****               (ch.rlist.current->prio >= ch.rlist.queue.next->prio),
+ 402              		.loc 2 374 3 view .LVU108
+ 403              		.loc 2 378 3 view .LVU109
+ 404              	.LBB101:
+ 405              	.LBI101:
+ 396:./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h **** 
+ 406              		.loc 3 396 20 view .LVU110
+ 407              	.LBE101:
+ 408              	.LBE100:
+ 409              	.LBE99:
+ 410              		.loc 3 398 3 view .LVU111
+ 411              	.LBB106:
+ 412              	.LBB105:
+ 413              	.LBB104:
+ 414              	.LBB102:
+ 415              	.LBI102:
+ 129:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** {
+ 416              		.loc 4 129 27 view .LVU112
+ 417              	.LBB103:
+ 131:./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h **** }
+ 418              		.loc 4 131 3 view .LVU113
+ 419              		.syntax divided
+ 420              	@ 131 "./lib/chibios/os/common/ext/ARM/CMSIS/Core/Include/cmsis_gcc.h" 1
+ 421 0008 62B6     		cpsie i
+ 422              	@ 0 "" 2
+ 423              		.thumb
+ 424              		.syntax unified
+ 425              	.LBE103:
+ 426              	.LBE102:
+ 427              	.LBE104:
+ 428              	.LBE105:
+ 429              	.LBE106:
+ 151:lib/chibios/os/rt/src/chmsg.c **** }
+ 430              		.loc 1 151 1 is_stmt 0 view .LVU114
+ 431              		@ sp needed
+ 432 000a 10BD     		pop	{r4, pc}
+ 433              		.cfi_endproc
+ 434              	.LFE156:
+ 436              		.text
+ 437              	.Letext0:
+ 438              		.file 6 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\arm-none-eabi\\include\\machine\\_
+ 439              		.file 7 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\arm-none-eabi\\include\\sys\\_stdi
+ 440              		.file 8 "./lib/chibios/os/common/ports/ARMCMx/compilers/GCC/chtypes.h"
+ 441              		.file 9 "./lib/chibios/os/rt/include/chsystypes.h"
+ 442              		.file 10 "./lib/chibios/os/rt/include/chschd.h"
+ 443              		.file 11 "./lib/chibios/os/rt/include/chtime.h"
+ 444              		.file 12 "./lib/chibios/os/common/ext/ST/STM32F0xx/system_stm32f0xx.h"
+ 445              		.file 13 "./lib/chibios/os/common/ports/ARMCMx/chcore.h"
+ 446              		.file 14 "./lib/chibios/os/rt/include/chsem.h"
+ 447              		.file 15 "./lib/chibios/os/rt/include/chmtx.h"
+ 448              		.file 16 "./lib/chibios/os/rt/include/chregistry.h"
+ 449              		.file 17 "./lib/chibios/os/oslib/include/chmemcore.h"
+DEFINED SYMBOLS
+                            *ABS*:00000000 chmsg.c
+C:\Users\kyleo\AppData\Local\Temp\ccLa4f45.s:16     .text.chMsgSend:00000000 $t
+C:\Users\kyleo\AppData\Local\Temp\ccLa4f45.s:24     .text.chMsgSend:00000000 chMsgSend
+C:\Users\kyleo\AppData\Local\Temp\ccLa4f45.s:164    .text.chMsgSend:00000030 $d
+C:\Users\kyleo\AppData\Local\Temp\ccLa4f45.s:169    .text.chMsgWait:00000000 $t
+C:\Users\kyleo\AppData\Local\Temp\ccLa4f45.s:176    .text.chMsgWait:00000000 chMsgWait
+C:\Users\kyleo\AppData\Local\Temp\ccLa4f45.s:314    .text.chMsgWait:00000028 $d
+C:\Users\kyleo\AppData\Local\Temp\ccLa4f45.s:319    .text.chMsgRelease:00000000 $t
+C:\Users\kyleo\AppData\Local\Temp\ccLa4f45.s:326    .text.chMsgRelease:00000000 chMsgRelease
+
+UNDEFINED SYMBOLS
+queue_insert
+chSchReadyI
+chSchGoSleepS
+ch
+queue_fifo_remove
+chSchWakeupS

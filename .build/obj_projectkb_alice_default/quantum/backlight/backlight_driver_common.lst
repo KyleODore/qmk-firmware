@@ -1,0 +1,252 @@
+   1              		.cpu cortex-m0
+   2              		.eabi_attribute 20, 1
+   3              		.eabi_attribute 21, 1
+   4              		.eabi_attribute 23, 3
+   5              		.eabi_attribute 24, 1
+   6              		.eabi_attribute 25, 1
+   7              		.eabi_attribute 26, 1
+   8              		.eabi_attribute 30, 4
+   9              		.eabi_attribute 34, 0
+  10              		.eabi_attribute 18, 2
+  11              		.file	"backlight_driver_common.c"
+  12              		.text
+  13              	.Ltext0:
+  14              		.cfi_sections	.debug_frame
+  15              		.section	.text.backlight_pins_init,"ax",%progbits
+  16              		.align	1
+  17              		.global	backlight_pins_init
+  18              		.arch armv6s-m
+  19              		.syntax unified
+  20              		.code	16
+  21              		.thumb_func
+  22              		.fpu softvfp
+  24              	backlight_pins_init:
+  25              	.LFB196:
+  26              		.file 1 "quantum/backlight/backlight_driver_common.c"
+   1:quantum/backlight/backlight_driver_common.c **** #include "quantum.h"
+   2:quantum/backlight/backlight_driver_common.c **** #include "backlight.h"
+   3:quantum/backlight/backlight_driver_common.c **** #include "backlight_driver_common.h"
+   4:quantum/backlight/backlight_driver_common.c **** 
+   5:quantum/backlight/backlight_driver_common.c **** #if !defined(BACKLIGHT_PIN) && !defined(BACKLIGHT_PINS)
+   6:quantum/backlight/backlight_driver_common.c **** #    error "Backlight pin/pins not defined. Please configure."
+   7:quantum/backlight/backlight_driver_common.c **** #endif
+   8:quantum/backlight/backlight_driver_common.c **** 
+   9:quantum/backlight/backlight_driver_common.c **** #if defined(BACKLIGHT_PINS)
+  10:quantum/backlight/backlight_driver_common.c **** static const pin_t backlight_pins[] = BACKLIGHT_PINS;
+  11:quantum/backlight/backlight_driver_common.c **** #    ifndef BACKLIGHT_LED_COUNT
+  12:quantum/backlight/backlight_driver_common.c **** #        define BACKLIGHT_LED_COUNT (sizeof(backlight_pins) / sizeof(pin_t))
+  13:quantum/backlight/backlight_driver_common.c **** #    endif
+  14:quantum/backlight/backlight_driver_common.c **** 
+  15:quantum/backlight/backlight_driver_common.c **** #    define FOR_EACH_LED(x)                                 \
+  16:quantum/backlight/backlight_driver_common.c ****         for (uint8_t i = 0; i < BACKLIGHT_LED_COUNT; i++) { \
+  17:quantum/backlight/backlight_driver_common.c ****             pin_t backlight_pin = backlight_pins[i];        \
+  18:quantum/backlight/backlight_driver_common.c ****             { x }                                           \
+  19:quantum/backlight/backlight_driver_common.c ****         }
+  20:quantum/backlight/backlight_driver_common.c **** #else
+  21:quantum/backlight/backlight_driver_common.c **** // we support only one backlight pin
+  22:quantum/backlight/backlight_driver_common.c **** static const pin_t backlight_pin = BACKLIGHT_PIN;
+  23:quantum/backlight/backlight_driver_common.c **** #    define FOR_EACH_LED(x) x
+  24:quantum/backlight/backlight_driver_common.c **** #endif
+  25:quantum/backlight/backlight_driver_common.c **** 
+  26:quantum/backlight/backlight_driver_common.c **** static inline void backlight_on(pin_t backlight_pin) {
+  27:quantum/backlight/backlight_driver_common.c **** #if BACKLIGHT_ON_STATE == 0
+  28:quantum/backlight/backlight_driver_common.c ****     writePinLow(backlight_pin);
+  29:quantum/backlight/backlight_driver_common.c **** #else
+  30:quantum/backlight/backlight_driver_common.c ****     writePinHigh(backlight_pin);
+  31:quantum/backlight/backlight_driver_common.c **** #endif
+  32:quantum/backlight/backlight_driver_common.c **** }
+  33:quantum/backlight/backlight_driver_common.c **** 
+  34:quantum/backlight/backlight_driver_common.c **** static inline void backlight_off(pin_t backlight_pin) {
+  35:quantum/backlight/backlight_driver_common.c **** #if BACKLIGHT_ON_STATE == 0
+  36:quantum/backlight/backlight_driver_common.c ****     writePinHigh(backlight_pin);
+  37:quantum/backlight/backlight_driver_common.c **** #else
+  38:quantum/backlight/backlight_driver_common.c ****     writePinLow(backlight_pin);
+  39:quantum/backlight/backlight_driver_common.c **** #endif
+  40:quantum/backlight/backlight_driver_common.c **** }
+  41:quantum/backlight/backlight_driver_common.c **** 
+  42:quantum/backlight/backlight_driver_common.c **** void backlight_pins_init(void) {
+  27              		.loc 1 42 32 view -0
+  28              		.cfi_startproc
+  29              		@ args = 0, pretend = 0, frame = 0
+  30              		@ frame_needed = 0, uses_anonymous_args = 0
+  43:quantum/backlight/backlight_driver_common.c ****     // Setup backlight pin as output and output to off state.
+  44:quantum/backlight/backlight_driver_common.c ****     FOR_EACH_LED(setPinOutput(backlight_pin); backlight_off(backlight_pin);)
+  31              		.loc 1 44 5 view .LVU1
+  42:quantum/backlight/backlight_driver_common.c ****     // Setup backlight pin as output and output to off state.
+  32              		.loc 1 42 32 is_stmt 0 view .LVU2
+  33 0000 10B5     		push	{r4, lr}
+  34              		.cfi_def_cfa_offset 8
+  35              		.cfi_offset 4, -8
+  36              		.cfi_offset 14, -4
+  37              		.loc 1 44 5 view .LVU3
+  38 0002 9024     		movs	r4, #144
+  39 0004 E405     		lsls	r4, r4, #23
+  40 0006 0122     		movs	r2, #1
+  41 0008 4021     		movs	r1, #64
+  42 000a 2000     		movs	r0, r4
+  43 000c FFF7FEFF 		bl	_pal_lld_setgroupmode
+  44              	.LVL0:
+  45              		.loc 1 44 5 is_stmt 1 view .LVU4
+  46              	.LBB8:
+  47              	.LBI8:
+  34:quantum/backlight/backlight_driver_common.c **** #if BACKLIGHT_ON_STATE == 0
+  48              		.loc 1 34 20 view .LVU5
+  49              	.LBB9:
+  38:quantum/backlight/backlight_driver_common.c **** #endif
+  50              		.loc 1 38 5 view .LVU6
+  51 0010 4023     		movs	r3, #64
+  52              	.LBE9:
+  53              	.LBE8:
+  45:quantum/backlight/backlight_driver_common.c **** }
+  54              		.loc 1 45 1 is_stmt 0 view .LVU7
+  55              		@ sp needed
+  56              	.LBB11:
+  57              	.LBB10:
+  38:quantum/backlight/backlight_driver_common.c **** #endif
+  58              		.loc 1 38 5 view .LVU8
+  59 0012 6383     		strh	r3, [r4, #26]
+  60              	.LVL1:
+  38:quantum/backlight/backlight_driver_common.c **** #endif
+  61              		.loc 1 38 5 view .LVU9
+  62              	.LBE10:
+  63              	.LBE11:
+  64              		.loc 1 45 1 view .LVU10
+  65 0014 10BD     		pop	{r4, pc}
+  66              		.cfi_endproc
+  67              	.LFE196:
+  69              		.section	.text.backlight_pins_on,"ax",%progbits
+  70              		.align	1
+  71              		.global	backlight_pins_on
+  72              		.syntax unified
+  73              		.code	16
+  74              		.thumb_func
+  75              		.fpu softvfp
+  77              	backlight_pins_on:
+  78              	.LFB197:
+  46:quantum/backlight/backlight_driver_common.c **** 
+  47:quantum/backlight/backlight_driver_common.c **** void backlight_pins_on(void) { FOR_EACH_LED(backlight_on(backlight_pin);) }
+  79              		.loc 1 47 30 is_stmt 1 view -0
+  80              		.cfi_startproc
+  81              		@ args = 0, pretend = 0, frame = 0
+  82              		@ frame_needed = 0, uses_anonymous_args = 0
+  83              		@ link register save eliminated.
+  84              		.loc 1 47 32 view .LVU12
+  85              	.LVL2:
+  86              	.LBB12:
+  87              	.LBI12:
+  26:quantum/backlight/backlight_driver_common.c **** #if BACKLIGHT_ON_STATE == 0
+  88              		.loc 1 26 20 view .LVU13
+  89              	.LBB13:
+  30:quantum/backlight/backlight_driver_common.c **** #endif
+  90              		.loc 1 30 5 view .LVU14
+  91 0000 9023     		movs	r3, #144
+  92 0002 4022     		movs	r2, #64
+  93 0004 DB05     		lsls	r3, r3, #23
+  94 0006 1A83     		strh	r2, [r3, #24]
+  95              	.LVL3:
+  30:quantum/backlight/backlight_driver_common.c **** #endif
+  96              		.loc 1 30 5 is_stmt 0 view .LVU15
+  97              	.LBE13:
+  98              	.LBE12:
+  99              		.loc 1 47 1 view .LVU16
+ 100              		@ sp needed
+ 101 0008 7047     		bx	lr
+ 102              		.cfi_endproc
+ 103              	.LFE197:
+ 105              		.section	.text.backlight_pins_off,"ax",%progbits
+ 106              		.align	1
+ 107              		.global	backlight_pins_off
+ 108              		.syntax unified
+ 109              		.code	16
+ 110              		.thumb_func
+ 111              		.fpu softvfp
+ 113              	backlight_pins_off:
+ 114              	.LFB198:
+  48:quantum/backlight/backlight_driver_common.c **** 
+  49:quantum/backlight/backlight_driver_common.c **** void backlight_pins_off(void) { FOR_EACH_LED(backlight_off(backlight_pin);) }
+ 115              		.loc 1 49 31 is_stmt 1 view -0
+ 116              		.cfi_startproc
+ 117              		@ args = 0, pretend = 0, frame = 0
+ 118              		@ frame_needed = 0, uses_anonymous_args = 0
+ 119              		@ link register save eliminated.
+ 120              		.loc 1 49 33 view .LVU18
+ 121              	.LVL4:
+ 122              	.LBB14:
+ 123              	.LBI14:
+  34:quantum/backlight/backlight_driver_common.c **** #if BACKLIGHT_ON_STATE == 0
+ 124              		.loc 1 34 20 view .LVU19
+ 125              	.LBB15:
+  38:quantum/backlight/backlight_driver_common.c **** #endif
+ 126              		.loc 1 38 5 view .LVU20
+ 127 0000 9023     		movs	r3, #144
+ 128 0002 4022     		movs	r2, #64
+ 129 0004 DB05     		lsls	r3, r3, #23
+ 130 0006 5A83     		strh	r2, [r3, #26]
+ 131              	.LVL5:
+  38:quantum/backlight/backlight_driver_common.c **** #endif
+ 132              		.loc 1 38 5 is_stmt 0 view .LVU21
+ 133              	.LBE15:
+ 134              	.LBE14:
+ 135              		.loc 1 49 1 view .LVU22
+ 136              		@ sp needed
+ 137 0008 7047     		bx	lr
+ 138              		.cfi_endproc
+ 139              	.LFE198:
+ 141              		.text
+ 142              	.Letext0:
+ 143              		.file 2 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\lib\\gcc\\arm-none-eabi\\8.3.1\\in
+ 144              		.file 3 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\arm-none-eabi\\include\\machine\\_
+ 145              		.file 4 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\arm-none-eabi\\include\\sys\\_stdi
+ 146              		.file 5 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\arm-none-eabi\\include\\stdint.h"
+ 147              		.file 6 "./lib/chibios/os/common/ports/ARMCMx/compilers/GCC/chtypes.h"
+ 148              		.file 7 "./lib/chibios/os/rt/include/chsystypes.h"
+ 149              		.file 8 "./lib/chibios/os/rt/include/chschd.h"
+ 150              		.file 9 "./lib/chibios/os/rt/include/chtime.h"
+ 151              		.file 10 "./lib/chibios/os/common/ext/ST/STM32F0xx/system_stm32f0xx.h"
+ 152              		.file 11 "./lib/chibios/os/common/ext/ST/STM32F0xx/stm32f072xb.h"
+ 153              		.file 12 "./lib/chibios/os/common/ports/ARMCMx/chcore.h"
+ 154              		.file 13 "./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h"
+ 155              		.file 14 "./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/stm32_tim.h"
+ 156              		.file 15 "./lib/chibios/os/rt/include/chsem.h"
+ 157              		.file 16 "./lib/chibios/os/rt/include/chmtx.h"
+ 158              		.file 17 "./lib/chibios/os/rt/include/chsys.h"
+ 159              		.file 18 "./lib/chibios/os/rt/include/chregistry.h"
+ 160              		.file 19 "./lib/chibios/os/oslib/include/chmemcore.h"
+ 161              		.file 20 "./lib/chibios/os/hal/ports/STM32/LLD/DMAv1/stm32_dma.h"
+ 162              		.file 21 "./lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/stm32_gpio.h"
+ 163              		.file 22 "./lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.h"
+ 164              		.file 23 "./lib/chibios/os/hal/include/hal_i2c.h"
+ 165              		.file 24 "./lib/chibios/os/hal/ports/STM32/LLD/I2Cv2/hal_i2c_lld.h"
+ 166              		.file 25 "./lib/chibios/os/hal/include/hal_pwm.h"
+ 167              		.file 26 "./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_pwm_lld.h"
+ 168              		.file 27 "./lib/chibios/os/hal/include/hal_spi.h"
+ 169              		.file 28 "./lib/chibios/os/hal/ports/STM32/LLD/SPIv2/hal_spi_lld.h"
+ 170              		.file 29 "./lib/chibios/os/hal/include/hal_usb.h"
+ 171              		.file 30 "./lib/chibios/os/hal/ports/STM32/LLD/USBv1/hal_usb_lld.h"
+ 172              		.file 31 "tmk_core/common/action.h"
+ 173              		.file 32 "tmk_core/common/report.h"
+ 174              		.file 33 "tmk_core/common/host.h"
+ 175              		.file 34 "tmk_core/common/debug.h"
+ 176              		.file 35 "quantum/keycode_config.h"
+ 177              		.file 36 "quantum/keymap.h"
+ 178              		.file 37 "./quantum/color.h"
+ 179              		.file 38 "quantum/rgblight.h"
+ 180              		.file 39 "tmk_core/common/action_layer.h"
+ 181              		.file 40 "tmk_core/common/timer.h"
+ 182              		.file 41 "tmk_core/common/action_util.h"
+ 183              		.file 42 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\arm-none-eabi\\include\\sys\\_typ
+ 184              		.file 43 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\arm-none-eabi\\include\\sys\\reen
+ 185              		.file 44 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\arm-none-eabi\\include\\sys\\lock
+ 186              		.file 45 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\arm-none-eabi\\include\\stdlib.h"
+ 187              		.file 46 "quantum/quantum.h"
+DEFINED SYMBOLS
+                            *ABS*:00000000 backlight_driver_common.c
+C:\Users\kyleo\AppData\Local\Temp\ccFU5ivJ.s:16     .text.backlight_pins_init:00000000 $t
+C:\Users\kyleo\AppData\Local\Temp\ccFU5ivJ.s:24     .text.backlight_pins_init:00000000 backlight_pins_init
+C:\Users\kyleo\AppData\Local\Temp\ccFU5ivJ.s:70     .text.backlight_pins_on:00000000 $t
+C:\Users\kyleo\AppData\Local\Temp\ccFU5ivJ.s:77     .text.backlight_pins_on:00000000 backlight_pins_on
+C:\Users\kyleo\AppData\Local\Temp\ccFU5ivJ.s:106    .text.backlight_pins_off:00000000 $t
+C:\Users\kyleo\AppData\Local\Temp\ccFU5ivJ.s:113    .text.backlight_pins_off:00000000 backlight_pins_off
+
+UNDEFINED SYMBOLS
+_pal_lld_setgroupmode

@@ -1,0 +1,234 @@
+   1              		.cpu cortex-m0
+   2              		.eabi_attribute 20, 1
+   3              		.eabi_attribute 21, 1
+   4              		.eabi_attribute 23, 3
+   5              		.eabi_attribute 24, 1
+   6              		.eabi_attribute 25, 1
+   7              		.eabi_attribute 26, 1
+   8              		.eabi_attribute 30, 4
+   9              		.eabi_attribute 34, 0
+  10              		.eabi_attribute 18, 2
+  11              		.file	"keymap.c"
+  12              		.text
+  13              	.Ltext0:
+  14              		.cfi_sections	.debug_frame
+  15              		.global	keymaps
+  16              		.section	.rodata.keymaps,"a"
+  17              		.align	1
+  20              	keymaps:
+  21 0000 2900     		.short	41
+  22 0002 3502     		.short	565
+  23 0004 1E00     		.short	30
+  24 0006 1F00     		.short	31
+  25 0008 2000     		.short	32
+  26 000a 2100     		.short	33
+  27 000c 2200     		.short	34
+  28 000e 2300     		.short	35
+  29 0010 2400     		.short	36
+  30 0012 2500     		.short	37
+  31 0014 2600     		.short	38
+  32 0016 2700     		.short	39
+  33 0018 2D00     		.short	45
+  34 001a 2E00     		.short	46
+  35 001c 4C00     		.short	76
+  36 001e 2A00     		.short	42
+  37 0020 4B00     		.short	75
+  38 0022 2B00     		.short	43
+  39 0024 1400     		.short	20
+  40 0026 1A00     		.short	26
+  41 0028 0800     		.short	8
+  42 002a 1500     		.short	21
+  43 002c 1700     		.short	23
+  44 002e 0000     		.short	0
+  45 0030 1C00     		.short	28
+  46 0032 1800     		.short	24
+  47 0034 0C00     		.short	12
+  48 0036 1200     		.short	18
+  49 0038 1300     		.short	19
+  50 003a 2F00     		.short	47
+  51 003c 3000     		.short	48
+  52 003e 3100     		.short	49
+  53 0040 4E00     		.short	78
+  54 0042 3900     		.short	57
+  55 0044 0400     		.short	4
+  56 0046 1600     		.short	22
+  57 0048 0700     		.short	7
+  58 004a 0900     		.short	9
+  59 004c 0A00     		.short	10
+  60 004e 0000     		.short	0
+  61 0050 0B00     		.short	11
+  62 0052 0D00     		.short	13
+  63 0054 0E00     		.short	14
+  64 0056 0F00     		.short	15
+  65 0058 3300     		.short	51
+  66 005a 3400     		.short	52
+  67 005c 0000     		.short	0
+  68 005e 2800     		.short	40
+  69 0060 0000     		.short	0
+  70 0062 E100     		.short	225
+  71 0064 1D00     		.short	29
+  72 0066 1B00     		.short	27
+  73 0068 0600     		.short	6
+  74 006a 1900     		.short	25
+  75 006c 0500     		.short	5
+  76 006e 0000     		.short	0
+  77 0070 0500     		.short	5
+  78 0072 1100     		.short	17
+  79 0074 1000     		.short	16
+  80 0076 3600     		.short	54
+  81 0078 3700     		.short	55
+  82 007a 3800     		.short	56
+  83 007c E500     		.short	229
+  84 007e E700     		.short	231
+  85 0080 0000     		.short	0
+  86 0082 E000     		.short	224
+  87 0084 0000     		.short	0
+  88 0086 E200     		.short	226
+  89 0088 2C00     		.short	44
+  90 008a 0000     		.short	0
+  91 008c 0151     		.short	20737
+  92 008e 0000     		.short	0
+  93 0090 0000     		.short	0
+  94 0092 2C00     		.short	44
+  95 0094 0000     		.short	0
+  96 0096 E600     		.short	230
+  97 0098 0000     		.short	0
+  98 009a 0000     		.short	0
+  99 009c 0000     		.short	0
+ 100 009e E400     		.short	228
+ 101 00a0 C25C     		.short	23746
+ 102 00a2 0100     		.short	1
+ 103 00a4 3A00     		.short	58
+ 104 00a6 3B00     		.short	59
+ 105 00a8 3C00     		.short	60
+ 106 00aa 3D00     		.short	61
+ 107 00ac 3E00     		.short	62
+ 108 00ae 3F00     		.short	63
+ 109 00b0 4000     		.short	64
+ 110 00b2 4100     		.short	65
+ 111 00b4 4200     		.short	66
+ 112 00b6 4300     		.short	67
+ 113 00b8 4400     		.short	68
+ 114 00ba 4500     		.short	69
+ 115 00bc 0100     		.short	1
+ 116 00be 4C00     		.short	76
+ 117 00c0 C35C     		.short	23747
+ 118 00c2 0100     		.short	1
+ 119 00c4 0100     		.short	1
+ 120 00c6 5200     		.short	82
+ 121 00c8 0100     		.short	1
+ 122 00ca 0100     		.short	1
+ 123 00cc 0100     		.short	1
+ 124 00ce 0000     		.short	0
+ 125 00d0 C75C     		.short	23751
+ 126 00d2 C55C     		.short	23749
+ 127 00d4 C95C     		.short	23753
+ 128 00d6 0100     		.short	1
+ 129 00d8 0100     		.short	1
+ 130 00da 0100     		.short	1
+ 131 00dc 0100     		.short	1
+ 132 00de 0100     		.short	1
+ 133 00e0 C45C     		.short	23748
+ 134 00e2 0100     		.short	1
+ 135 00e4 5000     		.short	80
+ 136 00e6 5100     		.short	81
+ 137 00e8 4F00     		.short	79
+ 138 00ea 0100     		.short	1
+ 139 00ec 0100     		.short	1
+ 140 00ee 0000     		.short	0
+ 141 00f0 C85C     		.short	23752
+ 142 00f2 C65C     		.short	23750
+ 143 00f4 CA5C     		.short	23754
+ 144 00f6 0100     		.short	1
+ 145 00f8 0100     		.short	1
+ 146 00fa 0100     		.short	1
+ 147 00fc 0000     		.short	0
+ 148 00fe 0100     		.short	1
+ 149 0100 0000     		.short	0
+ 150 0102 0100     		.short	1
+ 151 0104 BE5C     		.short	23742
+ 152 0106 BD5C     		.short	23741
+ 153 0108 BF5C     		.short	23743
+ 154 010a C15C     		.short	23745
+ 155 010c 0100     		.short	1
+ 156 010e 0000     		.short	0
+ 157 0110 0100     		.short	1
+ 158 0112 0100     		.short	1
+ 159 0114 0100     		.short	1
+ 160 0116 0100     		.short	1
+ 161 0118 0100     		.short	1
+ 162 011a 0100     		.short	1
+ 163 011c 0100     		.short	1
+ 164 011e 0100     		.short	1
+ 165 0120 0000     		.short	0
+ 166 0122 0100     		.short	1
+ 167 0124 0000     		.short	0
+ 168 0126 0100     		.short	1
+ 169 0128 0100     		.short	1
+ 170 012a 0000     		.short	0
+ 171 012c 0100     		.short	1
+ 172 012e 0000     		.short	0
+ 173 0130 0000     		.short	0
+ 174 0132 0100     		.short	1
+ 175 0134 0000     		.short	0
+ 176 0136 0100     		.short	1
+ 177 0138 0000     		.short	0
+ 178 013a 0000     		.short	0
+ 179 013c 0000     		.short	0
+ 180 013e 005C     		.short	23552
+ 181              		.text
+ 182              	.Letext0:
+ 183              		.file 1 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\lib\\gcc\\arm-none-eabi\\8.3.1\\in
+ 184              		.file 2 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\arm-none-eabi\\include\\machine\\_
+ 185              		.file 3 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\arm-none-eabi\\include\\sys\\_stdi
+ 186              		.file 4 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\arm-none-eabi\\include\\stdint.h"
+ 187              		.file 5 "./lib/chibios/os/common/ports/ARMCMx/compilers/GCC/chtypes.h"
+ 188              		.file 6 "./lib/chibios/os/rt/include/chsystypes.h"
+ 189              		.file 7 "./lib/chibios/os/rt/include/chschd.h"
+ 190              		.file 8 "./lib/chibios/os/rt/include/chtime.h"
+ 191              		.file 9 "./lib/chibios/os/common/ext/ST/STM32F0xx/system_stm32f0xx.h"
+ 192              		.file 10 "./lib/chibios/os/common/ext/ST/STM32F0xx/stm32f072xb.h"
+ 193              		.file 11 "./lib/chibios/os/common/ports/ARMCMx/chcore.h"
+ 194              		.file 12 "./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h"
+ 195              		.file 13 "./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/stm32_tim.h"
+ 196              		.file 14 "./lib/chibios/os/rt/include/chsem.h"
+ 197              		.file 15 "./lib/chibios/os/rt/include/chmtx.h"
+ 198              		.file 16 "./lib/chibios/os/rt/include/chsys.h"
+ 199              		.file 17 "./lib/chibios/os/rt/include/chregistry.h"
+ 200              		.file 18 "./lib/chibios/os/oslib/include/chmemcore.h"
+ 201              		.file 19 "./lib/chibios/os/hal/ports/STM32/LLD/DMAv1/stm32_dma.h"
+ 202              		.file 20 "./lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/stm32_gpio.h"
+ 203              		.file 21 "./lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.h"
+ 204              		.file 22 "./lib/chibios/os/hal/include/hal_i2c.h"
+ 205              		.file 23 "./lib/chibios/os/hal/ports/STM32/LLD/I2Cv2/hal_i2c_lld.h"
+ 206              		.file 24 "./lib/chibios/os/hal/include/hal_pwm.h"
+ 207              		.file 25 "./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_pwm_lld.h"
+ 208              		.file 26 "./lib/chibios/os/hal/include/hal_spi.h"
+ 209              		.file 27 "./lib/chibios/os/hal/ports/STM32/LLD/SPIv2/hal_spi_lld.h"
+ 210              		.file 28 "./lib/chibios/os/hal/include/hal_usb.h"
+ 211              		.file 29 "./lib/chibios/os/hal/ports/STM32/LLD/USBv1/hal_usb_lld.h"
+ 212              		.file 30 "tmk_core/common/action.h"
+ 213              		.file 31 "tmk_core/common/report.h"
+ 214              		.file 32 "tmk_core/common/host.h"
+ 215              		.file 33 "tmk_core/common/debug.h"
+ 216              		.file 34 "quantum/keycode_config.h"
+ 217              		.file 35 "tmk_core/common/keycode.h"
+ 218              		.file 36 "quantum/quantum_keycodes.h"
+ 219              		.file 37 "quantum/keymap.h"
+ 220              		.file 38 "./quantum/color.h"
+ 221              		.file 39 "quantum/rgblight.h"
+ 222              		.file 40 "tmk_core/common/action_layer.h"
+ 223              		.file 41 "tmk_core/common/timer.h"
+ 224              		.file 42 "tmk_core/common/action_util.h"
+ 225              		.file 43 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\arm-none-eabi\\include\\sys\\_typ
+ 226              		.file 44 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\arm-none-eabi\\include\\sys\\reen
+ 227              		.file 45 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\arm-none-eabi\\include\\sys\\lock
+ 228              		.file 46 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\arm-none-eabi\\include\\stdlib.h"
+ 229              		.file 47 "quantum/quantum.h"
+ 230              		.file 48 "keyboards/projectkb/alice/keymaps/default/keymap.c"
+DEFINED SYMBOLS
+                            *ABS*:00000000 keymap.c
+C:\Users\kyleo\AppData\Local\Temp\ccqhaCt5.s:20     .rodata.keymaps:00000000 keymaps
+C:\Users\kyleo\AppData\Local\Temp\ccqhaCt5.s:17     .rodata.keymaps:00000000 $d
+
+NO UNDEFINED SYMBOLS

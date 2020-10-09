@@ -1,0 +1,641 @@
+   1              		.cpu cortex-m0
+   2              		.eabi_attribute 20, 1
+   3              		.eabi_attribute 21, 1
+   4              		.eabi_attribute 23, 3
+   5              		.eabi_attribute 24, 1
+   6              		.eabi_attribute 25, 1
+   7              		.eabi_attribute 26, 1
+   8              		.eabi_attribute 30, 4
+   9              		.eabi_attribute 34, 0
+  10              		.eabi_attribute 18, 2
+  11              		.file	"sleep_led.c"
+  12              		.text
+  13              	.Ltext0:
+  14              		.cfi_sections	.debug_frame
+  15              		.section	.text.Vector8C,"ax",%progbits
+  16              		.align	1
+  17              		.global	Vector8C
+  18              		.arch armv6s-m
+  19              		.syntax unified
+  20              		.code	16
+  21              		.thumb_func
+  22              		.fpu softvfp
+  24              	Vector8C:
+  25              	.LFB186:
+  26              		.file 1 "tmk_core/common/chibios/sleep_led.c"
+   1:tmk_core/common/chibios/sleep_led.c **** #include "ch.h"
+   2:tmk_core/common/chibios/sleep_led.c **** #include "hal.h"
+   3:tmk_core/common/chibios/sleep_led.c **** 
+   4:tmk_core/common/chibios/sleep_led.c **** #include "led.h"
+   5:tmk_core/common/chibios/sleep_led.c **** #include "sleep_led.h"
+   6:tmk_core/common/chibios/sleep_led.c **** 
+   7:tmk_core/common/chibios/sleep_led.c **** /* All right, we go the "software" way: timer, toggle LED in interrupt.
+   8:tmk_core/common/chibios/sleep_led.c ****  * Based on hasu's code for AVRs.
+   9:tmk_core/common/chibios/sleep_led.c ****  * Use LP timer on Kinetises, TIM14 on STM32F0.
+  10:tmk_core/common/chibios/sleep_led.c ****  */
+  11:tmk_core/common/chibios/sleep_led.c **** 
+  12:tmk_core/common/chibios/sleep_led.c **** #if defined(KL2x) || defined(K20x)
+  13:tmk_core/common/chibios/sleep_led.c **** 
+  14:tmk_core/common/chibios/sleep_led.c **** /* Use Low Power Timer (LPTMR) */
+  15:tmk_core/common/chibios/sleep_led.c **** #    define TIMER_INTERRUPT_VECTOR KINETIS_LPTMR0_IRQ_VECTOR
+  16:tmk_core/common/chibios/sleep_led.c **** #    define RESET_COUNTER LPTMR0->CSR |= LPTMRx_CSR_TCF
+  17:tmk_core/common/chibios/sleep_led.c **** 
+  18:tmk_core/common/chibios/sleep_led.c **** #elif defined(STM32F0XX)
+  19:tmk_core/common/chibios/sleep_led.c **** 
+  20:tmk_core/common/chibios/sleep_led.c **** /* Use TIM14 manually */
+  21:tmk_core/common/chibios/sleep_led.c **** #    define TIMER_INTERRUPT_VECTOR STM32_TIM14_HANDLER
+  22:tmk_core/common/chibios/sleep_led.c **** #    define RESET_COUNTER STM32_TIM14->SR &= ~STM32_TIM_SR_UIF
+  23:tmk_core/common/chibios/sleep_led.c **** 
+  24:tmk_core/common/chibios/sleep_led.c **** #endif
+  25:tmk_core/common/chibios/sleep_led.c **** 
+  26:tmk_core/common/chibios/sleep_led.c **** #if defined(KL2x) || defined(K20x) || defined(STM32F0XX) /* common parts for timers/interrupts */
+  27:tmk_core/common/chibios/sleep_led.c **** 
+  28:tmk_core/common/chibios/sleep_led.c **** /* Breathing Sleep LED brighness(PWM On period) table
+  29:tmk_core/common/chibios/sleep_led.c ****  * (64[steps] * 4[duration]) / 64[PWM periods/s] = 4 second breath cycle
+  30:tmk_core/common/chibios/sleep_led.c ****  *
+  31:tmk_core/common/chibios/sleep_led.c ****  * http://www.wolframalpha.com/input/?i=%28sin%28+x%2F64*pi%29**8+*+255%2C+x%3D0+to+63
+  32:tmk_core/common/chibios/sleep_led.c ****  * (0..63).each {|x| p ((sin(x/64.0*PI)**8)*255).to_i }
+  33:tmk_core/common/chibios/sleep_led.c ****  */
+  34:tmk_core/common/chibios/sleep_led.c **** static const uint8_t breathing_table[64] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 4, 6, 10, 15, 23
+  35:tmk_core/common/chibios/sleep_led.c **** 
+  36:tmk_core/common/chibios/sleep_led.c **** /* interrupt handler */
+  37:tmk_core/common/chibios/sleep_led.c **** OSAL_IRQ_HANDLER(TIMER_INTERRUPT_VECTOR) {
+  27              		.loc 1 37 42 view -0
+  28              		.cfi_startproc
+  29              		@ args = 0, pretend = 0, frame = 0
+  30              		@ frame_needed = 0, uses_anonymous_args = 0
+  38:tmk_core/common/chibios/sleep_led.c ****     OSAL_IRQ_PROLOGUE();
+  31              		.loc 1 38 5 view .LVU1
+  37:tmk_core/common/chibios/sleep_led.c ****     OSAL_IRQ_PROLOGUE();
+  32              		.loc 1 37 42 is_stmt 0 view .LVU2
+  33 0000 70B5     		push	{r4, r5, r6, lr}
+  34              		.cfi_def_cfa_offset 16
+  35              		.cfi_offset 4, -16
+  36              		.cfi_offset 5, -12
+  37              		.cfi_offset 6, -8
+  38              		.cfi_offset 14, -4
+  39:tmk_core/common/chibios/sleep_led.c **** 
+  40:tmk_core/common/chibios/sleep_led.c ****     /* Software PWM
+  41:tmk_core/common/chibios/sleep_led.c ****      * timer:1111 1111 1111 1111
+  42:tmk_core/common/chibios/sleep_led.c ****      *       \_____/\/ \_______/____  count(0-255)
+  43:tmk_core/common/chibios/sleep_led.c ****      *          \    \______________  duration of step(4)
+  44:tmk_core/common/chibios/sleep_led.c ****      *           \__________________  index of step table(0-63)
+  45:tmk_core/common/chibios/sleep_led.c ****      */
+  46:tmk_core/common/chibios/sleep_led.c **** 
+  47:tmk_core/common/chibios/sleep_led.c ****     // this works for cca 65536 irqs/sec
+  48:tmk_core/common/chibios/sleep_led.c ****     static union {
+  49:tmk_core/common/chibios/sleep_led.c ****         uint16_t row;
+  50:tmk_core/common/chibios/sleep_led.c ****         struct {
+  51:tmk_core/common/chibios/sleep_led.c ****             uint8_t count : 8;
+  52:tmk_core/common/chibios/sleep_led.c ****             uint8_t duration : 2;
+  53:tmk_core/common/chibios/sleep_led.c ****             uint8_t index : 6;
+  54:tmk_core/common/chibios/sleep_led.c ****         } pwm;
+  55:tmk_core/common/chibios/sleep_led.c ****     } timer = {.row = 0};
+  56:tmk_core/common/chibios/sleep_led.c **** 
+  57:tmk_core/common/chibios/sleep_led.c ****     timer.row++;
+  39              		.loc 1 57 10 view .LVU3
+  40 0002 0F4C     		ldr	r4, .L4
+  38:tmk_core/common/chibios/sleep_led.c **** 
+  41              		.loc 1 38 5 view .LVU4
+  42 0004 7546     		mov	r5, lr
+  43              	.LVL0:
+  38:tmk_core/common/chibios/sleep_led.c **** 
+  44              		.loc 1 38 5 is_stmt 1 view .LVU5
+  38:tmk_core/common/chibios/sleep_led.c **** 
+  45              		.loc 1 38 5 view .LVU6
+  38:tmk_core/common/chibios/sleep_led.c **** 
+  46              		.loc 1 38 5 view .LVU7
+  38:tmk_core/common/chibios/sleep_led.c **** 
+  47              		.loc 1 38 5 view .LVU8
+  38:tmk_core/common/chibios/sleep_led.c **** 
+  48              		.loc 1 38 24 view .LVU9
+  48:tmk_core/common/chibios/sleep_led.c ****         uint16_t row;
+  49              		.loc 1 48 5 view .LVU10
+  50              		.loc 1 57 5 view .LVU11
+  51              		.loc 1 57 14 is_stmt 0 view .LVU12
+  52 0006 2388     		ldrh	r3, [r4]
+  53 0008 0133     		adds	r3, r3, #1
+  54 000a 9BB2     		uxth	r3, r3
+  55 000c 2380     		strh	r3, [r4]
+  58:tmk_core/common/chibios/sleep_led.c **** 
+  59:tmk_core/common/chibios/sleep_led.c ****     // LED on
+  60:tmk_core/common/chibios/sleep_led.c ****     if (timer.pwm.count == 0) {
+  56              		.loc 1 60 5 is_stmt 1 view .LVU13
+  57              		.loc 1 60 8 is_stmt 0 view .LVU14
+  58 000e DBB2     		uxtb	r3, r3
+  59 0010 002B     		cmp	r3, #0
+  60 0012 02D1     		bne	.L2
+  61:tmk_core/common/chibios/sleep_led.c ****         led_set(1 << USB_LED_CAPS_LOCK);
+  61              		.loc 1 61 9 is_stmt 1 view .LVU15
+  62 0014 0220     		movs	r0, #2
+  63 0016 FFF7FEFF 		bl	led_set
+  64              	.LVL1:
+  65              	.L2:
+  62:tmk_core/common/chibios/sleep_led.c ****     }
+  63:tmk_core/common/chibios/sleep_led.c ****     // LED off
+  64:tmk_core/common/chibios/sleep_led.c ****     if (timer.pwm.count == breathing_table[timer.pwm.index]) {
+  66              		.loc 1 64 5 view .LVU16
+  67              		.loc 1 64 53 is_stmt 0 view .LVU17
+  68 001a 6378     		ldrb	r3, [r4, #1]
+  69              		.loc 1 64 8 view .LVU18
+  70 001c 0949     		ldr	r1, .L4+4
+  71              		.loc 1 64 53 view .LVU19
+  72 001e 9B08     		lsrs	r3, r3, #2
+  73              		.loc 1 64 8 view .LVU20
+  74 0020 2278     		ldrb	r2, [r4]
+  75 0022 CB5C     		ldrb	r3, [r1, r3]
+  76 0024 9A42     		cmp	r2, r3
+  77 0026 02D1     		bne	.L3
+  65:tmk_core/common/chibios/sleep_led.c ****         led_set(0);
+  78              		.loc 1 65 9 is_stmt 1 view .LVU21
+  79 0028 0020     		movs	r0, #0
+  80 002a FFF7FEFF 		bl	led_set
+  81              	.LVL2:
+  82              	.L3:
+  66:tmk_core/common/chibios/sleep_led.c ****     }
+  67:tmk_core/common/chibios/sleep_led.c **** 
+  68:tmk_core/common/chibios/sleep_led.c ****     /* Reset the counter */
+  69:tmk_core/common/chibios/sleep_led.c ****     RESET_COUNTER;
+  83              		.loc 1 69 5 view .LVU22
+  84 002e 0121     		movs	r1, #1
+  85 0030 054A     		ldr	r2, .L4+8
+  70:tmk_core/common/chibios/sleep_led.c **** 
+  71:tmk_core/common/chibios/sleep_led.c ****     OSAL_IRQ_EPILOGUE();
+  86              		.loc 1 71 5 is_stmt 0 view .LVU23
+  87 0032 2800     		movs	r0, r5
+  69:tmk_core/common/chibios/sleep_led.c **** 
+  88              		.loc 1 69 5 view .LVU24
+  89 0034 1369     		ldr	r3, [r2, #16]
+  72:tmk_core/common/chibios/sleep_led.c **** }
+  90              		.loc 1 72 1 view .LVU25
+  91              		@ sp needed
+  69:tmk_core/common/chibios/sleep_led.c **** 
+  92              		.loc 1 69 5 view .LVU26
+  93 0036 8B43     		bics	r3, r1
+  94 0038 1361     		str	r3, [r2, #16]
+  71:tmk_core/common/chibios/sleep_led.c **** }
+  95              		.loc 1 71 5 is_stmt 1 view .LVU27
+  71:tmk_core/common/chibios/sleep_led.c **** }
+  96              		.loc 1 71 5 view .LVU28
+  71:tmk_core/common/chibios/sleep_led.c **** }
+  97              		.loc 1 71 5 view .LVU29
+  71:tmk_core/common/chibios/sleep_led.c **** }
+  98              		.loc 1 71 5 view .LVU30
+  71:tmk_core/common/chibios/sleep_led.c **** }
+  99              		.loc 1 71 5 view .LVU31
+ 100 003a FFF7FEFF 		bl	_port_irq_epilogue
+ 101              	.LVL3:
+ 102              	.LVL4:
+ 103              		.loc 1 72 1 is_stmt 0 view .LVU32
+ 104 003e 70BD     		pop	{r4, r5, r6, pc}
+ 105              	.L5:
+ 106              		.align	2
+ 107              	.L4:
+ 108 0040 00000000 		.word	.LANCHOR0
+ 109 0044 00000000 		.word	.LANCHOR1
+ 110 0048 00200040 		.word	1073750016
+ 111              		.cfi_endproc
+ 112              	.LFE186:
+ 114              		.section	.text.sleep_led_init,"ax",%progbits
+ 115              		.align	1
+ 116              		.global	sleep_led_init
+ 117              		.syntax unified
+ 118              		.code	16
+ 119              		.thumb_func
+ 120              		.fpu softvfp
+ 122              	sleep_led_init:
+ 123              	.LFB187:
+  73:tmk_core/common/chibios/sleep_led.c **** 
+  74:tmk_core/common/chibios/sleep_led.c **** #endif /* common parts for known platforms */
+  75:tmk_core/common/chibios/sleep_led.c **** 
+  76:tmk_core/common/chibios/sleep_led.c **** #if defined(KL2x) || defined(K20x) /* platform selection: familiar Kinetis chips */
+  77:tmk_core/common/chibios/sleep_led.c **** 
+  78:tmk_core/common/chibios/sleep_led.c **** /* LPTMR clock options */
+  79:tmk_core/common/chibios/sleep_led.c **** #    define LPTMR_CLOCK_MCGIRCLK 0 /* 4MHz clock */
+  80:tmk_core/common/chibios/sleep_led.c **** #    define LPTMR_CLOCK_LPO 1      /* 1kHz clock */
+  81:tmk_core/common/chibios/sleep_led.c **** #    define LPTMR_CLOCK_ERCLK32K 2 /* external 32kHz crystal */
+  82:tmk_core/common/chibios/sleep_led.c **** #    define LPTMR_CLOCK_OSCERCLK 3 /* output from OSC */
+  83:tmk_core/common/chibios/sleep_led.c **** 
+  84:tmk_core/common/chibios/sleep_led.c **** /* Work around inconsistencies in Freescale naming */
+  85:tmk_core/common/chibios/sleep_led.c **** #    if !defined(SIM_SCGC5_LPTMR)
+  86:tmk_core/common/chibios/sleep_led.c **** #        define SIM_SCGC5_LPTMR SIM_SCGC5_LPTIMER
+  87:tmk_core/common/chibios/sleep_led.c **** #    endif
+  88:tmk_core/common/chibios/sleep_led.c **** 
+  89:tmk_core/common/chibios/sleep_led.c **** /* Initialise the timer */
+  90:tmk_core/common/chibios/sleep_led.c **** void sleep_led_init(void) {
+  91:tmk_core/common/chibios/sleep_led.c ****     /* Make sure the clock to the LPTMR is enabled */
+  92:tmk_core/common/chibios/sleep_led.c ****     SIM->SCGC5 |= SIM_SCGC5_LPTMR;
+  93:tmk_core/common/chibios/sleep_led.c ****     /* Reset LPTMR settings */
+  94:tmk_core/common/chibios/sleep_led.c ****     LPTMR0->CSR = 0;
+  95:tmk_core/common/chibios/sleep_led.c ****     /* Set the compare value */
+  96:tmk_core/common/chibios/sleep_led.c ****     LPTMR0->CMR = 0;  // trigger on counter value (i.e. every time)
+  97:tmk_core/common/chibios/sleep_led.c **** 
+  98:tmk_core/common/chibios/sleep_led.c **** /* Set up clock source and prescaler */
+  99:tmk_core/common/chibios/sleep_led.c **** /* Software PWM
+ 100:tmk_core/common/chibios/sleep_led.c ****  *  ______           ______           __
+ 101:tmk_core/common/chibios/sleep_led.c ****  * |  ON  |___OFF___|  ON  |___OFF___|   ....
+ 102:tmk_core/common/chibios/sleep_led.c ****  * |<-------------->|<-------------->|<- ....
+ 103:tmk_core/common/chibios/sleep_led.c ****  *     PWM period       PWM period
+ 104:tmk_core/common/chibios/sleep_led.c ****  *
+ 105:tmk_core/common/chibios/sleep_led.c ****  * R                interrupts/period[resolution]
+ 106:tmk_core/common/chibios/sleep_led.c ****  * F                periods/second[frequency]
+ 107:tmk_core/common/chibios/sleep_led.c ****  * R * F            interrupts/second
+ 108:tmk_core/common/chibios/sleep_led.c ****  */
+ 109:tmk_core/common/chibios/sleep_led.c **** 
+ 110:tmk_core/common/chibios/sleep_led.c **** /* === OPTION 1 === */
+ 111:tmk_core/common/chibios/sleep_led.c **** #    if 0
+ 112:tmk_core/common/chibios/sleep_led.c ****     //  1kHz LPO
+ 113:tmk_core/common/chibios/sleep_led.c ****     //  No prescaler => 1024 irqs/sec
+ 114:tmk_core/common/chibios/sleep_led.c ****     //  Note: this is too slow for a smooth breathe
+ 115:tmk_core/common/chibios/sleep_led.c ****     LPTMR0->PSR = LPTMRx_PSR_PCS(LPTMR_CLOCK_LPO)|LPTMRx_PSR_PBYP;
+ 116:tmk_core/common/chibios/sleep_led.c **** #    endif /* OPTION 1 */
+ 117:tmk_core/common/chibios/sleep_led.c **** 
+ 118:tmk_core/common/chibios/sleep_led.c **** /* === OPTION 2 === */
+ 119:tmk_core/common/chibios/sleep_led.c **** #    if 1
+ 120:tmk_core/common/chibios/sleep_led.c ****     //  nMHz IRC (n=4 on KL25Z, KL26Z and K20x; n=2 or 8 on KL27Z)
+ 121:tmk_core/common/chibios/sleep_led.c ****     MCG->C2 |= MCG_C2_IRCS;  // fast (4MHz) internal ref clock
+ 122:tmk_core/common/chibios/sleep_led.c **** #        if defined(KL27)    // divide the 8MHz IRC by 2, to have the same MCGIRCLK speed as others
+ 123:tmk_core/common/chibios/sleep_led.c ****     MCG->MC |= MCG_MC_LIRC_DIV2_DIV2;
+ 124:tmk_core/common/chibios/sleep_led.c **** #        endif                  /* KL27 */
+ 125:tmk_core/common/chibios/sleep_led.c ****     MCG->C1 |= MCG_C1_IRCLKEN;  // enable internal ref clock
+ 126:tmk_core/common/chibios/sleep_led.c ****     //  to work in stop mode, also MCG_C1_IREFSTEN
+ 127:tmk_core/common/chibios/sleep_led.c ****     //  Divide 4MHz by 2^N (N=6) => 62500 irqs/sec =>
+ 128:tmk_core/common/chibios/sleep_led.c ****     //  => approx F=61, R=256, duration = 4
+ 129:tmk_core/common/chibios/sleep_led.c ****     LPTMR0->PSR = LPTMRx_PSR_PCS(LPTMR_CLOCK_MCGIRCLK) | LPTMRx_PSR_PRESCALE(6);
+ 130:tmk_core/common/chibios/sleep_led.c **** #    endif /* OPTION 2 */
+ 131:tmk_core/common/chibios/sleep_led.c **** 
+ 132:tmk_core/common/chibios/sleep_led.c **** /* === OPTION 3 === */
+ 133:tmk_core/common/chibios/sleep_led.c **** #    if 0
+ 134:tmk_core/common/chibios/sleep_led.c ****     //  OSC output (external crystal), usually 8MHz or 16MHz
+ 135:tmk_core/common/chibios/sleep_led.c ****     OSC0->CR |= OSC_CR_ERCLKEN; // enable ext ref clock
+ 136:tmk_core/common/chibios/sleep_led.c ****     //  to work in stop mode, also OSC_CR_EREFSTEN
+ 137:tmk_core/common/chibios/sleep_led.c ****     //  Divide by 2^N
+ 138:tmk_core/common/chibios/sleep_led.c ****     LPTMR0->PSR = LPTMRx_PSR_PCS(LPTMR_CLOCK_OSCERCLK)|LPTMRx_PSR_PRESCALE(7);
+ 139:tmk_core/common/chibios/sleep_led.c **** #    endif /* OPTION 3 */
+ 140:tmk_core/common/chibios/sleep_led.c ****     /* === END OPTIONS === */
+ 141:tmk_core/common/chibios/sleep_led.c **** 
+ 142:tmk_core/common/chibios/sleep_led.c ****     /* Interrupt on TCF set (compare flag) */
+ 143:tmk_core/common/chibios/sleep_led.c ****     nvicEnableVector(LPTMR0_IRQn, 2);  // vector, priority
+ 144:tmk_core/common/chibios/sleep_led.c ****     LPTMR0->CSR |= LPTMRx_CSR_TIE;
+ 145:tmk_core/common/chibios/sleep_led.c **** }
+ 146:tmk_core/common/chibios/sleep_led.c **** 
+ 147:tmk_core/common/chibios/sleep_led.c **** void sleep_led_enable(void) {
+ 148:tmk_core/common/chibios/sleep_led.c ****     /* Enable the timer */
+ 149:tmk_core/common/chibios/sleep_led.c ****     LPTMR0->CSR |= LPTMRx_CSR_TEN;
+ 150:tmk_core/common/chibios/sleep_led.c **** }
+ 151:tmk_core/common/chibios/sleep_led.c **** 
+ 152:tmk_core/common/chibios/sleep_led.c **** void sleep_led_disable(void) {
+ 153:tmk_core/common/chibios/sleep_led.c ****     /* Disable the timer */
+ 154:tmk_core/common/chibios/sleep_led.c ****     LPTMR0->CSR &= ~LPTMRx_CSR_TEN;
+ 155:tmk_core/common/chibios/sleep_led.c **** }
+ 156:tmk_core/common/chibios/sleep_led.c **** 
+ 157:tmk_core/common/chibios/sleep_led.c **** void sleep_led_toggle(void) {
+ 158:tmk_core/common/chibios/sleep_led.c ****     /* Toggle the timer */
+ 159:tmk_core/common/chibios/sleep_led.c ****     LPTMR0->CSR ^= LPTMRx_CSR_TEN;
+ 160:tmk_core/common/chibios/sleep_led.c **** }
+ 161:tmk_core/common/chibios/sleep_led.c **** 
+ 162:tmk_core/common/chibios/sleep_led.c **** #elif defined(STM32F0XX) /* platform selection: STM32F0XX */
+ 163:tmk_core/common/chibios/sleep_led.c **** 
+ 164:tmk_core/common/chibios/sleep_led.c **** /* Initialise the timer */
+ 165:tmk_core/common/chibios/sleep_led.c **** void sleep_led_init(void) {
+ 124              		.loc 1 165 27 is_stmt 1 view -0
+ 125              		.cfi_startproc
+ 126              		@ args = 0, pretend = 0, frame = 0
+ 127              		@ frame_needed = 0, uses_anonymous_args = 0
+ 166:tmk_core/common/chibios/sleep_led.c ****     /* enable clock */
+ 167:tmk_core/common/chibios/sleep_led.c ****     rccEnableTIM14(FALSE); /* low power enable = FALSE */
+ 128              		.loc 1 167 5 view .LVU34
+ 129 0000 8022     		movs	r2, #128
+ 130 0002 0E4B     		ldr	r3, .L7
+ 131 0004 5200     		lsls	r2, r2, #1
+ 132 0006 D969     		ldr	r1, [r3, #28]
+ 165:tmk_core/common/chibios/sleep_led.c ****     /* enable clock */
+ 133              		.loc 1 165 27 is_stmt 0 view .LVU35
+ 134 0008 10B5     		push	{r4, lr}
+ 135              		.cfi_def_cfa_offset 8
+ 136              		.cfi_offset 4, -8
+ 137              		.cfi_offset 14, -4
+ 138              		.loc 1 167 5 view .LVU36
+ 139 000a 1143     		orrs	r1, r2
+ 140 000c D961     		str	r1, [r3, #28]
+ 141              		.loc 1 167 5 is_stmt 1 view .LVU37
+ 142 000e D969     		ldr	r1, [r3, #28]
+ 143              		.loc 1 167 26 view .LVU38
+ 168:tmk_core/common/chibios/sleep_led.c ****     rccResetTIM14();
+ 144              		.loc 1 168 5 view .LVU39
+ 145 0010 1969     		ldr	r1, [r3, #16]
+ 169:tmk_core/common/chibios/sleep_led.c **** 
+ 170:tmk_core/common/chibios/sleep_led.c ****     /* prescale */
+ 171:tmk_core/common/chibios/sleep_led.c ****     /* Assuming 48MHz internal clock */
+ 172:tmk_core/common/chibios/sleep_led.c ****     /* getting cca 65484 irqs/sec */
+ 173:tmk_core/common/chibios/sleep_led.c ****     STM32_TIM14->PSC = 733;
+ 174:tmk_core/common/chibios/sleep_led.c **** 
+ 175:tmk_core/common/chibios/sleep_led.c ****     /* auto-reload */
+ 176:tmk_core/common/chibios/sleep_led.c ****     /* 0 => interrupt every time */
+ 177:tmk_core/common/chibios/sleep_led.c ****     STM32_TIM14->ARR = 3;
+ 178:tmk_core/common/chibios/sleep_led.c **** 
+ 179:tmk_core/common/chibios/sleep_led.c ****     /* enable counter update event interrupt */
+ 180:tmk_core/common/chibios/sleep_led.c ****     STM32_TIM14->DIER |= STM32_TIM_DIER_UIE;
+ 181:tmk_core/common/chibios/sleep_led.c **** 
+ 182:tmk_core/common/chibios/sleep_led.c ****     /* register interrupt vector */
+ 183:tmk_core/common/chibios/sleep_led.c ****     nvicEnableVector(STM32_TIM14_NUMBER, 2); /* vector, priority */
+ 146              		.loc 1 183 5 is_stmt 0 view .LVU40
+ 147 0012 1320     		movs	r0, #19
+ 168:tmk_core/common/chibios/sleep_led.c ****     rccResetTIM14();
+ 148              		.loc 1 168 5 view .LVU41
+ 149 0014 0A43     		orrs	r2, r1
+ 150 0016 1A61     		str	r2, [r3, #16]
+ 168:tmk_core/common/chibios/sleep_led.c ****     rccResetTIM14();
+ 151              		.loc 1 168 5 is_stmt 1 view .LVU42
+ 152 0018 1A69     		ldr	r2, [r3, #16]
+ 153 001a 0949     		ldr	r1, .L7+4
+ 184:tmk_core/common/chibios/sleep_led.c **** }
+ 154              		.loc 1 184 1 is_stmt 0 view .LVU43
+ 155              		@ sp needed
+ 168:tmk_core/common/chibios/sleep_led.c ****     rccResetTIM14();
+ 156              		.loc 1 168 5 view .LVU44
+ 157 001c 0A40     		ands	r2, r1
+ 158 001e 1A61     		str	r2, [r3, #16]
+ 168:tmk_core/common/chibios/sleep_led.c ****     rccResetTIM14();
+ 159              		.loc 1 168 5 is_stmt 1 view .LVU45
+ 160 0020 1B69     		ldr	r3, [r3, #16]
+ 168:tmk_core/common/chibios/sleep_led.c ****     rccResetTIM14();
+ 161              		.loc 1 168 20 view .LVU46
+ 173:tmk_core/common/chibios/sleep_led.c **** 
+ 162              		.loc 1 173 5 view .LVU47
+ 173:tmk_core/common/chibios/sleep_led.c **** 
+ 163              		.loc 1 173 22 is_stmt 0 view .LVU48
+ 164 0022 084A     		ldr	r2, .L7+8
+ 165 0024 084B     		ldr	r3, .L7+12
+ 166 0026 9A62     		str	r2, [r3, #40]
+ 177:tmk_core/common/chibios/sleep_led.c **** 
+ 167              		.loc 1 177 5 is_stmt 1 view .LVU49
+ 177:tmk_core/common/chibios/sleep_led.c **** 
+ 168              		.loc 1 177 22 is_stmt 0 view .LVU50
+ 169 0028 0322     		movs	r2, #3
+ 170 002a DA62     		str	r2, [r3, #44]
+ 180:tmk_core/common/chibios/sleep_led.c **** 
+ 171              		.loc 1 180 5 is_stmt 1 view .LVU51
+ 180:tmk_core/common/chibios/sleep_led.c **** 
+ 172              		.loc 1 180 23 is_stmt 0 view .LVU52
+ 173 002c D968     		ldr	r1, [r3, #12]
+ 174 002e 023A     		subs	r2, r2, #2
+ 175 0030 0A43     		orrs	r2, r1
+ 176 0032 DA60     		str	r2, [r3, #12]
+ 183:tmk_core/common/chibios/sleep_led.c **** }
+ 177              		.loc 1 183 5 is_stmt 1 view .LVU53
+ 178 0034 0221     		movs	r1, #2
+ 179 0036 FFF7FEFF 		bl	nvicEnableVector
+ 180              	.LVL5:
+ 181              		.loc 1 184 1 is_stmt 0 view .LVU54
+ 182 003a 10BD     		pop	{r4, pc}
+ 183              	.L8:
+ 184              		.align	2
+ 185              	.L7:
+ 186 003c 00100240 		.word	1073876992
+ 187 0040 FFFEFFFF 		.word	-257
+ 188 0044 DD020000 		.word	733
+ 189 0048 00200040 		.word	1073750016
+ 190              		.cfi_endproc
+ 191              	.LFE187:
+ 193              		.section	.text.sleep_led_enable,"ax",%progbits
+ 194              		.align	1
+ 195              		.global	sleep_led_enable
+ 196              		.syntax unified
+ 197              		.code	16
+ 198              		.thumb_func
+ 199              		.fpu softvfp
+ 201              	sleep_led_enable:
+ 202              	.LFB188:
+ 185:tmk_core/common/chibios/sleep_led.c **** 
+ 186:tmk_core/common/chibios/sleep_led.c **** void sleep_led_enable(void) {
+ 203              		.loc 1 186 29 is_stmt 1 view -0
+ 204              		.cfi_startproc
+ 205              		@ args = 0, pretend = 0, frame = 0
+ 206              		@ frame_needed = 0, uses_anonymous_args = 0
+ 207              		@ link register save eliminated.
+ 187:tmk_core/common/chibios/sleep_led.c ****     /* Enable the timer */
+ 188:tmk_core/common/chibios/sleep_led.c ****     STM32_TIM14->CR1 = STM32_TIM_CR1_CEN | STM32_TIM_CR1_URS;
+ 208              		.loc 1 188 5 view .LVU56
+ 209              		.loc 1 188 22 is_stmt 0 view .LVU57
+ 210 0000 0522     		movs	r2, #5
+ 211 0002 014B     		ldr	r3, .L10
+ 189:tmk_core/common/chibios/sleep_led.c ****     /* URS => update event only on overflow; setting UG bit disabled */
+ 190:tmk_core/common/chibios/sleep_led.c **** }
+ 212              		.loc 1 190 1 view .LVU58
+ 213              		@ sp needed
+ 188:tmk_core/common/chibios/sleep_led.c ****     /* URS => update event only on overflow; setting UG bit disabled */
+ 214              		.loc 1 188 22 view .LVU59
+ 215 0004 1A60     		str	r2, [r3]
+ 216              		.loc 1 190 1 view .LVU60
+ 217 0006 7047     		bx	lr
+ 218              	.L11:
+ 219              		.align	2
+ 220              	.L10:
+ 221 0008 00200040 		.word	1073750016
+ 222              		.cfi_endproc
+ 223              	.LFE188:
+ 225              		.section	.text.sleep_led_disable,"ax",%progbits
+ 226              		.align	1
+ 227              		.global	sleep_led_disable
+ 228              		.syntax unified
+ 229              		.code	16
+ 230              		.thumb_func
+ 231              		.fpu softvfp
+ 233              	sleep_led_disable:
+ 234              	.LFB189:
+ 191:tmk_core/common/chibios/sleep_led.c **** 
+ 192:tmk_core/common/chibios/sleep_led.c **** void sleep_led_disable(void) {
+ 235              		.loc 1 192 30 is_stmt 1 view -0
+ 236              		.cfi_startproc
+ 237              		@ args = 0, pretend = 0, frame = 0
+ 238              		@ frame_needed = 0, uses_anonymous_args = 0
+ 239              		@ link register save eliminated.
+ 193:tmk_core/common/chibios/sleep_led.c ****     /* Disable the timer */
+ 194:tmk_core/common/chibios/sleep_led.c ****     STM32_TIM14->CR1 = 0;
+ 240              		.loc 1 194 5 view .LVU62
+ 241              		.loc 1 194 22 is_stmt 0 view .LVU63
+ 242 0000 0022     		movs	r2, #0
+ 243 0002 014B     		ldr	r3, .L13
+ 195:tmk_core/common/chibios/sleep_led.c **** }
+ 244              		.loc 1 195 1 view .LVU64
+ 245              		@ sp needed
+ 194:tmk_core/common/chibios/sleep_led.c **** }
+ 246              		.loc 1 194 22 view .LVU65
+ 247 0004 1A60     		str	r2, [r3]
+ 248              		.loc 1 195 1 view .LVU66
+ 249 0006 7047     		bx	lr
+ 250              	.L14:
+ 251              		.align	2
+ 252              	.L13:
+ 253 0008 00200040 		.word	1073750016
+ 254              		.cfi_endproc
+ 255              	.LFE189:
+ 257              		.section	.text.sleep_led_toggle,"ax",%progbits
+ 258              		.align	1
+ 259              		.global	sleep_led_toggle
+ 260              		.syntax unified
+ 261              		.code	16
+ 262              		.thumb_func
+ 263              		.fpu softvfp
+ 265              	sleep_led_toggle:
+ 266              	.LFB190:
+ 196:tmk_core/common/chibios/sleep_led.c **** 
+ 197:tmk_core/common/chibios/sleep_led.c **** void sleep_led_toggle(void) {
+ 267              		.loc 1 197 29 is_stmt 1 view -0
+ 268              		.cfi_startproc
+ 269              		@ args = 0, pretend = 0, frame = 0
+ 270              		@ frame_needed = 0, uses_anonymous_args = 0
+ 271              		@ link register save eliminated.
+ 198:tmk_core/common/chibios/sleep_led.c ****     /* Toggle the timer */
+ 199:tmk_core/common/chibios/sleep_led.c ****     STM32_TIM14->CR1 ^= STM32_TIM_CR1_CEN;
+ 272              		.loc 1 199 5 view .LVU68
+ 273              		.loc 1 199 22 is_stmt 0 view .LVU69
+ 274 0000 0123     		movs	r3, #1
+ 275 0002 024A     		ldr	r2, .L16
+ 200:tmk_core/common/chibios/sleep_led.c **** }
+ 276              		.loc 1 200 1 view .LVU70
+ 277              		@ sp needed
+ 199:tmk_core/common/chibios/sleep_led.c **** }
+ 278              		.loc 1 199 22 view .LVU71
+ 279 0004 1168     		ldr	r1, [r2]
+ 280 0006 4B40     		eors	r3, r1
+ 281 0008 1360     		str	r3, [r2]
+ 282              		.loc 1 200 1 view .LVU72
+ 283 000a 7047     		bx	lr
+ 284              	.L17:
+ 285              		.align	2
+ 286              	.L16:
+ 287 000c 00200040 		.word	1073750016
+ 288              		.cfi_endproc
+ 289              	.LFE190:
+ 291              		.section	.bss.timer.6944,"aw",%nobits
+ 292              		.align	1
+ 293              		.set	.LANCHOR0,. + 0
+ 296              	timer.6944:
+ 297 0000 0000     		.space	2
+ 298              		.section	.rodata.breathing_table,"a"
+ 299              		.set	.LANCHOR1,. + 0
+ 302              	breathing_table:
+ 303 0000 00       		.byte	0
+ 304 0001 00       		.byte	0
+ 305 0002 00       		.byte	0
+ 306 0003 00       		.byte	0
+ 307 0004 00       		.byte	0
+ 308 0005 00       		.byte	0
+ 309 0006 00       		.byte	0
+ 310 0007 00       		.byte	0
+ 311 0008 00       		.byte	0
+ 312 0009 00       		.byte	0
+ 313 000a 00       		.byte	0
+ 314 000b 01       		.byte	1
+ 315 000c 02       		.byte	2
+ 316 000d 04       		.byte	4
+ 317 000e 06       		.byte	6
+ 318 000f 0A       		.byte	10
+ 319 0010 0F       		.byte	15
+ 320 0011 17       		.byte	23
+ 321 0012 20       		.byte	32
+ 322 0013 2C       		.byte	44
+ 323 0014 3A       		.byte	58
+ 324 0015 4A       		.byte	74
+ 325 0016 5D       		.byte	93
+ 326 0017 71       		.byte	113
+ 327 0018 87       		.byte	-121
+ 328 0019 9D       		.byte	-99
+ 329 001a B3       		.byte	-77
+ 330 001b C7       		.byte	-57
+ 331 001c DA       		.byte	-38
+ 332 001d E9       		.byte	-23
+ 333 001e F5       		.byte	-11
+ 334 001f FC       		.byte	-4
+ 335 0020 FF       		.byte	-1
+ 336 0021 FC       		.byte	-4
+ 337 0022 F5       		.byte	-11
+ 338 0023 E9       		.byte	-23
+ 339 0024 DA       		.byte	-38
+ 340 0025 C7       		.byte	-57
+ 341 0026 B3       		.byte	-77
+ 342 0027 9D       		.byte	-99
+ 343 0028 87       		.byte	-121
+ 344 0029 71       		.byte	113
+ 345 002a 5D       		.byte	93
+ 346 002b 4A       		.byte	74
+ 347 002c 3A       		.byte	58
+ 348 002d 2C       		.byte	44
+ 349 002e 20       		.byte	32
+ 350 002f 17       		.byte	23
+ 351 0030 0F       		.byte	15
+ 352 0031 0A       		.byte	10
+ 353 0032 06       		.byte	6
+ 354 0033 04       		.byte	4
+ 355 0034 02       		.byte	2
+ 356 0035 01       		.byte	1
+ 357 0036 00       		.byte	0
+ 358 0037 00       		.byte	0
+ 359 0038 00       		.byte	0
+ 360 0039 00       		.byte	0
+ 361 003a 00       		.byte	0
+ 362 003b 00       		.byte	0
+ 363 003c 00       		.byte	0
+ 364 003d 00       		.byte	0
+ 365 003e 00       		.byte	0
+ 366 003f 00       		.byte	0
+ 367              		.text
+ 368              	.Letext0:
+ 369              		.file 2 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\lib\\gcc\\arm-none-eabi\\8.3.1\\in
+ 370              		.file 3 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\arm-none-eabi\\include\\machine\\_
+ 371              		.file 4 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\arm-none-eabi\\include\\sys\\_stdi
+ 372              		.file 5 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\arm-none-eabi\\include\\stdint.h"
+ 373              		.file 6 "./lib/chibios/os/common/ports/ARMCMx/compilers/GCC/chtypes.h"
+ 374              		.file 7 "./lib/chibios/os/rt/include/chsystypes.h"
+ 375              		.file 8 "./lib/chibios/os/rt/include/chschd.h"
+ 376              		.file 9 "./lib/chibios/os/rt/include/chtime.h"
+ 377              		.file 10 "./lib/chibios/os/common/ext/ST/STM32F0xx/system_stm32f0xx.h"
+ 378              		.file 11 "./lib/chibios/os/common/ext/ST/STM32F0xx/stm32f072xb.h"
+ 379              		.file 12 "./lib/chibios/os/common/ports/ARMCMx/chcore.h"
+ 380              		.file 13 "./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h"
+ 381              		.file 14 "./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/stm32_tim.h"
+ 382              		.file 15 "./lib/chibios/os/rt/include/chsem.h"
+ 383              		.file 16 "./lib/chibios/os/rt/include/chmtx.h"
+ 384              		.file 17 "./lib/chibios/os/rt/include/chsys.h"
+ 385              		.file 18 "./lib/chibios/os/rt/include/chregistry.h"
+ 386              		.file 19 "./lib/chibios/os/oslib/include/chmemcore.h"
+ 387              		.file 20 "./lib/chibios/os/hal/ports/STM32/LLD/DMAv1/stm32_dma.h"
+ 388              		.file 21 "./lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/stm32_gpio.h"
+ 389              		.file 22 "./lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.h"
+ 390              		.file 23 "./lib/chibios/os/hal/include/hal_i2c.h"
+ 391              		.file 24 "./lib/chibios/os/hal/ports/STM32/LLD/I2Cv2/hal_i2c_lld.h"
+ 392              		.file 25 "./lib/chibios/os/hal/include/hal_pwm.h"
+ 393              		.file 26 "./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_pwm_lld.h"
+ 394              		.file 27 "./lib/chibios/os/hal/include/hal_spi.h"
+ 395              		.file 28 "./lib/chibios/os/hal/ports/STM32/LLD/SPIv2/hal_spi_lld.h"
+ 396              		.file 29 "./lib/chibios/os/hal/include/hal_usb.h"
+ 397              		.file 30 "./lib/chibios/os/hal/ports/STM32/LLD/USBv1/hal_usb_lld.h"
+ 398              		.file 31 "./lib/chibios/os/hal/ports/common/ARMCMx/nvic.h"
+ 399              		.file 32 "tmk_core/common/led.h"
+DEFINED SYMBOLS
+                            *ABS*:00000000 sleep_led.c
+C:\Users\kyleo\AppData\Local\Temp\ccDe4G7y.s:16     .text.Vector8C:00000000 $t
+C:\Users\kyleo\AppData\Local\Temp\ccDe4G7y.s:24     .text.Vector8C:00000000 Vector8C
+C:\Users\kyleo\AppData\Local\Temp\ccDe4G7y.s:108    .text.Vector8C:00000040 $d
+C:\Users\kyleo\AppData\Local\Temp\ccDe4G7y.s:115    .text.sleep_led_init:00000000 $t
+C:\Users\kyleo\AppData\Local\Temp\ccDe4G7y.s:122    .text.sleep_led_init:00000000 sleep_led_init
+C:\Users\kyleo\AppData\Local\Temp\ccDe4G7y.s:186    .text.sleep_led_init:0000003c $d
+C:\Users\kyleo\AppData\Local\Temp\ccDe4G7y.s:194    .text.sleep_led_enable:00000000 $t
+C:\Users\kyleo\AppData\Local\Temp\ccDe4G7y.s:201    .text.sleep_led_enable:00000000 sleep_led_enable
+C:\Users\kyleo\AppData\Local\Temp\ccDe4G7y.s:221    .text.sleep_led_enable:00000008 $d
+C:\Users\kyleo\AppData\Local\Temp\ccDe4G7y.s:226    .text.sleep_led_disable:00000000 $t
+C:\Users\kyleo\AppData\Local\Temp\ccDe4G7y.s:233    .text.sleep_led_disable:00000000 sleep_led_disable
+C:\Users\kyleo\AppData\Local\Temp\ccDe4G7y.s:253    .text.sleep_led_disable:00000008 $d
+C:\Users\kyleo\AppData\Local\Temp\ccDe4G7y.s:258    .text.sleep_led_toggle:00000000 $t
+C:\Users\kyleo\AppData\Local\Temp\ccDe4G7y.s:265    .text.sleep_led_toggle:00000000 sleep_led_toggle
+C:\Users\kyleo\AppData\Local\Temp\ccDe4G7y.s:287    .text.sleep_led_toggle:0000000c $d
+C:\Users\kyleo\AppData\Local\Temp\ccDe4G7y.s:292    .bss.timer.6944:00000000 $d
+C:\Users\kyleo\AppData\Local\Temp\ccDe4G7y.s:296    .bss.timer.6944:00000000 timer.6944
+C:\Users\kyleo\AppData\Local\Temp\ccDe4G7y.s:302    .rodata.breathing_table:00000000 breathing_table
+
+UNDEFINED SYMBOLS
+led_set
+_port_irq_epilogue
+nvicEnableVector

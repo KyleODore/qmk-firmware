@@ -1,0 +1,2411 @@
+   1               		.file	"mousekey.c"
+   2               	__SP_H__ = 0x3e
+   3               	__SP_L__ = 0x3d
+   4               	__SREG__ = 0x3f
+   5               	__tmp_reg__ = 0
+   6               	__zero_reg__ = 1
+   7               		.text
+   8               	.Ltext0:
+   9               		.cfi_sections	.debug_frame
+  10               		.section	.text.move_unit,"ax",@progbits
+  12               	move_unit:
+  13               	.LFB103:
+  14               		.file 1 "tmk_core/common/mousekey.c"
+   1:tmk_core/common/mousekey.c **** /*
+   2:tmk_core/common/mousekey.c **** Copyright 2011 Jun Wako <wakojun@gmail.com>
+   3:tmk_core/common/mousekey.c **** 
+   4:tmk_core/common/mousekey.c **** This program is free software: you can redistribute it and/or modify
+   5:tmk_core/common/mousekey.c **** it under the terms of the GNU General Public License as published by
+   6:tmk_core/common/mousekey.c **** the Free Software Foundation, either version 2 of the License, or
+   7:tmk_core/common/mousekey.c **** (at your option) any later version.
+   8:tmk_core/common/mousekey.c **** 
+   9:tmk_core/common/mousekey.c **** This program is distributed in the hope that it will be useful,
+  10:tmk_core/common/mousekey.c **** but WITHOUT ANY WARRANTY; without even the implied warranty of
+  11:tmk_core/common/mousekey.c **** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  12:tmk_core/common/mousekey.c **** GNU General Public License for more details.
+  13:tmk_core/common/mousekey.c **** 
+  14:tmk_core/common/mousekey.c **** You should have received a copy of the GNU General Public License
+  15:tmk_core/common/mousekey.c **** along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  16:tmk_core/common/mousekey.c **** */
+  17:tmk_core/common/mousekey.c **** 
+  18:tmk_core/common/mousekey.c **** #include <stdint.h>
+  19:tmk_core/common/mousekey.c **** #include "keycode.h"
+  20:tmk_core/common/mousekey.c **** #include "host.h"
+  21:tmk_core/common/mousekey.c **** #include "timer.h"
+  22:tmk_core/common/mousekey.c **** #include "print.h"
+  23:tmk_core/common/mousekey.c **** #include "debug.h"
+  24:tmk_core/common/mousekey.c **** #include "mousekey.h"
+  25:tmk_core/common/mousekey.c **** 
+  26:tmk_core/common/mousekey.c **** inline int8_t times_inv_sqrt2(int8_t x) {
+  27:tmk_core/common/mousekey.c ****     // 181/256 is pretty close to 1/sqrt(2)
+  28:tmk_core/common/mousekey.c ****     // 0.70703125                 0.707106781
+  29:tmk_core/common/mousekey.c ****     // 1 too small for x=99 and x=198
+  30:tmk_core/common/mousekey.c ****     // This ends up being a mult and discard lower 8 bits
+  31:tmk_core/common/mousekey.c ****     return (x * 181) >> 8;
+  32:tmk_core/common/mousekey.c **** }
+  33:tmk_core/common/mousekey.c **** 
+  34:tmk_core/common/mousekey.c **** static report_mouse_t mouse_report = {0};
+  35:tmk_core/common/mousekey.c **** static void           mousekey_debug(void);
+  36:tmk_core/common/mousekey.c **** static uint8_t        mousekey_accel  = 0;
+  37:tmk_core/common/mousekey.c **** static uint8_t        mousekey_repeat = 0;
+  38:tmk_core/common/mousekey.c **** static uint16_t       last_timer      = 0;
+  39:tmk_core/common/mousekey.c **** 
+  40:tmk_core/common/mousekey.c **** #ifndef MK_3_SPEED
+  41:tmk_core/common/mousekey.c **** 
+  42:tmk_core/common/mousekey.c **** static uint16_t last_timer_c = 0;
+  43:tmk_core/common/mousekey.c **** static uint16_t last_timer_w = 0;
+  44:tmk_core/common/mousekey.c **** 
+  45:tmk_core/common/mousekey.c **** /*
+  46:tmk_core/common/mousekey.c ****  * Mouse keys  acceleration algorithm
+  47:tmk_core/common/mousekey.c ****  *  http://en.wikipedia.org/wiki/Mouse_keys
+  48:tmk_core/common/mousekey.c ****  *
+  49:tmk_core/common/mousekey.c ****  *  speed = delta * max_speed * (repeat / time_to_max)**((1000+curve)/1000)
+  50:tmk_core/common/mousekey.c ****  */
+  51:tmk_core/common/mousekey.c **** /* milliseconds between the initial key press and first repeated motion event (0-2550) */
+  52:tmk_core/common/mousekey.c **** uint8_t mk_delay = MOUSEKEY_DELAY / 10;
+  53:tmk_core/common/mousekey.c **** /* milliseconds between repeated motion events (0-255) */
+  54:tmk_core/common/mousekey.c **** uint8_t mk_interval = MOUSEKEY_INTERVAL;
+  55:tmk_core/common/mousekey.c **** /* steady speed (in action_delta units) applied each event (0-255) */
+  56:tmk_core/common/mousekey.c **** uint8_t mk_max_speed = MOUSEKEY_MAX_SPEED;
+  57:tmk_core/common/mousekey.c **** /* number of events (count) accelerating to steady speed (0-255) */
+  58:tmk_core/common/mousekey.c **** uint8_t mk_time_to_max = MOUSEKEY_TIME_TO_MAX;
+  59:tmk_core/common/mousekey.c **** /* ramp used to reach maximum pointer speed (NOT SUPPORTED) */
+  60:tmk_core/common/mousekey.c **** // int8_t mk_curve = 0;
+  61:tmk_core/common/mousekey.c **** /* wheel params */
+  62:tmk_core/common/mousekey.c **** /* milliseconds between the initial key press and first repeated motion event (0-2550) */
+  63:tmk_core/common/mousekey.c **** uint8_t mk_wheel_delay = MOUSEKEY_WHEEL_DELAY / 10;
+  64:tmk_core/common/mousekey.c **** /* milliseconds between repeated motion events (0-255) */
+  65:tmk_core/common/mousekey.c **** uint8_t mk_wheel_interval    = MOUSEKEY_WHEEL_INTERVAL;
+  66:tmk_core/common/mousekey.c **** uint8_t mk_wheel_max_speed   = MOUSEKEY_WHEEL_MAX_SPEED;
+  67:tmk_core/common/mousekey.c **** uint8_t mk_wheel_time_to_max = MOUSEKEY_WHEEL_TIME_TO_MAX;
+  68:tmk_core/common/mousekey.c **** 
+  69:tmk_core/common/mousekey.c **** static uint8_t move_unit(void) {
+  15               		.loc 1 69 32 view -0
+  16               		.cfi_startproc
+  17               	/* prologue: function */
+  18               	/* frame size = 0 */
+  19               	/* stack size = 0 */
+  20               	.L__stack_usage = 0
+  70:tmk_core/common/mousekey.c ****     uint16_t unit;
+  21               		.loc 1 70 5 view .LVU1
+  71:tmk_core/common/mousekey.c ****     if (mousekey_accel & (1 << 0)) {
+  22               		.loc 1 71 5 view .LVU2
+  23               		.loc 1 71 24 is_stmt 0 view .LVU3
+  24 0000 8091 0000 		lds r24,mousekey_accel
+  25               		.loc 1 71 8 view .LVU4
+  26 0004 80FF      		sbrs r24,0
+  27 0006 00C0      		rjmp .L2
+  72:tmk_core/common/mousekey.c ****         unit = (MOUSEKEY_MOVE_DELTA * mk_max_speed) / 4;
+  28               		.loc 1 72 9 is_stmt 1 view .LVU5
+  29               		.loc 1 72 37 is_stmt 0 view .LVU6
+  30 0008 6091 0000 		lds r22,mk_max_speed
+  31 000c 85E0      		ldi r24,lo8(5)
+  32 000e 689F      		mul r22,r24
+  33 0010 B001      		movw r22,r0
+  34 0012 1124      		clr __zero_reg__
+  35               		.loc 1 72 53 view .LVU7
+  36 0014 7595      		asr r23
+  37 0016 6795      		ror r22
+  38 0018 7595      		asr r23
+  39 001a 6795      		ror r22
+  40               	.LVL0:
+  41               	.L3:
+  73:tmk_core/common/mousekey.c ****     } else if (mousekey_accel & (1 << 1)) {
+  74:tmk_core/common/mousekey.c ****         unit = (MOUSEKEY_MOVE_DELTA * mk_max_speed) / 2;
+  75:tmk_core/common/mousekey.c ****     } else if (mousekey_accel & (1 << 2)) {
+  76:tmk_core/common/mousekey.c ****         unit = (MOUSEKEY_MOVE_DELTA * mk_max_speed);
+  77:tmk_core/common/mousekey.c ****     } else if (mousekey_repeat == 0) {
+  78:tmk_core/common/mousekey.c ****         unit = MOUSEKEY_MOVE_DELTA;
+  79:tmk_core/common/mousekey.c ****     } else if (mousekey_repeat >= mk_time_to_max) {
+  80:tmk_core/common/mousekey.c ****         unit = MOUSEKEY_MOVE_DELTA * mk_max_speed;
+  81:tmk_core/common/mousekey.c ****     } else {
+  82:tmk_core/common/mousekey.c ****         unit = (MOUSEKEY_MOVE_DELTA * mk_max_speed * mousekey_repeat) / mk_time_to_max;
+  83:tmk_core/common/mousekey.c ****     }
+  84:tmk_core/common/mousekey.c ****     return (unit > MOUSEKEY_MOVE_MAX ? MOUSEKEY_MOVE_MAX : (unit == 0 ? 1 : unit));
+  42               		.loc 1 84 5 is_stmt 1 view .LVU8
+  43               		.loc 1 84 58 is_stmt 0 view .LVU9
+  44 001c 6038      		cpi r22,-128
+  45 001e 7105      		cpc r23,__zero_reg__
+  46 0020 00F4      		brsh .L10
+  47               		.loc 1 84 58 discriminator 1 view .LVU10
+  48 0022 6115      		cp r22,__zero_reg__
+  49 0024 7105      		cpc r23,__zero_reg__
+  50 0026 01F0      		breq .L11
+  51               	.LVL1:
+  52               	.L6:
+  53               		.loc 1 84 58 discriminator 3 view .LVU11
+  54 0028 862F      		mov r24,r22
+  55 002a 0895      		ret
+  56               	.L2:
+  73:tmk_core/common/mousekey.c ****     } else if (mousekey_accel & (1 << 1)) {
+  57               		.loc 1 73 12 is_stmt 1 view .LVU12
+  73:tmk_core/common/mousekey.c ****     } else if (mousekey_accel & (1 << 1)) {
+  58               		.loc 1 73 15 is_stmt 0 view .LVU13
+  59 002c 81FF      		sbrs r24,1
+  60 002e 00C0      		rjmp .L4
+  74:tmk_core/common/mousekey.c ****     } else if (mousekey_accel & (1 << 2)) {
+  61               		.loc 1 74 9 is_stmt 1 view .LVU14
+  74:tmk_core/common/mousekey.c ****     } else if (mousekey_accel & (1 << 2)) {
+  62               		.loc 1 74 37 is_stmt 0 view .LVU15
+  63 0030 6091 0000 		lds r22,mk_max_speed
+  64 0034 85E0      		ldi r24,lo8(5)
+  65 0036 689F      		mul r22,r24
+  66 0038 B001      		movw r22,r0
+  67 003a 1124      		clr __zero_reg__
+  74:tmk_core/common/mousekey.c ****     } else if (mousekey_accel & (1 << 2)) {
+  68               		.loc 1 74 53 view .LVU16
+  69 003c 7595      		asr r23
+  70 003e 6795      		ror r22
+  71               	.LVL2:
+  74:tmk_core/common/mousekey.c ****     } else if (mousekey_accel & (1 << 2)) {
+  72               		.loc 1 74 53 view .LVU17
+  73 0040 00C0      		rjmp .L3
+  74               	.LVL3:
+  75               	.L4:
+  75:tmk_core/common/mousekey.c ****         unit = (MOUSEKEY_MOVE_DELTA * mk_max_speed);
+  76               		.loc 1 75 12 is_stmt 1 view .LVU18
+  76:tmk_core/common/mousekey.c ****     } else if (mousekey_repeat == 0) {
+  77               		.loc 1 76 37 is_stmt 0 view .LVU19
+  78 0042 6091 0000 		lds r22,mk_max_speed
+  75:tmk_core/common/mousekey.c ****         unit = (MOUSEKEY_MOVE_DELTA * mk_max_speed);
+  79               		.loc 1 75 15 view .LVU20
+  80 0046 82FD      		sbrc r24,2
+  81 0048 00C0      		rjmp .L12
+  77:tmk_core/common/mousekey.c ****         unit = MOUSEKEY_MOVE_DELTA;
+  82               		.loc 1 77 12 is_stmt 1 view .LVU21
+  77:tmk_core/common/mousekey.c ****         unit = MOUSEKEY_MOVE_DELTA;
+  83               		.loc 1 77 32 is_stmt 0 view .LVU22
+  84 004a 8091 0000 		lds r24,mousekey_repeat
+  77:tmk_core/common/mousekey.c ****         unit = MOUSEKEY_MOVE_DELTA;
+  85               		.loc 1 77 15 view .LVU23
+  86 004e 8823      		tst r24
+  87 0050 01F0      		breq .L9
+  79:tmk_core/common/mousekey.c ****         unit = MOUSEKEY_MOVE_DELTA * mk_max_speed;
+  88               		.loc 1 79 12 is_stmt 1 view .LVU24
+  79:tmk_core/common/mousekey.c ****         unit = MOUSEKEY_MOVE_DELTA * mk_max_speed;
+  89               		.loc 1 79 32 is_stmt 0 view .LVU25
+  90 0052 9091 0000 		lds r25,mk_time_to_max
+  91 0056 6091 0000 		lds r22,mk_max_speed
+  79:tmk_core/common/mousekey.c ****         unit = MOUSEKEY_MOVE_DELTA * mk_max_speed;
+  92               		.loc 1 79 15 view .LVU26
+  93 005a 8917      		cp r24,r25
+  94 005c 00F0      		brlo .L7
+  95               	.L12:
+  80:tmk_core/common/mousekey.c ****     } else {
+  96               		.loc 1 80 9 is_stmt 1 view .LVU27
+  80:tmk_core/common/mousekey.c ****     } else {
+  97               		.loc 1 80 36 is_stmt 0 view .LVU28
+  98 005e 85E0      		ldi r24,lo8(5)
+  99 0060 689F      		mul r22,r24
+ 100 0062 B001      		movw r22,r0
+ 101 0064 1124      		clr __zero_reg__
+ 102               	.LVL4:
+  80:tmk_core/common/mousekey.c ****     } else {
+ 103               		.loc 1 80 36 view .LVU29
+ 104 0066 00C0      		rjmp .L3
+ 105               	.LVL5:
+ 106               	.L7:
+  82:tmk_core/common/mousekey.c ****     }
+ 107               		.loc 1 82 9 is_stmt 1 view .LVU30
+  82:tmk_core/common/mousekey.c ****     }
+ 108               		.loc 1 82 52 is_stmt 0 view .LVU31
+ 109 0068 869F      		mul r24,r22
+ 110 006a B001      		movw r22,r0
+ 111 006c 1124      		clr __zero_reg__
+ 112 006e 85E0      		ldi r24,lo8(5)
+ 113 0070 869F      		mul r24,r22
+ 114 0072 9001      		movw r18,r0
+ 115 0074 879F      		mul r24,r23
+ 116 0076 300D      		add r19,r0
+ 117 0078 1124      		clr __zero_reg__
+  82:tmk_core/common/mousekey.c ****     }
+ 118               		.loc 1 82 71 view .LVU32
+ 119 007a 692F      		mov r22,r25
+ 120 007c 70E0      		ldi r23,0
+  82:tmk_core/common/mousekey.c ****     }
+ 121               		.loc 1 82 14 view .LVU33
+ 122 007e C901      		movw r24,r18
+ 123 0080 0E94 0000 		call __divmodhi4
+ 124               	.LVL6:
+  82:tmk_core/common/mousekey.c ****     }
+ 125               		.loc 1 82 14 view .LVU34
+ 126 0084 00C0      		rjmp .L3
+ 127               	.LVL7:
+ 128               	.L9:
+  78:tmk_core/common/mousekey.c ****     } else if (mousekey_repeat >= mk_time_to_max) {
+ 129               		.loc 1 78 14 view .LVU35
+ 130 0086 65E0      		ldi r22,lo8(5)
+ 131 0088 70E0      		ldi r23,0
+ 132 008a 00C0      		rjmp .L6
+ 133               	.LVL8:
+ 134               	.L10:
+ 135               		.loc 1 84 58 view .LVU36
+ 136 008c 8FE7      		ldi r24,lo8(127)
+ 137 008e 0895      		ret
+ 138               	.L11:
+ 139 0090 81E0      		ldi r24,lo8(1)
+ 140               	/* epilogue start */
+  85:tmk_core/common/mousekey.c **** }
+ 141               		.loc 1 85 1 view .LVU37
+ 142 0092 0895      		ret
+ 143               		.cfi_endproc
+ 144               	.LFE103:
+ 146               		.section	.text.wheel_unit,"ax",@progbits
+ 148               	wheel_unit:
+ 149               	.LFB104:
+  86:tmk_core/common/mousekey.c **** 
+  87:tmk_core/common/mousekey.c **** static uint8_t wheel_unit(void) {
+ 150               		.loc 1 87 33 is_stmt 1 view -0
+ 151               		.cfi_startproc
+ 152               	/* prologue: function */
+ 153               	/* frame size = 0 */
+ 154               	/* stack size = 0 */
+ 155               	.L__stack_usage = 0
+  88:tmk_core/common/mousekey.c ****     uint16_t unit;
+ 156               		.loc 1 88 5 view .LVU39
+  89:tmk_core/common/mousekey.c ****     if (mousekey_accel & (1 << 0)) {
+ 157               		.loc 1 89 5 view .LVU40
+ 158               		.loc 1 89 24 is_stmt 0 view .LVU41
+ 159 0000 8091 0000 		lds r24,mousekey_accel
+ 160               		.loc 1 89 8 view .LVU42
+ 161 0004 80FF      		sbrs r24,0
+ 162 0006 00C0      		rjmp .L14
+  90:tmk_core/common/mousekey.c ****         unit = (MOUSEKEY_WHEEL_DELTA * mk_wheel_max_speed) / 4;
+ 163               		.loc 1 90 9 is_stmt 1 view .LVU43
+ 164               		.loc 1 90 38 is_stmt 0 view .LVU44
+ 165 0008 6091 0000 		lds r22,mk_wheel_max_speed
+ 166 000c 70E0      		ldi r23,0
+ 167               		.loc 1 90 60 view .LVU45
+ 168 000e 7595      		asr r23
+ 169 0010 6795      		ror r22
+ 170 0012 7595      		asr r23
+ 171 0014 6795      		ror r22
+ 172               	.LVL9:
+ 173               	.L15:
+  91:tmk_core/common/mousekey.c ****     } else if (mousekey_accel & (1 << 1)) {
+  92:tmk_core/common/mousekey.c ****         unit = (MOUSEKEY_WHEEL_DELTA * mk_wheel_max_speed) / 2;
+  93:tmk_core/common/mousekey.c ****     } else if (mousekey_accel & (1 << 2)) {
+  94:tmk_core/common/mousekey.c ****         unit = (MOUSEKEY_WHEEL_DELTA * mk_wheel_max_speed);
+  95:tmk_core/common/mousekey.c ****     } else if (mousekey_repeat == 0) {
+  96:tmk_core/common/mousekey.c ****         unit = MOUSEKEY_WHEEL_DELTA;
+  97:tmk_core/common/mousekey.c ****     } else if (mousekey_repeat >= mk_wheel_time_to_max) {
+  98:tmk_core/common/mousekey.c ****         unit = MOUSEKEY_WHEEL_DELTA * mk_wheel_max_speed;
+  99:tmk_core/common/mousekey.c ****     } else {
+ 100:tmk_core/common/mousekey.c ****         unit = (MOUSEKEY_WHEEL_DELTA * mk_wheel_max_speed * mousekey_repeat) / mk_wheel_time_to_max
+ 101:tmk_core/common/mousekey.c ****     }
+ 102:tmk_core/common/mousekey.c ****     return (unit > MOUSEKEY_WHEEL_MAX ? MOUSEKEY_WHEEL_MAX : (unit == 0 ? 1 : unit));
+ 174               		.loc 1 102 60 discriminator 1 view .LVU46
+ 175 0016 6115      		cp r22,__zero_reg__
+ 176 0018 7105      		cpc r23,__zero_reg__
+ 177 001a 01F0      		breq .L24
+ 178               	.L19:
+ 179               		.loc 1 102 60 discriminator 3 view .LVU47
+ 180 001c 862F      		mov r24,r22
+ 181 001e 0895      		ret
+ 182               	.L14:
+  91:tmk_core/common/mousekey.c ****     } else if (mousekey_accel & (1 << 1)) {
+ 183               		.loc 1 91 12 is_stmt 1 view .LVU48
+  91:tmk_core/common/mousekey.c ****     } else if (mousekey_accel & (1 << 1)) {
+ 184               		.loc 1 91 15 is_stmt 0 view .LVU49
+ 185 0020 81FF      		sbrs r24,1
+ 186 0022 00C0      		rjmp .L16
+  92:tmk_core/common/mousekey.c ****     } else if (mousekey_accel & (1 << 2)) {
+ 187               		.loc 1 92 9 is_stmt 1 view .LVU50
+  92:tmk_core/common/mousekey.c ****     } else if (mousekey_accel & (1 << 2)) {
+ 188               		.loc 1 92 38 is_stmt 0 view .LVU51
+ 189 0024 6091 0000 		lds r22,mk_wheel_max_speed
+ 190 0028 70E0      		ldi r23,0
+  92:tmk_core/common/mousekey.c ****     } else if (mousekey_accel & (1 << 2)) {
+ 191               		.loc 1 92 60 view .LVU52
+ 192 002a 7595      		asr r23
+ 193 002c 6795      		ror r22
+ 194               	.LVL10:
+  92:tmk_core/common/mousekey.c ****     } else if (mousekey_accel & (1 << 2)) {
+ 195               		.loc 1 92 60 view .LVU53
+ 196 002e 00C0      		rjmp .L15
+ 197               	.LVL11:
+ 198               	.L16:
+  93:tmk_core/common/mousekey.c ****         unit = (MOUSEKEY_WHEEL_DELTA * mk_wheel_max_speed);
+ 199               		.loc 1 93 12 is_stmt 1 view .LVU54
+  94:tmk_core/common/mousekey.c ****     } else if (mousekey_repeat == 0) {
+ 200               		.loc 1 94 14 is_stmt 0 view .LVU55
+ 201 0030 6091 0000 		lds r22,mk_wheel_max_speed
+  93:tmk_core/common/mousekey.c ****         unit = (MOUSEKEY_WHEEL_DELTA * mk_wheel_max_speed);
+ 202               		.loc 1 93 15 view .LVU56
+ 203 0034 82FD      		sbrc r24,2
+ 204 0036 00C0      		rjmp .L25
+  95:tmk_core/common/mousekey.c ****         unit = MOUSEKEY_WHEEL_DELTA;
+ 205               		.loc 1 95 12 is_stmt 1 view .LVU57
+  95:tmk_core/common/mousekey.c ****         unit = MOUSEKEY_WHEEL_DELTA;
+ 206               		.loc 1 95 32 is_stmt 0 view .LVU58
+ 207 0038 9091 0000 		lds r25,mousekey_repeat
+  95:tmk_core/common/mousekey.c ****         unit = MOUSEKEY_WHEEL_DELTA;
+ 208               		.loc 1 95 15 view .LVU59
+ 209 003c 9923      		tst r25
+ 210 003e 01F0      		breq .L22
+  97:tmk_core/common/mousekey.c ****         unit = MOUSEKEY_WHEEL_DELTA * mk_wheel_max_speed;
+ 211               		.loc 1 97 12 is_stmt 1 view .LVU60
+  97:tmk_core/common/mousekey.c ****         unit = MOUSEKEY_WHEEL_DELTA * mk_wheel_max_speed;
+ 212               		.loc 1 97 32 is_stmt 0 view .LVU61
+ 213 0040 6091 0000 		lds r22,mk_wheel_time_to_max
+ 214 0044 8091 0000 		lds r24,mk_wheel_max_speed
+  97:tmk_core/common/mousekey.c ****         unit = MOUSEKEY_WHEEL_DELTA * mk_wheel_max_speed;
+ 215               		.loc 1 97 15 view .LVU62
+ 216 0048 9617      		cp r25,r22
+ 217 004a 00F0      		brlo .L20
+  98:tmk_core/common/mousekey.c ****     } else {
+ 218               		.loc 1 98 9 is_stmt 1 view .LVU63
+  98:tmk_core/common/mousekey.c ****     } else {
+ 219               		.loc 1 98 14 is_stmt 0 view .LVU64
+ 220 004c 682F      		mov r22,r24
+ 221               	.L25:
+ 222 004e 70E0      		ldi r23,0
+ 223               	.LVL12:
+ 224               	.L18:
+ 225               		.loc 1 102 5 is_stmt 1 view .LVU65
+ 226               		.loc 1 102 60 is_stmt 0 view .LVU66
+ 227 0050 6038      		cpi r22,-128
+ 228 0052 7105      		cpc r23,__zero_reg__
+ 229 0054 00F0      		brlo .L15
+ 230 0056 8FE7      		ldi r24,lo8(127)
+ 231 0058 0895      		ret
+ 232               	.LVL13:
+ 233               	.L20:
+ 100:tmk_core/common/mousekey.c ****     }
+ 234               		.loc 1 100 9 is_stmt 1 view .LVU67
+ 100:tmk_core/common/mousekey.c ****     }
+ 235               		.loc 1 100 59 is_stmt 0 view .LVU68
+ 236 005a 899F      		mul r24,r25
+ 237 005c C001      		movw r24,r0
+ 238 005e 1124      		clr __zero_reg__
+ 100:tmk_core/common/mousekey.c ****     }
+ 239               		.loc 1 100 78 view .LVU69
+ 240 0060 70E0      		ldi r23,0
+ 100:tmk_core/common/mousekey.c ****     }
+ 241               		.loc 1 100 14 view .LVU70
+ 242 0062 0E94 0000 		call __divmodhi4
+ 243               	.LVL14:
+ 100:tmk_core/common/mousekey.c ****     }
+ 244               		.loc 1 100 14 view .LVU71
+ 245 0066 00C0      		rjmp .L18
+ 246               	.LVL15:
+ 247               	.L22:
+  96:tmk_core/common/mousekey.c ****     } else if (mousekey_repeat >= mk_wheel_time_to_max) {
+ 248               		.loc 1 96 14 view .LVU72
+ 249 0068 61E0      		ldi r22,lo8(1)
+ 250 006a 70E0      		ldi r23,0
+ 251 006c 00C0      		rjmp .L19
+ 252               	.L24:
+ 253               		.loc 1 102 60 view .LVU73
+ 254 006e 81E0      		ldi r24,lo8(1)
+ 255               	/* epilogue start */
+ 103:tmk_core/common/mousekey.c **** }
+ 256               		.loc 1 103 1 view .LVU74
+ 257 0070 0895      		ret
+ 258               		.cfi_endproc
+ 259               	.LFE104:
+ 261               		.section	.text.mousekey_on,"ax",@progbits
+ 262               	.global	mousekey_on
+ 264               	mousekey_on:
+ 265               	.LVL16:
+ 266               	.LFB106:
+ 104:tmk_core/common/mousekey.c **** 
+ 105:tmk_core/common/mousekey.c **** void mousekey_task(void) {
+ 106:tmk_core/common/mousekey.c ****     // report cursor and scroll movement independently
+ 107:tmk_core/common/mousekey.c ****     report_mouse_t const tmpmr = mouse_report;
+ 108:tmk_core/common/mousekey.c ****     if ((mouse_report.x || mouse_report.y) && timer_elapsed(last_timer_c) > (mousekey_repeat ? mk_i
+ 109:tmk_core/common/mousekey.c ****         if (mousekey_repeat != UINT8_MAX) mousekey_repeat++;
+ 110:tmk_core/common/mousekey.c ****         mouse_report.v = 0;
+ 111:tmk_core/common/mousekey.c ****         mouse_report.h = 0;
+ 112:tmk_core/common/mousekey.c ****         if (mouse_report.x > 0) mouse_report.x = move_unit();
+ 113:tmk_core/common/mousekey.c ****         if (mouse_report.x < 0) mouse_report.x = move_unit() * -1;
+ 114:tmk_core/common/mousekey.c ****         if (mouse_report.y > 0) mouse_report.y = move_unit();
+ 115:tmk_core/common/mousekey.c ****         if (mouse_report.y < 0) mouse_report.y = move_unit() * -1;
+ 116:tmk_core/common/mousekey.c ****         /* diagonal move [1/sqrt(2)] */
+ 117:tmk_core/common/mousekey.c ****         if (mouse_report.x && mouse_report.y) {
+ 118:tmk_core/common/mousekey.c ****             mouse_report.x = times_inv_sqrt2(mouse_report.x);
+ 119:tmk_core/common/mousekey.c ****             if (mouse_report.x == 0) {
+ 120:tmk_core/common/mousekey.c ****                 mouse_report.x = 1;
+ 121:tmk_core/common/mousekey.c ****             }
+ 122:tmk_core/common/mousekey.c ****             mouse_report.y = times_inv_sqrt2(mouse_report.y);
+ 123:tmk_core/common/mousekey.c ****             if (mouse_report.y == 0) {
+ 124:tmk_core/common/mousekey.c ****                 mouse_report.y = 1;
+ 125:tmk_core/common/mousekey.c ****             }
+ 126:tmk_core/common/mousekey.c ****         }
+ 127:tmk_core/common/mousekey.c ****         mousekey_send();
+ 128:tmk_core/common/mousekey.c ****         last_timer_c = last_timer;
+ 129:tmk_core/common/mousekey.c ****         mouse_report = tmpmr;
+ 130:tmk_core/common/mousekey.c ****     }
+ 131:tmk_core/common/mousekey.c ****     if ((mouse_report.v || mouse_report.h) && timer_elapsed(last_timer_w) > (mousekey_repeat ? mk_w
+ 132:tmk_core/common/mousekey.c ****         if (mousekey_repeat != UINT8_MAX) mousekey_repeat++;
+ 133:tmk_core/common/mousekey.c ****         mouse_report.x = 0;
+ 134:tmk_core/common/mousekey.c ****         mouse_report.y = 0;
+ 135:tmk_core/common/mousekey.c ****         if (mouse_report.v > 0) mouse_report.v = wheel_unit();
+ 136:tmk_core/common/mousekey.c ****         if (mouse_report.v < 0) mouse_report.v = wheel_unit() * -1;
+ 137:tmk_core/common/mousekey.c ****         if (mouse_report.h > 0) mouse_report.h = wheel_unit();
+ 138:tmk_core/common/mousekey.c ****         if (mouse_report.h < 0) mouse_report.h = wheel_unit() * -1;
+ 139:tmk_core/common/mousekey.c ****         /* diagonal move [1/sqrt(2)] */
+ 140:tmk_core/common/mousekey.c ****         if (mouse_report.v && mouse_report.h) {
+ 141:tmk_core/common/mousekey.c ****             mouse_report.v = times_inv_sqrt2(mouse_report.v);
+ 142:tmk_core/common/mousekey.c ****             if (mouse_report.v == 0) {
+ 143:tmk_core/common/mousekey.c ****                 mouse_report.v = 1;
+ 144:tmk_core/common/mousekey.c ****             }
+ 145:tmk_core/common/mousekey.c ****             mouse_report.h = times_inv_sqrt2(mouse_report.h);
+ 146:tmk_core/common/mousekey.c ****             if (mouse_report.h == 0) {
+ 147:tmk_core/common/mousekey.c ****                 mouse_report.h = 1;
+ 148:tmk_core/common/mousekey.c ****             }
+ 149:tmk_core/common/mousekey.c ****         }
+ 150:tmk_core/common/mousekey.c ****         mousekey_send();
+ 151:tmk_core/common/mousekey.c ****         last_timer_w = last_timer;
+ 152:tmk_core/common/mousekey.c ****         mouse_report = tmpmr;
+ 153:tmk_core/common/mousekey.c ****     }
+ 154:tmk_core/common/mousekey.c **** }
+ 155:tmk_core/common/mousekey.c **** 
+ 156:tmk_core/common/mousekey.c **** void mousekey_on(uint8_t code) {
+ 267               		.loc 1 156 32 is_stmt 1 view -0
+ 268               		.cfi_startproc
+ 269               	/* prologue: function */
+ 270               	/* frame size = 0 */
+ 271               	/* stack size = 0 */
+ 272               	.L__stack_usage = 0
+ 157:tmk_core/common/mousekey.c ****     if (code == KC_MS_UP)
+ 273               		.loc 1 157 5 view .LVU76
+ 274               		.loc 1 157 8 is_stmt 0 view .LVU77
+ 275 0000 803F      		cpi r24,lo8(-16)
+ 276 0002 01F4      		brne .L27
+ 158:tmk_core/common/mousekey.c ****         mouse_report.y = move_unit() * -1;
+ 277               		.loc 1 158 9 is_stmt 1 view .LVU78
+ 278               		.loc 1 158 26 is_stmt 0 view .LVU79
+ 279 0004 0E94 0000 		call move_unit
+ 280               	.LVL17:
+ 281               		.loc 1 158 24 view .LVU80
+ 282 0008 8195      		neg r24
+ 283               	.L43:
+ 159:tmk_core/common/mousekey.c ****     else if (code == KC_MS_DOWN)
+ 160:tmk_core/common/mousekey.c ****         mouse_report.y = move_unit();
+ 284               		.loc 1 160 24 view .LVU81
+ 285 000a 8093 0000 		sts mouse_report+3,r24
+ 286 000e 0895      		ret
+ 287               	.LVL18:
+ 288               	.L27:
+ 159:tmk_core/common/mousekey.c ****     else if (code == KC_MS_DOWN)
+ 289               		.loc 1 159 10 is_stmt 1 view .LVU82
+ 159:tmk_core/common/mousekey.c ****     else if (code == KC_MS_DOWN)
+ 290               		.loc 1 159 13 is_stmt 0 view .LVU83
+ 291 0010 813F      		cpi r24,lo8(-15)
+ 292 0012 01F4      		brne .L29
+ 293               		.loc 1 160 9 is_stmt 1 view .LVU84
+ 294               		.loc 1 160 26 is_stmt 0 view .LVU85
+ 295 0014 0E94 0000 		call move_unit
+ 296               	.LVL19:
+ 297               		.loc 1 160 26 view .LVU86
+ 298 0018 00C0      		rjmp .L43
+ 299               	.LVL20:
+ 300               	.L29:
+ 161:tmk_core/common/mousekey.c ****     else if (code == KC_MS_LEFT)
+ 301               		.loc 1 161 10 is_stmt 1 view .LVU87
+ 302               		.loc 1 161 13 is_stmt 0 view .LVU88
+ 303 001a 823F      		cpi r24,lo8(-14)
+ 304 001c 01F4      		brne .L30
+ 162:tmk_core/common/mousekey.c ****         mouse_report.x = move_unit() * -1;
+ 305               		.loc 1 162 9 is_stmt 1 view .LVU89
+ 306               		.loc 1 162 26 is_stmt 0 view .LVU90
+ 307 001e 0E94 0000 		call move_unit
+ 308               	.LVL21:
+ 309               		.loc 1 162 24 view .LVU91
+ 310 0022 8195      		neg r24
+ 311               	.L45:
+ 163:tmk_core/common/mousekey.c ****     else if (code == KC_MS_RIGHT)
+ 164:tmk_core/common/mousekey.c ****         mouse_report.x = move_unit();
+ 312               		.loc 1 164 24 view .LVU92
+ 313 0024 8093 0000 		sts mouse_report+2,r24
+ 314 0028 0895      		ret
+ 315               	.LVL22:
+ 316               	.L30:
+ 163:tmk_core/common/mousekey.c ****     else if (code == KC_MS_RIGHT)
+ 317               		.loc 1 163 10 is_stmt 1 view .LVU93
+ 163:tmk_core/common/mousekey.c ****     else if (code == KC_MS_RIGHT)
+ 318               		.loc 1 163 13 is_stmt 0 view .LVU94
+ 319 002a 833F      		cpi r24,lo8(-13)
+ 320 002c 01F4      		brne .L31
+ 321               		.loc 1 164 9 is_stmt 1 view .LVU95
+ 322               		.loc 1 164 26 is_stmt 0 view .LVU96
+ 323 002e 0E94 0000 		call move_unit
+ 324               	.LVL23:
+ 325               		.loc 1 164 26 view .LVU97
+ 326 0032 00C0      		rjmp .L45
+ 327               	.LVL24:
+ 328               	.L31:
+ 165:tmk_core/common/mousekey.c ****     else if (code == KC_MS_WH_UP)
+ 329               		.loc 1 165 10 is_stmt 1 view .LVU98
+ 330               		.loc 1 165 13 is_stmt 0 view .LVU99
+ 331 0034 893F      		cpi r24,lo8(-7)
+ 332 0036 01F4      		brne .L32
+ 166:tmk_core/common/mousekey.c ****         mouse_report.v = wheel_unit();
+ 333               		.loc 1 166 9 is_stmt 1 view .LVU100
+ 334               		.loc 1 166 26 is_stmt 0 view .LVU101
+ 335 0038 0E94 0000 		call wheel_unit
+ 336               	.LVL25:
+ 337               	.L47:
+ 167:tmk_core/common/mousekey.c ****     else if (code == KC_MS_WH_DOWN)
+ 168:tmk_core/common/mousekey.c ****         mouse_report.v = wheel_unit() * -1;
+ 338               		.loc 1 168 24 view .LVU102
+ 339 003c 8093 0000 		sts mouse_report+4,r24
+ 340 0040 0895      		ret
+ 341               	.LVL26:
+ 342               	.L32:
+ 167:tmk_core/common/mousekey.c ****     else if (code == KC_MS_WH_DOWN)
+ 343               		.loc 1 167 10 is_stmt 1 view .LVU103
+ 167:tmk_core/common/mousekey.c ****     else if (code == KC_MS_WH_DOWN)
+ 344               		.loc 1 167 13 is_stmt 0 view .LVU104
+ 345 0042 8A3F      		cpi r24,lo8(-6)
+ 346 0044 01F4      		brne .L33
+ 347               		.loc 1 168 9 is_stmt 1 view .LVU105
+ 348               		.loc 1 168 26 is_stmt 0 view .LVU106
+ 349 0046 0E94 0000 		call wheel_unit
+ 350               	.LVL27:
+ 351               		.loc 1 168 24 view .LVU107
+ 352 004a 8195      		neg r24
+ 353 004c 00C0      		rjmp .L47
+ 354               	.LVL28:
+ 355               	.L33:
+ 169:tmk_core/common/mousekey.c ****     else if (code == KC_MS_WH_LEFT)
+ 356               		.loc 1 169 10 is_stmt 1 view .LVU108
+ 357               		.loc 1 169 13 is_stmt 0 view .LVU109
+ 358 004e 8B3F      		cpi r24,lo8(-5)
+ 359 0050 01F4      		brne .L34
+ 170:tmk_core/common/mousekey.c ****         mouse_report.h = wheel_unit() * -1;
+ 360               		.loc 1 170 9 is_stmt 1 view .LVU110
+ 361               		.loc 1 170 26 is_stmt 0 view .LVU111
+ 362 0052 0E94 0000 		call wheel_unit
+ 363               	.LVL29:
+ 364               		.loc 1 170 24 view .LVU112
+ 365 0056 8195      		neg r24
+ 366               	.L48:
+ 171:tmk_core/common/mousekey.c ****     else if (code == KC_MS_WH_RIGHT)
+ 172:tmk_core/common/mousekey.c ****         mouse_report.h = wheel_unit();
+ 367               		.loc 1 172 24 view .LVU113
+ 368 0058 8093 0000 		sts mouse_report+5,r24
+ 369 005c 0895      		ret
+ 370               	.LVL30:
+ 371               	.L34:
+ 171:tmk_core/common/mousekey.c ****     else if (code == KC_MS_WH_RIGHT)
+ 372               		.loc 1 171 10 is_stmt 1 view .LVU114
+ 171:tmk_core/common/mousekey.c ****     else if (code == KC_MS_WH_RIGHT)
+ 373               		.loc 1 171 13 is_stmt 0 view .LVU115
+ 374 005e 8C3F      		cpi r24,lo8(-4)
+ 375 0060 01F4      		brne .L35
+ 376               		.loc 1 172 9 is_stmt 1 view .LVU116
+ 377               		.loc 1 172 26 is_stmt 0 view .LVU117
+ 378 0062 0E94 0000 		call wheel_unit
+ 379               	.LVL31:
+ 380               		.loc 1 172 26 view .LVU118
+ 381 0066 00C0      		rjmp .L48
+ 382               	.LVL32:
+ 383               	.L35:
+ 173:tmk_core/common/mousekey.c ****     else if (code == KC_MS_BTN1)
+ 384               		.loc 1 173 10 is_stmt 1 view .LVU119
+ 385               		.loc 1 173 13 is_stmt 0 view .LVU120
+ 386 0068 843F      		cpi r24,lo8(-12)
+ 387 006a 01F4      		brne .L36
+ 174:tmk_core/common/mousekey.c ****         mouse_report.buttons |= MOUSE_BTN1;
+ 388               		.loc 1 174 9 is_stmt 1 view .LVU121
+ 389               		.loc 1 174 30 is_stmt 0 view .LVU122
+ 390 006c 8091 0000 		lds r24,mouse_report+1
+ 391               	.LVL33:
+ 392               		.loc 1 174 30 view .LVU123
+ 393 0070 8160      		ori r24,lo8(1)
+ 394               	.L46:
+ 175:tmk_core/common/mousekey.c ****     else if (code == KC_MS_BTN2)
+ 176:tmk_core/common/mousekey.c ****         mouse_report.buttons |= MOUSE_BTN2;
+ 177:tmk_core/common/mousekey.c ****     else if (code == KC_MS_BTN3)
+ 178:tmk_core/common/mousekey.c ****         mouse_report.buttons |= MOUSE_BTN3;
+ 179:tmk_core/common/mousekey.c ****     else if (code == KC_MS_BTN4)
+ 180:tmk_core/common/mousekey.c ****         mouse_report.buttons |= MOUSE_BTN4;
+ 181:tmk_core/common/mousekey.c ****     else if (code == KC_MS_BTN5)
+ 182:tmk_core/common/mousekey.c ****         mouse_report.buttons |= MOUSE_BTN5;
+ 395               		.loc 1 182 30 view .LVU124
+ 396 0072 8093 0000 		sts mouse_report+1,r24
+ 397 0076 0895      		ret
+ 398               	.LVL34:
+ 399               	.L36:
+ 175:tmk_core/common/mousekey.c ****     else if (code == KC_MS_BTN2)
+ 400               		.loc 1 175 10 is_stmt 1 view .LVU125
+ 175:tmk_core/common/mousekey.c ****     else if (code == KC_MS_BTN2)
+ 401               		.loc 1 175 13 is_stmt 0 view .LVU126
+ 402 0078 853F      		cpi r24,lo8(-11)
+ 403 007a 01F4      		brne .L37
+ 176:tmk_core/common/mousekey.c ****     else if (code == KC_MS_BTN3)
+ 404               		.loc 1 176 9 is_stmt 1 view .LVU127
+ 176:tmk_core/common/mousekey.c ****     else if (code == KC_MS_BTN3)
+ 405               		.loc 1 176 30 is_stmt 0 view .LVU128
+ 406 007c 8091 0000 		lds r24,mouse_report+1
+ 407               	.LVL35:
+ 176:tmk_core/common/mousekey.c ****     else if (code == KC_MS_BTN3)
+ 408               		.loc 1 176 30 view .LVU129
+ 409 0080 8260      		ori r24,lo8(2)
+ 410 0082 00C0      		rjmp .L46
+ 411               	.LVL36:
+ 412               	.L37:
+ 177:tmk_core/common/mousekey.c ****         mouse_report.buttons |= MOUSE_BTN3;
+ 413               		.loc 1 177 10 is_stmt 1 view .LVU130
+ 177:tmk_core/common/mousekey.c ****         mouse_report.buttons |= MOUSE_BTN3;
+ 414               		.loc 1 177 13 is_stmt 0 view .LVU131
+ 415 0084 863F      		cpi r24,lo8(-10)
+ 416 0086 01F4      		brne .L38
+ 178:tmk_core/common/mousekey.c ****     else if (code == KC_MS_BTN4)
+ 417               		.loc 1 178 9 is_stmt 1 view .LVU132
+ 178:tmk_core/common/mousekey.c ****     else if (code == KC_MS_BTN4)
+ 418               		.loc 1 178 30 is_stmt 0 view .LVU133
+ 419 0088 8091 0000 		lds r24,mouse_report+1
+ 420               	.LVL37:
+ 178:tmk_core/common/mousekey.c ****     else if (code == KC_MS_BTN4)
+ 421               		.loc 1 178 30 view .LVU134
+ 422 008c 8460      		ori r24,lo8(4)
+ 423 008e 00C0      		rjmp .L46
+ 424               	.LVL38:
+ 425               	.L38:
+ 179:tmk_core/common/mousekey.c ****         mouse_report.buttons |= MOUSE_BTN4;
+ 426               		.loc 1 179 10 is_stmt 1 view .LVU135
+ 179:tmk_core/common/mousekey.c ****         mouse_report.buttons |= MOUSE_BTN4;
+ 427               		.loc 1 179 13 is_stmt 0 view .LVU136
+ 428 0090 873F      		cpi r24,lo8(-9)
+ 429 0092 01F4      		brne .L39
+ 180:tmk_core/common/mousekey.c ****     else if (code == KC_MS_BTN5)
+ 430               		.loc 1 180 9 is_stmt 1 view .LVU137
+ 180:tmk_core/common/mousekey.c ****     else if (code == KC_MS_BTN5)
+ 431               		.loc 1 180 30 is_stmt 0 view .LVU138
+ 432 0094 8091 0000 		lds r24,mouse_report+1
+ 433               	.LVL39:
+ 180:tmk_core/common/mousekey.c ****     else if (code == KC_MS_BTN5)
+ 434               		.loc 1 180 30 view .LVU139
+ 435 0098 8860      		ori r24,lo8(8)
+ 436 009a 00C0      		rjmp .L46
+ 437               	.LVL40:
+ 438               	.L39:
+ 181:tmk_core/common/mousekey.c ****         mouse_report.buttons |= MOUSE_BTN5;
+ 439               		.loc 1 181 10 is_stmt 1 view .LVU140
+ 181:tmk_core/common/mousekey.c ****         mouse_report.buttons |= MOUSE_BTN5;
+ 440               		.loc 1 181 13 is_stmt 0 view .LVU141
+ 441 009c 883F      		cpi r24,lo8(-8)
+ 442 009e 01F4      		brne .L40
+ 443               		.loc 1 182 9 is_stmt 1 view .LVU142
+ 444               		.loc 1 182 30 is_stmt 0 view .LVU143
+ 445 00a0 8091 0000 		lds r24,mouse_report+1
+ 446               	.LVL41:
+ 447               		.loc 1 182 30 view .LVU144
+ 448 00a4 8061      		ori r24,lo8(16)
+ 449 00a6 00C0      		rjmp .L46
+ 450               	.LVL42:
+ 451               	.L40:
+ 183:tmk_core/common/mousekey.c ****     else if (code == KC_MS_ACCEL0)
+ 452               		.loc 1 183 10 is_stmt 1 view .LVU145
+ 453               		.loc 1 183 13 is_stmt 0 view .LVU146
+ 454 00a8 8D3F      		cpi r24,lo8(-3)
+ 455 00aa 01F4      		brne .L41
+ 184:tmk_core/common/mousekey.c ****         mousekey_accel |= (1 << 0);
+ 456               		.loc 1 184 9 is_stmt 1 view .LVU147
+ 457               		.loc 1 184 24 is_stmt 0 view .LVU148
+ 458 00ac 8091 0000 		lds r24,mousekey_accel
+ 459               	.LVL43:
+ 460               		.loc 1 184 24 view .LVU149
+ 461 00b0 8160      		ori r24,lo8(1)
+ 462               	.L44:
+ 185:tmk_core/common/mousekey.c ****     else if (code == KC_MS_ACCEL1)
+ 186:tmk_core/common/mousekey.c ****         mousekey_accel |= (1 << 1);
+ 187:tmk_core/common/mousekey.c ****     else if (code == KC_MS_ACCEL2)
+ 188:tmk_core/common/mousekey.c ****         mousekey_accel |= (1 << 2);
+ 463               		.loc 1 188 24 view .LVU150
+ 464 00b2 8093 0000 		sts mousekey_accel,r24
+ 465               	.L26:
+ 466               	/* epilogue start */
+ 189:tmk_core/common/mousekey.c **** }
+ 467               		.loc 1 189 1 view .LVU151
+ 468 00b6 0895      		ret
+ 469               	.LVL44:
+ 470               	.L41:
+ 185:tmk_core/common/mousekey.c ****     else if (code == KC_MS_ACCEL1)
+ 471               		.loc 1 185 10 is_stmt 1 view .LVU152
+ 185:tmk_core/common/mousekey.c ****     else if (code == KC_MS_ACCEL1)
+ 472               		.loc 1 185 13 is_stmt 0 view .LVU153
+ 473 00b8 8E3F      		cpi r24,lo8(-2)
+ 474 00ba 01F4      		brne .L42
+ 186:tmk_core/common/mousekey.c ****     else if (code == KC_MS_ACCEL2)
+ 475               		.loc 1 186 9 is_stmt 1 view .LVU154
+ 186:tmk_core/common/mousekey.c ****     else if (code == KC_MS_ACCEL2)
+ 476               		.loc 1 186 24 is_stmt 0 view .LVU155
+ 477 00bc 8091 0000 		lds r24,mousekey_accel
+ 478               	.LVL45:
+ 186:tmk_core/common/mousekey.c ****     else if (code == KC_MS_ACCEL2)
+ 479               		.loc 1 186 24 view .LVU156
+ 480 00c0 8260      		ori r24,lo8(2)
+ 481 00c2 00C0      		rjmp .L44
+ 482               	.LVL46:
+ 483               	.L42:
+ 187:tmk_core/common/mousekey.c ****         mousekey_accel |= (1 << 2);
+ 484               		.loc 1 187 10 is_stmt 1 view .LVU157
+ 187:tmk_core/common/mousekey.c ****         mousekey_accel |= (1 << 2);
+ 485               		.loc 1 187 13 is_stmt 0 view .LVU158
+ 486 00c4 8F3F      		cpi r24,lo8(-1)
+ 487 00c6 01F4      		brne .L26
+ 188:tmk_core/common/mousekey.c **** }
+ 488               		.loc 1 188 9 is_stmt 1 view .LVU159
+ 188:tmk_core/common/mousekey.c **** }
+ 489               		.loc 1 188 24 is_stmt 0 view .LVU160
+ 490 00c8 8091 0000 		lds r24,mousekey_accel
+ 491               	.LVL47:
+ 188:tmk_core/common/mousekey.c **** }
+ 492               		.loc 1 188 24 view .LVU161
+ 493 00cc 8460      		ori r24,lo8(4)
+ 494 00ce 00C0      		rjmp .L44
+ 495               		.cfi_endproc
+ 496               	.LFE106:
+ 498               		.section	.text.mousekey_off,"ax",@progbits
+ 499               	.global	mousekey_off
+ 501               	mousekey_off:
+ 502               	.LVL48:
+ 503               	.LFB107:
+ 190:tmk_core/common/mousekey.c **** 
+ 191:tmk_core/common/mousekey.c **** void mousekey_off(uint8_t code) {
+ 504               		.loc 1 191 33 is_stmt 1 view -0
+ 505               		.cfi_startproc
+ 506               	/* prologue: function */
+ 507               	/* frame size = 0 */
+ 508               	/* stack size = 0 */
+ 509               	.L__stack_usage = 0
+ 192:tmk_core/common/mousekey.c ****     if (code == KC_MS_UP && mouse_report.y < 0)
+ 510               		.loc 1 192 5 view .LVU163
+ 511 0000 9091 0000 		lds r25,mouse_report+2
+ 512               		.loc 1 192 8 is_stmt 0 view .LVU164
+ 513 0004 803F      		cpi r24,lo8(-16)
+ 514 0006 01F4      		brne .L50
+ 515               		.loc 1 192 26 discriminator 1 view .LVU165
+ 516 0008 8091 0000 		lds r24,mouse_report+3
+ 517               	.LVL49:
+ 518               		.loc 1 192 26 discriminator 1 view .LVU166
+ 519 000c 87FD      		sbrc r24,7
+ 520               	.L53:
+ 193:tmk_core/common/mousekey.c ****         mouse_report.y = 0;
+ 521               		.loc 1 193 9 is_stmt 1 view .LVU167
+ 522               		.loc 1 193 24 is_stmt 0 view .LVU168
+ 523 000e 1092 0000 		sts mouse_report+3,__zero_reg__
+ 524               	.L51:
+ 194:tmk_core/common/mousekey.c ****     else if (code == KC_MS_DOWN && mouse_report.y > 0)
+ 195:tmk_core/common/mousekey.c ****         mouse_report.y = 0;
+ 196:tmk_core/common/mousekey.c ****     else if (code == KC_MS_LEFT && mouse_report.x < 0)
+ 197:tmk_core/common/mousekey.c ****         mouse_report.x = 0;
+ 198:tmk_core/common/mousekey.c ****     else if (code == KC_MS_RIGHT && mouse_report.x > 0)
+ 199:tmk_core/common/mousekey.c ****         mouse_report.x = 0;
+ 200:tmk_core/common/mousekey.c ****     else if (code == KC_MS_WH_UP && mouse_report.v > 0)
+ 201:tmk_core/common/mousekey.c ****         mouse_report.v = 0;
+ 202:tmk_core/common/mousekey.c ****     else if (code == KC_MS_WH_DOWN && mouse_report.v < 0)
+ 203:tmk_core/common/mousekey.c ****         mouse_report.v = 0;
+ 204:tmk_core/common/mousekey.c ****     else if (code == KC_MS_WH_LEFT && mouse_report.h < 0)
+ 205:tmk_core/common/mousekey.c ****         mouse_report.h = 0;
+ 206:tmk_core/common/mousekey.c ****     else if (code == KC_MS_WH_RIGHT && mouse_report.h > 0)
+ 207:tmk_core/common/mousekey.c ****         mouse_report.h = 0;
+ 208:tmk_core/common/mousekey.c ****     else if (code == KC_MS_BTN1)
+ 209:tmk_core/common/mousekey.c ****         mouse_report.buttons &= ~MOUSE_BTN1;
+ 210:tmk_core/common/mousekey.c ****     else if (code == KC_MS_BTN2)
+ 211:tmk_core/common/mousekey.c ****         mouse_report.buttons &= ~MOUSE_BTN2;
+ 212:tmk_core/common/mousekey.c ****     else if (code == KC_MS_BTN3)
+ 213:tmk_core/common/mousekey.c ****         mouse_report.buttons &= ~MOUSE_BTN3;
+ 214:tmk_core/common/mousekey.c ****     else if (code == KC_MS_BTN4)
+ 215:tmk_core/common/mousekey.c ****         mouse_report.buttons &= ~MOUSE_BTN4;
+ 216:tmk_core/common/mousekey.c ****     else if (code == KC_MS_BTN5)
+ 217:tmk_core/common/mousekey.c ****         mouse_report.buttons &= ~MOUSE_BTN5;
+ 218:tmk_core/common/mousekey.c ****     else if (code == KC_MS_ACCEL0)
+ 219:tmk_core/common/mousekey.c ****         mousekey_accel &= ~(1 << 0);
+ 220:tmk_core/common/mousekey.c ****     else if (code == KC_MS_ACCEL1)
+ 221:tmk_core/common/mousekey.c ****         mousekey_accel &= ~(1 << 1);
+ 222:tmk_core/common/mousekey.c ****     else if (code == KC_MS_ACCEL2)
+ 223:tmk_core/common/mousekey.c ****         mousekey_accel &= ~(1 << 2);
+ 224:tmk_core/common/mousekey.c ****     if (mouse_report.x == 0 && mouse_report.y == 0 && mouse_report.v == 0 && mouse_report.h == 0) m
+ 525               		.loc 1 224 5 is_stmt 1 view .LVU169
+ 526               		.loc 1 224 8 is_stmt 0 view .LVU170
+ 527 0012 9923      		tst r25
+ 528 0014 01F0      		breq .L55
+ 529               	.L49:
+ 530               	/* epilogue start */
+ 225:tmk_core/common/mousekey.c **** }
+ 531               		.loc 1 225 1 view .LVU171
+ 532 0016 0895      		ret
+ 533               	.LVL50:
+ 534               	.L50:
+ 194:tmk_core/common/mousekey.c ****     else if (code == KC_MS_DOWN && mouse_report.y > 0)
+ 535               		.loc 1 194 10 is_stmt 1 view .LVU172
+ 194:tmk_core/common/mousekey.c ****     else if (code == KC_MS_DOWN && mouse_report.y > 0)
+ 536               		.loc 1 194 13 is_stmt 0 view .LVU173
+ 537 0018 813F      		cpi r24,lo8(-15)
+ 538 001a 01F4      		brne .L52
+ 194:tmk_core/common/mousekey.c ****     else if (code == KC_MS_DOWN && mouse_report.y > 0)
+ 539               		.loc 1 194 33 discriminator 1 view .LVU174
+ 540 001c 8091 0000 		lds r24,mouse_report+3
+ 541               	.LVL51:
+ 194:tmk_core/common/mousekey.c ****     else if (code == KC_MS_DOWN && mouse_report.y > 0)
+ 542               		.loc 1 194 33 discriminator 1 view .LVU175
+ 543 0020 1816      		cp __zero_reg__,r24
+ 544 0022 04F0      		brlt .L53
+ 545 0024 00C0      		rjmp .L51
+ 546               	.LVL52:
+ 547               	.L52:
+ 196:tmk_core/common/mousekey.c ****         mouse_report.x = 0;
+ 548               		.loc 1 196 10 is_stmt 1 view .LVU176
+ 196:tmk_core/common/mousekey.c ****         mouse_report.x = 0;
+ 549               		.loc 1 196 13 is_stmt 0 view .LVU177
+ 550 0026 823F      		cpi r24,lo8(-14)
+ 551 0028 01F4      		brne .L54
+ 196:tmk_core/common/mousekey.c ****         mouse_report.x = 0;
+ 552               		.loc 1 196 33 discriminator 1 view .LVU178
+ 553 002a 97FF      		sbrs r25,7
+ 554 002c 00C0      		rjmp .L51
+ 555               	.L57:
+ 197:tmk_core/common/mousekey.c ****     else if (code == KC_MS_RIGHT && mouse_report.x > 0)
+ 556               		.loc 1 197 9 is_stmt 1 view .LVU179
+ 197:tmk_core/common/mousekey.c ****     else if (code == KC_MS_RIGHT && mouse_report.x > 0)
+ 557               		.loc 1 197 24 is_stmt 0 view .LVU180
+ 558 002e 1092 0000 		sts mouse_report+2,__zero_reg__
+ 559               	.LVL53:
+ 560               	.L55:
+ 224:tmk_core/common/mousekey.c **** }
+ 561               		.loc 1 224 5 is_stmt 1 view .LVU181
+ 224:tmk_core/common/mousekey.c **** }
+ 562               		.loc 1 224 75 is_stmt 0 view .LVU182
+ 563 0032 8091 0000 		lds r24,mouse_report+3
+ 564 0036 9091 0000 		lds r25,mouse_report+4
+ 565 003a 892B      		or r24,r25
+ 566 003c 9091 0000 		lds r25,mouse_report+5
+ 567 0040 892B      		or r24,r25
+ 568 0042 01F4      		brne .L49
+ 224:tmk_core/common/mousekey.c **** }
+ 569               		.loc 1 224 99 is_stmt 1 discriminator 4 view .LVU183
+ 224:tmk_core/common/mousekey.c **** }
+ 570               		.loc 1 224 115 is_stmt 0 discriminator 4 view .LVU184
+ 571 0044 1092 0000 		sts mousekey_repeat,__zero_reg__
+ 572               		.loc 1 225 1 discriminator 4 view .LVU185
+ 573 0048 0895      		ret
+ 574               	.LVL54:
+ 575               	.L54:
+ 198:tmk_core/common/mousekey.c ****         mouse_report.x = 0;
+ 576               		.loc 1 198 10 is_stmt 1 view .LVU186
+ 198:tmk_core/common/mousekey.c ****         mouse_report.x = 0;
+ 577               		.loc 1 198 13 is_stmt 0 view .LVU187
+ 578 004a 833F      		cpi r24,lo8(-13)
+ 579 004c 01F4      		brne .L56
+ 198:tmk_core/common/mousekey.c ****         mouse_report.x = 0;
+ 580               		.loc 1 198 34 discriminator 1 view .LVU188
+ 581 004e 1916      		cp __zero_reg__,r25
+ 582 0050 04F0      		brlt .L57
+ 583 0052 00C0      		rjmp .L51
+ 584               	.L56:
+ 200:tmk_core/common/mousekey.c ****         mouse_report.v = 0;
+ 585               		.loc 1 200 10 is_stmt 1 view .LVU189
+ 200:tmk_core/common/mousekey.c ****         mouse_report.v = 0;
+ 586               		.loc 1 200 13 is_stmt 0 view .LVU190
+ 587 0054 893F      		cpi r24,lo8(-7)
+ 588 0056 01F4      		brne .L58
+ 200:tmk_core/common/mousekey.c ****         mouse_report.v = 0;
+ 589               		.loc 1 200 34 discriminator 1 view .LVU191
+ 590 0058 8091 0000 		lds r24,mouse_report+4
+ 591               	.LVL55:
+ 200:tmk_core/common/mousekey.c ****         mouse_report.v = 0;
+ 592               		.loc 1 200 34 discriminator 1 view .LVU192
+ 593 005c 1816      		cp __zero_reg__,r24
+ 594 005e 04F4      		brge .L51
+ 595               	.L60:
+ 201:tmk_core/common/mousekey.c ****     else if (code == KC_MS_WH_DOWN && mouse_report.v < 0)
+ 596               		.loc 1 201 9 is_stmt 1 view .LVU193
+ 201:tmk_core/common/mousekey.c ****     else if (code == KC_MS_WH_DOWN && mouse_report.v < 0)
+ 597               		.loc 1 201 24 is_stmt 0 view .LVU194
+ 598 0060 1092 0000 		sts mouse_report+4,__zero_reg__
+ 599 0064 00C0      		rjmp .L51
+ 600               	.LVL56:
+ 601               	.L58:
+ 202:tmk_core/common/mousekey.c ****         mouse_report.v = 0;
+ 602               		.loc 1 202 10 is_stmt 1 view .LVU195
+ 202:tmk_core/common/mousekey.c ****         mouse_report.v = 0;
+ 603               		.loc 1 202 13 is_stmt 0 view .LVU196
+ 604 0066 8A3F      		cpi r24,lo8(-6)
+ 605 0068 01F4      		brne .L59
+ 202:tmk_core/common/mousekey.c ****         mouse_report.v = 0;
+ 606               		.loc 1 202 36 discriminator 1 view .LVU197
+ 607 006a 8091 0000 		lds r24,mouse_report+4
+ 608               	.LVL57:
+ 202:tmk_core/common/mousekey.c ****         mouse_report.v = 0;
+ 609               		.loc 1 202 36 discriminator 1 view .LVU198
+ 610 006e 87FF      		sbrs r24,7
+ 611 0070 00C0      		rjmp .L51
+ 612 0072 00C0      		rjmp .L60
+ 613               	.LVL58:
+ 614               	.L59:
+ 204:tmk_core/common/mousekey.c ****         mouse_report.h = 0;
+ 615               		.loc 1 204 10 is_stmt 1 view .LVU199
+ 204:tmk_core/common/mousekey.c ****         mouse_report.h = 0;
+ 616               		.loc 1 204 13 is_stmt 0 view .LVU200
+ 617 0074 8B3F      		cpi r24,lo8(-5)
+ 618 0076 01F4      		brne .L61
+ 204:tmk_core/common/mousekey.c ****         mouse_report.h = 0;
+ 619               		.loc 1 204 36 discriminator 1 view .LVU201
+ 620 0078 8091 0000 		lds r24,mouse_report+5
+ 621               	.LVL59:
+ 204:tmk_core/common/mousekey.c ****         mouse_report.h = 0;
+ 622               		.loc 1 204 36 discriminator 1 view .LVU202
+ 623 007c 87FF      		sbrs r24,7
+ 624 007e 00C0      		rjmp .L51
+ 625               	.L63:
+ 205:tmk_core/common/mousekey.c ****     else if (code == KC_MS_WH_RIGHT && mouse_report.h > 0)
+ 626               		.loc 1 205 9 is_stmt 1 view .LVU203
+ 205:tmk_core/common/mousekey.c ****     else if (code == KC_MS_WH_RIGHT && mouse_report.h > 0)
+ 627               		.loc 1 205 24 is_stmt 0 view .LVU204
+ 628 0080 1092 0000 		sts mouse_report+5,__zero_reg__
+ 629 0084 00C0      		rjmp .L51
+ 630               	.LVL60:
+ 631               	.L61:
+ 206:tmk_core/common/mousekey.c ****         mouse_report.h = 0;
+ 632               		.loc 1 206 10 is_stmt 1 view .LVU205
+ 206:tmk_core/common/mousekey.c ****         mouse_report.h = 0;
+ 633               		.loc 1 206 13 is_stmt 0 view .LVU206
+ 634 0086 8C3F      		cpi r24,lo8(-4)
+ 635 0088 01F4      		brne .L62
+ 206:tmk_core/common/mousekey.c ****         mouse_report.h = 0;
+ 636               		.loc 1 206 37 discriminator 1 view .LVU207
+ 637 008a 8091 0000 		lds r24,mouse_report+5
+ 638               	.LVL61:
+ 206:tmk_core/common/mousekey.c ****         mouse_report.h = 0;
+ 639               		.loc 1 206 37 discriminator 1 view .LVU208
+ 640 008e 1816      		cp __zero_reg__,r24
+ 641 0090 04F0      		brlt .L63
+ 642 0092 00C0      		rjmp .L51
+ 643               	.LVL62:
+ 644               	.L62:
+ 208:tmk_core/common/mousekey.c ****         mouse_report.buttons &= ~MOUSE_BTN1;
+ 645               		.loc 1 208 10 is_stmt 1 view .LVU209
+ 208:tmk_core/common/mousekey.c ****         mouse_report.buttons &= ~MOUSE_BTN1;
+ 646               		.loc 1 208 13 is_stmt 0 view .LVU210
+ 647 0094 843F      		cpi r24,lo8(-12)
+ 648 0096 01F4      		brne .L64
+ 209:tmk_core/common/mousekey.c ****     else if (code == KC_MS_BTN2)
+ 649               		.loc 1 209 9 is_stmt 1 view .LVU211
+ 209:tmk_core/common/mousekey.c ****     else if (code == KC_MS_BTN2)
+ 650               		.loc 1 209 30 is_stmt 0 view .LVU212
+ 651 0098 8091 0000 		lds r24,mouse_report+1
+ 652               	.LVL63:
+ 209:tmk_core/common/mousekey.c ****     else if (code == KC_MS_BTN2)
+ 653               		.loc 1 209 30 view .LVU213
+ 654 009c 8E7F      		andi r24,lo8(-2)
+ 655               	.L77:
+ 217:tmk_core/common/mousekey.c ****     else if (code == KC_MS_ACCEL0)
+ 656               		.loc 1 217 30 view .LVU214
+ 657 009e 8093 0000 		sts mouse_report+1,r24
+ 658 00a2 00C0      		rjmp .L51
+ 659               	.LVL64:
+ 660               	.L64:
+ 210:tmk_core/common/mousekey.c ****         mouse_report.buttons &= ~MOUSE_BTN2;
+ 661               		.loc 1 210 10 is_stmt 1 view .LVU215
+ 210:tmk_core/common/mousekey.c ****         mouse_report.buttons &= ~MOUSE_BTN2;
+ 662               		.loc 1 210 13 is_stmt 0 view .LVU216
+ 663 00a4 853F      		cpi r24,lo8(-11)
+ 664 00a6 01F4      		brne .L65
+ 211:tmk_core/common/mousekey.c ****     else if (code == KC_MS_BTN3)
+ 665               		.loc 1 211 9 is_stmt 1 view .LVU217
+ 211:tmk_core/common/mousekey.c ****     else if (code == KC_MS_BTN3)
+ 666               		.loc 1 211 30 is_stmt 0 view .LVU218
+ 667 00a8 8091 0000 		lds r24,mouse_report+1
+ 668               	.LVL65:
+ 211:tmk_core/common/mousekey.c ****     else if (code == KC_MS_BTN3)
+ 669               		.loc 1 211 30 view .LVU219
+ 670 00ac 8D7F      		andi r24,lo8(-3)
+ 671 00ae 00C0      		rjmp .L77
+ 672               	.LVL66:
+ 673               	.L65:
+ 212:tmk_core/common/mousekey.c ****         mouse_report.buttons &= ~MOUSE_BTN3;
+ 674               		.loc 1 212 10 is_stmt 1 view .LVU220
+ 212:tmk_core/common/mousekey.c ****         mouse_report.buttons &= ~MOUSE_BTN3;
+ 675               		.loc 1 212 13 is_stmt 0 view .LVU221
+ 676 00b0 863F      		cpi r24,lo8(-10)
+ 677 00b2 01F4      		brne .L66
+ 213:tmk_core/common/mousekey.c ****     else if (code == KC_MS_BTN4)
+ 678               		.loc 1 213 9 is_stmt 1 view .LVU222
+ 213:tmk_core/common/mousekey.c ****     else if (code == KC_MS_BTN4)
+ 679               		.loc 1 213 30 is_stmt 0 view .LVU223
+ 680 00b4 8091 0000 		lds r24,mouse_report+1
+ 681               	.LVL67:
+ 213:tmk_core/common/mousekey.c ****     else if (code == KC_MS_BTN4)
+ 682               		.loc 1 213 30 view .LVU224
+ 683 00b8 8B7F      		andi r24,lo8(-5)
+ 684 00ba 00C0      		rjmp .L77
+ 685               	.LVL68:
+ 686               	.L66:
+ 214:tmk_core/common/mousekey.c ****         mouse_report.buttons &= ~MOUSE_BTN4;
+ 687               		.loc 1 214 10 is_stmt 1 view .LVU225
+ 214:tmk_core/common/mousekey.c ****         mouse_report.buttons &= ~MOUSE_BTN4;
+ 688               		.loc 1 214 13 is_stmt 0 view .LVU226
+ 689 00bc 873F      		cpi r24,lo8(-9)
+ 690 00be 01F4      		brne .L67
+ 215:tmk_core/common/mousekey.c ****     else if (code == KC_MS_BTN5)
+ 691               		.loc 1 215 9 is_stmt 1 view .LVU227
+ 215:tmk_core/common/mousekey.c ****     else if (code == KC_MS_BTN5)
+ 692               		.loc 1 215 30 is_stmt 0 view .LVU228
+ 693 00c0 8091 0000 		lds r24,mouse_report+1
+ 694               	.LVL69:
+ 215:tmk_core/common/mousekey.c ****     else if (code == KC_MS_BTN5)
+ 695               		.loc 1 215 30 view .LVU229
+ 696 00c4 877F      		andi r24,lo8(-9)
+ 697 00c6 00C0      		rjmp .L77
+ 698               	.LVL70:
+ 699               	.L67:
+ 216:tmk_core/common/mousekey.c ****         mouse_report.buttons &= ~MOUSE_BTN5;
+ 700               		.loc 1 216 10 is_stmt 1 view .LVU230
+ 216:tmk_core/common/mousekey.c ****         mouse_report.buttons &= ~MOUSE_BTN5;
+ 701               		.loc 1 216 13 is_stmt 0 view .LVU231
+ 702 00c8 883F      		cpi r24,lo8(-8)
+ 703 00ca 01F4      		brne .L68
+ 217:tmk_core/common/mousekey.c ****     else if (code == KC_MS_ACCEL0)
+ 704               		.loc 1 217 9 is_stmt 1 view .LVU232
+ 217:tmk_core/common/mousekey.c ****     else if (code == KC_MS_ACCEL0)
+ 705               		.loc 1 217 30 is_stmt 0 view .LVU233
+ 706 00cc 8091 0000 		lds r24,mouse_report+1
+ 707               	.LVL71:
+ 217:tmk_core/common/mousekey.c ****     else if (code == KC_MS_ACCEL0)
+ 708               		.loc 1 217 30 view .LVU234
+ 709 00d0 8F7E      		andi r24,lo8(-17)
+ 710 00d2 00C0      		rjmp .L77
+ 711               	.LVL72:
+ 712               	.L68:
+ 218:tmk_core/common/mousekey.c ****         mousekey_accel &= ~(1 << 0);
+ 713               		.loc 1 218 10 is_stmt 1 view .LVU235
+ 218:tmk_core/common/mousekey.c ****         mousekey_accel &= ~(1 << 0);
+ 714               		.loc 1 218 13 is_stmt 0 view .LVU236
+ 715 00d4 8D3F      		cpi r24,lo8(-3)
+ 716 00d6 01F4      		brne .L69
+ 219:tmk_core/common/mousekey.c ****     else if (code == KC_MS_ACCEL1)
+ 717               		.loc 1 219 9 is_stmt 1 view .LVU237
+ 219:tmk_core/common/mousekey.c ****     else if (code == KC_MS_ACCEL1)
+ 718               		.loc 1 219 24 is_stmt 0 view .LVU238
+ 719 00d8 8091 0000 		lds r24,mousekey_accel
+ 720               	.LVL73:
+ 219:tmk_core/common/mousekey.c ****     else if (code == KC_MS_ACCEL1)
+ 721               		.loc 1 219 24 view .LVU239
+ 722 00dc 8E7F      		andi r24,lo8(-2)
+ 723               	.L78:
+ 223:tmk_core/common/mousekey.c ****     if (mouse_report.x == 0 && mouse_report.y == 0 && mouse_report.v == 0 && mouse_report.h == 0) m
+ 724               		.loc 1 223 24 view .LVU240
+ 725 00de 8093 0000 		sts mousekey_accel,r24
+ 726 00e2 00C0      		rjmp .L51
+ 727               	.LVL74:
+ 728               	.L69:
+ 220:tmk_core/common/mousekey.c ****         mousekey_accel &= ~(1 << 1);
+ 729               		.loc 1 220 10 is_stmt 1 view .LVU241
+ 220:tmk_core/common/mousekey.c ****         mousekey_accel &= ~(1 << 1);
+ 730               		.loc 1 220 13 is_stmt 0 view .LVU242
+ 731 00e4 8E3F      		cpi r24,lo8(-2)
+ 732 00e6 01F4      		brne .L70
+ 221:tmk_core/common/mousekey.c ****     else if (code == KC_MS_ACCEL2)
+ 733               		.loc 1 221 9 is_stmt 1 view .LVU243
+ 221:tmk_core/common/mousekey.c ****     else if (code == KC_MS_ACCEL2)
+ 734               		.loc 1 221 24 is_stmt 0 view .LVU244
+ 735 00e8 8091 0000 		lds r24,mousekey_accel
+ 736               	.LVL75:
+ 221:tmk_core/common/mousekey.c ****     else if (code == KC_MS_ACCEL2)
+ 737               		.loc 1 221 24 view .LVU245
+ 738 00ec 8D7F      		andi r24,lo8(-3)
+ 739 00ee 00C0      		rjmp .L78
+ 740               	.LVL76:
+ 741               	.L70:
+ 222:tmk_core/common/mousekey.c ****         mousekey_accel &= ~(1 << 2);
+ 742               		.loc 1 222 10 is_stmt 1 view .LVU246
+ 222:tmk_core/common/mousekey.c ****         mousekey_accel &= ~(1 << 2);
+ 743               		.loc 1 222 13 is_stmt 0 view .LVU247
+ 744 00f0 8F3F      		cpi r24,lo8(-1)
+ 745 00f2 01F0      		breq .+2
+ 746 00f4 00C0      		rjmp .L51
+ 223:tmk_core/common/mousekey.c ****     if (mouse_report.x == 0 && mouse_report.y == 0 && mouse_report.v == 0 && mouse_report.h == 0) m
+ 747               		.loc 1 223 9 is_stmt 1 view .LVU248
+ 223:tmk_core/common/mousekey.c ****     if (mouse_report.x == 0 && mouse_report.y == 0 && mouse_report.v == 0 && mouse_report.h == 0) m
+ 748               		.loc 1 223 24 is_stmt 0 view .LVU249
+ 749 00f6 8091 0000 		lds r24,mousekey_accel
+ 750               	.LVL77:
+ 223:tmk_core/common/mousekey.c ****     if (mouse_report.x == 0 && mouse_report.y == 0 && mouse_report.v == 0 && mouse_report.h == 0) m
+ 751               		.loc 1 223 24 view .LVU250
+ 752 00fa 8B7F      		andi r24,lo8(-5)
+ 753 00fc 00C0      		rjmp .L78
+ 754               		.cfi_endproc
+ 755               	.LFE107:
+ 757               		.section	.text.mousekey_send,"ax",@progbits
+ 758               	.global	mousekey_send
+ 760               	mousekey_send:
+ 761               	.LFB108:
+ 226:tmk_core/common/mousekey.c **** 
+ 227:tmk_core/common/mousekey.c **** #else /* #ifndef MK_3_SPEED */
+ 228:tmk_core/common/mousekey.c **** 
+ 229:tmk_core/common/mousekey.c **** enum { mkspd_unmod, mkspd_0, mkspd_1, mkspd_2, mkspd_COUNT };
+ 230:tmk_core/common/mousekey.c **** #    ifndef MK_MOMENTARY_ACCEL
+ 231:tmk_core/common/mousekey.c **** static uint8_t  mk_speed                 = mkspd_1;
+ 232:tmk_core/common/mousekey.c **** #    else
+ 233:tmk_core/common/mousekey.c **** static uint8_t mk_speed      = mkspd_unmod;
+ 234:tmk_core/common/mousekey.c **** static uint8_t mkspd_DEFAULT = mkspd_unmod;
+ 235:tmk_core/common/mousekey.c **** #    endif
+ 236:tmk_core/common/mousekey.c **** static uint16_t last_timer_c             = 0;
+ 237:tmk_core/common/mousekey.c **** static uint16_t last_timer_w             = 0;
+ 238:tmk_core/common/mousekey.c **** uint16_t        c_offsets[mkspd_COUNT]   = {MK_C_OFFSET_UNMOD, MK_C_OFFSET_0, MK_C_OFFSET_1, MK_C_O
+ 239:tmk_core/common/mousekey.c **** uint16_t        c_intervals[mkspd_COUNT] = {MK_C_INTERVAL_UNMOD, MK_C_INTERVAL_0, MK_C_INTERVAL_1, 
+ 240:tmk_core/common/mousekey.c **** uint16_t        w_offsets[mkspd_COUNT]   = {MK_W_OFFSET_UNMOD, MK_W_OFFSET_0, MK_W_OFFSET_1, MK_W_O
+ 241:tmk_core/common/mousekey.c **** uint16_t        w_intervals[mkspd_COUNT] = {MK_W_INTERVAL_UNMOD, MK_W_INTERVAL_0, MK_W_INTERVAL_1, 
+ 242:tmk_core/common/mousekey.c **** 
+ 243:tmk_core/common/mousekey.c **** void mousekey_task(void) {
+ 244:tmk_core/common/mousekey.c ****     // report cursor and scroll movement independently
+ 245:tmk_core/common/mousekey.c ****     report_mouse_t const tmpmr = mouse_report;
+ 246:tmk_core/common/mousekey.c ****     if ((mouse_report.x || mouse_report.y) && timer_elapsed(last_timer_c) > c_intervals[mk_speed]) 
+ 247:tmk_core/common/mousekey.c ****         mouse_report.h = 0;
+ 248:tmk_core/common/mousekey.c ****         mouse_report.v = 0;
+ 249:tmk_core/common/mousekey.c ****         mousekey_send();
+ 250:tmk_core/common/mousekey.c ****         last_timer_c = last_timer;
+ 251:tmk_core/common/mousekey.c ****         mouse_report = tmpmr;
+ 252:tmk_core/common/mousekey.c ****     }
+ 253:tmk_core/common/mousekey.c ****     if ((mouse_report.h || mouse_report.v) && timer_elapsed(last_timer_w) > w_intervals[mk_speed]) 
+ 254:tmk_core/common/mousekey.c ****         mouse_report.x = 0;
+ 255:tmk_core/common/mousekey.c ****         mouse_report.y = 0;
+ 256:tmk_core/common/mousekey.c ****         mousekey_send();
+ 257:tmk_core/common/mousekey.c ****         last_timer_w = last_timer;
+ 258:tmk_core/common/mousekey.c ****         mouse_report = tmpmr;
+ 259:tmk_core/common/mousekey.c ****     }
+ 260:tmk_core/common/mousekey.c **** }
+ 261:tmk_core/common/mousekey.c **** 
+ 262:tmk_core/common/mousekey.c **** void adjust_speed(void) {
+ 263:tmk_core/common/mousekey.c ****     uint16_t const c_offset = c_offsets[mk_speed];
+ 264:tmk_core/common/mousekey.c ****     uint16_t const w_offset = w_offsets[mk_speed];
+ 265:tmk_core/common/mousekey.c ****     if (mouse_report.x > 0) mouse_report.x = c_offset;
+ 266:tmk_core/common/mousekey.c ****     if (mouse_report.x < 0) mouse_report.x = c_offset * -1;
+ 267:tmk_core/common/mousekey.c ****     if (mouse_report.y > 0) mouse_report.y = c_offset;
+ 268:tmk_core/common/mousekey.c ****     if (mouse_report.y < 0) mouse_report.y = c_offset * -1;
+ 269:tmk_core/common/mousekey.c ****     if (mouse_report.h > 0) mouse_report.h = w_offset;
+ 270:tmk_core/common/mousekey.c ****     if (mouse_report.h < 0) mouse_report.h = w_offset * -1;
+ 271:tmk_core/common/mousekey.c ****     if (mouse_report.v > 0) mouse_report.v = w_offset;
+ 272:tmk_core/common/mousekey.c ****     if (mouse_report.v < 0) mouse_report.v = w_offset * -1;
+ 273:tmk_core/common/mousekey.c ****     // adjust for diagonals
+ 274:tmk_core/common/mousekey.c ****     if (mouse_report.x && mouse_report.y) {
+ 275:tmk_core/common/mousekey.c ****         mouse_report.x = times_inv_sqrt2(mouse_report.x);
+ 276:tmk_core/common/mousekey.c ****         if (mouse_report.x == 0) {
+ 277:tmk_core/common/mousekey.c ****             mouse_report.x = 1;
+ 278:tmk_core/common/mousekey.c ****         }
+ 279:tmk_core/common/mousekey.c ****         mouse_report.y = times_inv_sqrt2(mouse_report.y);
+ 280:tmk_core/common/mousekey.c ****         if (mouse_report.y == 0) {
+ 281:tmk_core/common/mousekey.c ****             mouse_report.y = 1;
+ 282:tmk_core/common/mousekey.c ****         }
+ 283:tmk_core/common/mousekey.c ****     }
+ 284:tmk_core/common/mousekey.c ****     if (mouse_report.h && mouse_report.v) {
+ 285:tmk_core/common/mousekey.c ****         mouse_report.h = times_inv_sqrt2(mouse_report.h);
+ 286:tmk_core/common/mousekey.c ****         mouse_report.v = times_inv_sqrt2(mouse_report.v);
+ 287:tmk_core/common/mousekey.c ****     }
+ 288:tmk_core/common/mousekey.c **** }
+ 289:tmk_core/common/mousekey.c **** 
+ 290:tmk_core/common/mousekey.c **** void mousekey_on(uint8_t code) {
+ 291:tmk_core/common/mousekey.c ****     uint16_t const c_offset  = c_offsets[mk_speed];
+ 292:tmk_core/common/mousekey.c ****     uint16_t const w_offset  = w_offsets[mk_speed];
+ 293:tmk_core/common/mousekey.c ****     uint8_t const  old_speed = mk_speed;
+ 294:tmk_core/common/mousekey.c ****     if (code == KC_MS_UP)
+ 295:tmk_core/common/mousekey.c ****         mouse_report.y = c_offset * -1;
+ 296:tmk_core/common/mousekey.c ****     else if (code == KC_MS_DOWN)
+ 297:tmk_core/common/mousekey.c ****         mouse_report.y = c_offset;
+ 298:tmk_core/common/mousekey.c ****     else if (code == KC_MS_LEFT)
+ 299:tmk_core/common/mousekey.c ****         mouse_report.x = c_offset * -1;
+ 300:tmk_core/common/mousekey.c ****     else if (code == KC_MS_RIGHT)
+ 301:tmk_core/common/mousekey.c ****         mouse_report.x = c_offset;
+ 302:tmk_core/common/mousekey.c ****     else if (code == KC_MS_WH_UP)
+ 303:tmk_core/common/mousekey.c ****         mouse_report.v = w_offset;
+ 304:tmk_core/common/mousekey.c ****     else if (code == KC_MS_WH_DOWN)
+ 305:tmk_core/common/mousekey.c ****         mouse_report.v = w_offset * -1;
+ 306:tmk_core/common/mousekey.c ****     else if (code == KC_MS_WH_LEFT)
+ 307:tmk_core/common/mousekey.c ****         mouse_report.h = w_offset * -1;
+ 308:tmk_core/common/mousekey.c ****     else if (code == KC_MS_WH_RIGHT)
+ 309:tmk_core/common/mousekey.c ****         mouse_report.h = w_offset;
+ 310:tmk_core/common/mousekey.c ****     else if (code == KC_MS_BTN1)
+ 311:tmk_core/common/mousekey.c ****         mouse_report.buttons |= MOUSE_BTN1;
+ 312:tmk_core/common/mousekey.c ****     else if (code == KC_MS_BTN2)
+ 313:tmk_core/common/mousekey.c ****         mouse_report.buttons |= MOUSE_BTN2;
+ 314:tmk_core/common/mousekey.c ****     else if (code == KC_MS_BTN3)
+ 315:tmk_core/common/mousekey.c ****         mouse_report.buttons |= MOUSE_BTN3;
+ 316:tmk_core/common/mousekey.c ****     else if (code == KC_MS_BTN4)
+ 317:tmk_core/common/mousekey.c ****         mouse_report.buttons |= MOUSE_BTN4;
+ 318:tmk_core/common/mousekey.c ****     else if (code == KC_MS_BTN5)
+ 319:tmk_core/common/mousekey.c ****         mouse_report.buttons |= MOUSE_BTN5;
+ 320:tmk_core/common/mousekey.c ****     else if (code == KC_MS_ACCEL0)
+ 321:tmk_core/common/mousekey.c ****         mk_speed = mkspd_0;
+ 322:tmk_core/common/mousekey.c ****     else if (code == KC_MS_ACCEL1)
+ 323:tmk_core/common/mousekey.c ****         mk_speed = mkspd_1;
+ 324:tmk_core/common/mousekey.c ****     else if (code == KC_MS_ACCEL2)
+ 325:tmk_core/common/mousekey.c ****         mk_speed = mkspd_2;
+ 326:tmk_core/common/mousekey.c ****     if (mk_speed != old_speed) adjust_speed();
+ 327:tmk_core/common/mousekey.c **** }
+ 328:tmk_core/common/mousekey.c **** 
+ 329:tmk_core/common/mousekey.c **** void mousekey_off(uint8_t code) {
+ 330:tmk_core/common/mousekey.c **** #    ifdef MK_MOMENTARY_ACCEL
+ 331:tmk_core/common/mousekey.c ****     uint8_t const old_speed = mk_speed;
+ 332:tmk_core/common/mousekey.c **** #    endif
+ 333:tmk_core/common/mousekey.c ****     if (code == KC_MS_UP && mouse_report.y < 0)
+ 334:tmk_core/common/mousekey.c ****         mouse_report.y = 0;
+ 335:tmk_core/common/mousekey.c ****     else if (code == KC_MS_DOWN && mouse_report.y > 0)
+ 336:tmk_core/common/mousekey.c ****         mouse_report.y = 0;
+ 337:tmk_core/common/mousekey.c ****     else if (code == KC_MS_LEFT && mouse_report.x < 0)
+ 338:tmk_core/common/mousekey.c ****         mouse_report.x = 0;
+ 339:tmk_core/common/mousekey.c ****     else if (code == KC_MS_RIGHT && mouse_report.x > 0)
+ 340:tmk_core/common/mousekey.c ****         mouse_report.x = 0;
+ 341:tmk_core/common/mousekey.c ****     else if (code == KC_MS_WH_UP && mouse_report.v > 0)
+ 342:tmk_core/common/mousekey.c ****         mouse_report.v = 0;
+ 343:tmk_core/common/mousekey.c ****     else if (code == KC_MS_WH_DOWN && mouse_report.v < 0)
+ 344:tmk_core/common/mousekey.c ****         mouse_report.v = 0;
+ 345:tmk_core/common/mousekey.c ****     else if (code == KC_MS_WH_LEFT && mouse_report.h < 0)
+ 346:tmk_core/common/mousekey.c ****         mouse_report.h = 0;
+ 347:tmk_core/common/mousekey.c ****     else if (code == KC_MS_WH_RIGHT && mouse_report.h > 0)
+ 348:tmk_core/common/mousekey.c ****         mouse_report.h = 0;
+ 349:tmk_core/common/mousekey.c ****     else if (code == KC_MS_BTN1)
+ 350:tmk_core/common/mousekey.c ****         mouse_report.buttons &= ~MOUSE_BTN1;
+ 351:tmk_core/common/mousekey.c ****     else if (code == KC_MS_BTN2)
+ 352:tmk_core/common/mousekey.c ****         mouse_report.buttons &= ~MOUSE_BTN2;
+ 353:tmk_core/common/mousekey.c ****     else if (code == KC_MS_BTN3)
+ 354:tmk_core/common/mousekey.c ****         mouse_report.buttons &= ~MOUSE_BTN3;
+ 355:tmk_core/common/mousekey.c ****     else if (code == KC_MS_BTN4)
+ 356:tmk_core/common/mousekey.c ****         mouse_report.buttons &= ~MOUSE_BTN4;
+ 357:tmk_core/common/mousekey.c ****     else if (code == KC_MS_BTN5)
+ 358:tmk_core/common/mousekey.c ****         mouse_report.buttons &= ~MOUSE_BTN5;
+ 359:tmk_core/common/mousekey.c **** #    ifdef MK_MOMENTARY_ACCEL
+ 360:tmk_core/common/mousekey.c ****     else if (code == KC_MS_ACCEL0)
+ 361:tmk_core/common/mousekey.c ****         mk_speed = mkspd_DEFAULT;
+ 362:tmk_core/common/mousekey.c ****     else if (code == KC_MS_ACCEL1)
+ 363:tmk_core/common/mousekey.c ****         mk_speed = mkspd_DEFAULT;
+ 364:tmk_core/common/mousekey.c ****     else if (code == KC_MS_ACCEL2)
+ 365:tmk_core/common/mousekey.c ****         mk_speed = mkspd_DEFAULT;
+ 366:tmk_core/common/mousekey.c ****     if (mk_speed != old_speed) adjust_speed();
+ 367:tmk_core/common/mousekey.c **** #    endif
+ 368:tmk_core/common/mousekey.c **** }
+ 369:tmk_core/common/mousekey.c **** 
+ 370:tmk_core/common/mousekey.c **** #endif /* #ifndef MK_3_SPEED */
+ 371:tmk_core/common/mousekey.c **** 
+ 372:tmk_core/common/mousekey.c **** void mousekey_send(void) {
+ 762               		.loc 1 372 26 is_stmt 1 view -0
+ 763               		.cfi_startproc
+ 764               	/* prologue: function */
+ 765               	/* frame size = 0 */
+ 766               	/* stack size = 0 */
+ 767               	.L__stack_usage = 0
+ 373:tmk_core/common/mousekey.c ****     mousekey_debug();
+ 768               		.loc 1 373 5 view .LVU252
+ 769               	.LBB27:
+ 770               	.LBI27:
+ 374:tmk_core/common/mousekey.c ****     host_mouse_send(&mouse_report);
+ 375:tmk_core/common/mousekey.c ****     last_timer = timer_read();
+ 376:tmk_core/common/mousekey.c **** }
+ 377:tmk_core/common/mousekey.c **** 
+ 378:tmk_core/common/mousekey.c **** void mousekey_clear(void) {
+ 379:tmk_core/common/mousekey.c ****     mouse_report    = (report_mouse_t){};
+ 380:tmk_core/common/mousekey.c ****     mousekey_repeat = 0;
+ 381:tmk_core/common/mousekey.c ****     mousekey_accel  = 0;
+ 382:tmk_core/common/mousekey.c **** }
+ 383:tmk_core/common/mousekey.c **** 
+ 384:tmk_core/common/mousekey.c **** static void mousekey_debug(void) {
+ 771               		.loc 1 384 13 view .LVU253
+ 772               	.LBB28:
+ 385:tmk_core/common/mousekey.c ****     if (!debug_mouse) return;
+ 773               		.loc 1 385 5 view .LVU254
+ 774               		.loc 1 385 10 is_stmt 0 view .LVU255
+ 775 0000 8091 0000 		lds r24,debug_config
+ 776               		.loc 1 385 8 view .LVU256
+ 777 0004 83FF      		sbrs r24,3
+ 778 0006 00C0      		rjmp .L80
+ 386:tmk_core/common/mousekey.c ****     print("mousekey [btn|x y v h](rep/acl): [");
+ 779               		.loc 1 386 5 is_stmt 1 view .LVU257
+ 780               	.LBE28:
+ 781               	.LBE27:
+ 782               		.loc 1 386 5 view .LVU258
+ 783               		.loc 1 386 5 view .LVU259
+ 784               	.LBB44:
+ 785               	.LBB29:
+ 786 0008 80E0      		ldi r24,lo8(__c.4907)
+ 787 000a 90E0      		ldi r25,hi8(__c.4907)
+ 788 000c 0E94 0000 		call xputs
+ 387:tmk_core/common/mousekey.c ****     phex(mouse_report.buttons);
+ 789               		.loc 1 387 5 view .LVU260
+ 790               	.LBE29:
+ 791               	.LBE44:
+ 792               		.loc 1 387 5 view .LVU261
+ 793               		.loc 1 387 5 view .LVU262
+ 794               	.LBB45:
+ 795               	.LBB30:
+ 796 0010 8091 0000 		lds r24,mouse_report+1
+ 797 0014 1F92      		push __zero_reg__
+ 798               	.LCFI0:
+ 799               		.cfi_def_cfa_offset 3
+ 800 0016 8F93      		push r24
+ 801               	.LCFI1:
+ 802               		.cfi_def_cfa_offset 4
+ 803 0018 80E0      		ldi r24,lo8(__c.4909)
+ 804 001a 90E0      		ldi r25,hi8(__c.4909)
+ 805 001c 9F93      		push r25
+ 806               	.LCFI2:
+ 807               		.cfi_def_cfa_offset 5
+ 808 001e 8F93      		push r24
+ 809               	.LCFI3:
+ 810               		.cfi_def_cfa_offset 6
+ 811 0020 0E94 0000 		call __xprintf
+ 388:tmk_core/common/mousekey.c ****     print("|");
+ 812               		.loc 1 388 5 view .LVU263
+ 813               	.LBE30:
+ 814               	.LBE45:
+ 815               		.loc 1 388 5 view .LVU264
+ 816               		.loc 1 388 5 view .LVU265
+ 817               	.LBB46:
+ 818               	.LBB31:
+ 819 0024 80E0      		ldi r24,lo8(__c.4911)
+ 820 0026 90E0      		ldi r25,hi8(__c.4911)
+ 821 0028 0E94 0000 		call xputs
+ 389:tmk_core/common/mousekey.c ****     print_decs(mouse_report.x);
+ 822               		.loc 1 389 5 view .LVU266
+ 823               	.LBE31:
+ 824               	.LBE46:
+ 825               		.loc 1 389 5 view .LVU267
+ 826               		.loc 1 389 5 view .LVU268
+ 827               	.LBB47:
+ 828               	.LBB32:
+ 829 002c 8091 0000 		lds r24,mouse_report+2
+ 830 0030 282F      		mov r18,r24
+ 831 0032 082E      		mov __tmp_reg__,r24
+ 832 0034 000C      		lsl r0
+ 833 0036 330B      		sbc r19,r19
+ 834 0038 3F93      		push r19
+ 835               	.LCFI4:
+ 836               		.cfi_def_cfa_offset 7
+ 837 003a 8F93      		push r24
+ 838               	.LCFI5:
+ 839               		.cfi_def_cfa_offset 8
+ 840 003c 80E0      		ldi r24,lo8(__c.4913)
+ 841 003e 90E0      		ldi r25,hi8(__c.4913)
+ 842 0040 9F93      		push r25
+ 843               	.LCFI6:
+ 844               		.cfi_def_cfa_offset 9
+ 845 0042 8F93      		push r24
+ 846               	.LCFI7:
+ 847               		.cfi_def_cfa_offset 10
+ 848 0044 0E94 0000 		call __xprintf
+ 390:tmk_core/common/mousekey.c ****     print(" ");
+ 849               		.loc 1 390 5 view .LVU269
+ 850               	.LBE32:
+ 851               	.LBE47:
+ 852               		.loc 1 390 5 view .LVU270
+ 853               		.loc 1 390 5 view .LVU271
+ 854               	.LBB48:
+ 855               	.LBB33:
+ 856 0048 80E0      		ldi r24,lo8(__c.4915)
+ 857 004a 90E0      		ldi r25,hi8(__c.4915)
+ 858 004c 0E94 0000 		call xputs
+ 391:tmk_core/common/mousekey.c ****     print_decs(mouse_report.y);
+ 859               		.loc 1 391 5 view .LVU272
+ 860               	.LBE33:
+ 861               	.LBE48:
+ 862               		.loc 1 391 5 view .LVU273
+ 863               		.loc 1 391 5 view .LVU274
+ 864               	.LBB49:
+ 865               	.LBB34:
+ 866 0050 8091 0000 		lds r24,mouse_report+3
+ 867 0054 282F      		mov r18,r24
+ 868 0056 082E      		mov __tmp_reg__,r24
+ 869 0058 000C      		lsl r0
+ 870 005a 330B      		sbc r19,r19
+ 871 005c 3F93      		push r19
+ 872               	.LCFI8:
+ 873               		.cfi_def_cfa_offset 11
+ 874 005e 8F93      		push r24
+ 875               	.LCFI9:
+ 876               		.cfi_def_cfa_offset 12
+ 877 0060 80E0      		ldi r24,lo8(__c.4917)
+ 878 0062 90E0      		ldi r25,hi8(__c.4917)
+ 879 0064 9F93      		push r25
+ 880               	.LCFI10:
+ 881               		.cfi_def_cfa_offset 13
+ 882 0066 8F93      		push r24
+ 883               	.LCFI11:
+ 884               		.cfi_def_cfa_offset 14
+ 885 0068 0E94 0000 		call __xprintf
+ 392:tmk_core/common/mousekey.c ****     print(" ");
+ 886               		.loc 1 392 5 view .LVU275
+ 887               	.LBE34:
+ 888               	.LBE49:
+ 889               		.loc 1 392 5 view .LVU276
+ 890               		.loc 1 392 5 view .LVU277
+ 891               	.LBB50:
+ 892               	.LBB35:
+ 893 006c 80E0      		ldi r24,lo8(__c.4919)
+ 894 006e 90E0      		ldi r25,hi8(__c.4919)
+ 895 0070 0E94 0000 		call xputs
+ 393:tmk_core/common/mousekey.c ****     print_decs(mouse_report.v);
+ 896               		.loc 1 393 5 view .LVU278
+ 897               	.LBE35:
+ 898               	.LBE50:
+ 899               		.loc 1 393 5 view .LVU279
+ 900               		.loc 1 393 5 view .LVU280
+ 901               	.LBB51:
+ 902               	.LBB36:
+ 903 0074 8091 0000 		lds r24,mouse_report+4
+ 904 0078 282F      		mov r18,r24
+ 905 007a 082E      		mov __tmp_reg__,r24
+ 906 007c 000C      		lsl r0
+ 907 007e 330B      		sbc r19,r19
+ 908 0080 3F93      		push r19
+ 909               	.LCFI12:
+ 910               		.cfi_def_cfa_offset 15
+ 911 0082 8F93      		push r24
+ 912               	.LCFI13:
+ 913               		.cfi_def_cfa_offset 16
+ 914 0084 80E0      		ldi r24,lo8(__c.4921)
+ 915 0086 90E0      		ldi r25,hi8(__c.4921)
+ 916 0088 9F93      		push r25
+ 917               	.LCFI14:
+ 918               		.cfi_def_cfa_offset 17
+ 919 008a 8F93      		push r24
+ 920               	.LCFI15:
+ 921               		.cfi_def_cfa_offset 18
+ 922 008c 0E94 0000 		call __xprintf
+ 394:tmk_core/common/mousekey.c ****     print(" ");
+ 923               		.loc 1 394 5 view .LVU281
+ 924               	.LBE36:
+ 925               	.LBE51:
+ 926               		.loc 1 394 5 view .LVU282
+ 927               		.loc 1 394 5 view .LVU283
+ 928               	.LBB52:
+ 929               	.LBB37:
+ 930 0090 80E0      		ldi r24,lo8(__c.4923)
+ 931 0092 90E0      		ldi r25,hi8(__c.4923)
+ 932 0094 0E94 0000 		call xputs
+ 395:tmk_core/common/mousekey.c ****     print_decs(mouse_report.h);
+ 933               		.loc 1 395 5 view .LVU284
+ 934               	.LBE37:
+ 935               	.LBE52:
+ 936               		.loc 1 395 5 view .LVU285
+ 937               		.loc 1 395 5 view .LVU286
+ 938               	.LBB53:
+ 939               	.LBB38:
+ 940 0098 8091 0000 		lds r24,mouse_report+5
+ 941 009c 282F      		mov r18,r24
+ 942 009e 082E      		mov __tmp_reg__,r24
+ 943 00a0 000C      		lsl r0
+ 944 00a2 330B      		sbc r19,r19
+ 945 00a4 3F93      		push r19
+ 946               	.LCFI16:
+ 947               		.cfi_def_cfa_offset 19
+ 948 00a6 8F93      		push r24
+ 949               	.LCFI17:
+ 950               		.cfi_def_cfa_offset 20
+ 951 00a8 80E0      		ldi r24,lo8(__c.4925)
+ 952 00aa 90E0      		ldi r25,hi8(__c.4925)
+ 953 00ac 9F93      		push r25
+ 954               	.LCFI18:
+ 955               		.cfi_def_cfa_offset 21
+ 956 00ae 8F93      		push r24
+ 957               	.LCFI19:
+ 958               		.cfi_def_cfa_offset 22
+ 959 00b0 0E94 0000 		call __xprintf
+ 396:tmk_core/common/mousekey.c ****     print("](");
+ 960               		.loc 1 396 5 view .LVU287
+ 961               	.LBE38:
+ 962               	.LBE53:
+ 963               		.loc 1 396 5 view .LVU288
+ 964               		.loc 1 396 5 view .LVU289
+ 965               	.LBB54:
+ 966               	.LBB39:
+ 967 00b4 80E0      		ldi r24,lo8(__c.4927)
+ 968 00b6 90E0      		ldi r25,hi8(__c.4927)
+ 969 00b8 0E94 0000 		call xputs
+ 397:tmk_core/common/mousekey.c ****     print_dec(mousekey_repeat);
+ 970               		.loc 1 397 5 view .LVU290
+ 971               	.LBE39:
+ 972               	.LBE54:
+ 973               		.loc 1 397 5 view .LVU291
+ 974               		.loc 1 397 5 view .LVU292
+ 975               	.LBB55:
+ 976               	.LBB40:
+ 977 00bc 8091 0000 		lds r24,mousekey_repeat
+ 978 00c0 1F92      		push __zero_reg__
+ 979               	.LCFI20:
+ 980               		.cfi_def_cfa_offset 23
+ 981 00c2 8F93      		push r24
+ 982               	.LCFI21:
+ 983               		.cfi_def_cfa_offset 24
+ 984 00c4 80E0      		ldi r24,lo8(__c.4929)
+ 985 00c6 90E0      		ldi r25,hi8(__c.4929)
+ 986 00c8 9F93      		push r25
+ 987               	.LCFI22:
+ 988               		.cfi_def_cfa_offset 25
+ 989 00ca 8F93      		push r24
+ 990               	.LCFI23:
+ 991               		.cfi_def_cfa_offset 26
+ 992 00cc 0E94 0000 		call __xprintf
+ 398:tmk_core/common/mousekey.c ****     print("/");
+ 993               		.loc 1 398 5 view .LVU293
+ 994               	.LBE40:
+ 995               	.LBE55:
+ 996               		.loc 1 398 5 view .LVU294
+ 997               		.loc 1 398 5 view .LVU295
+ 998               	.LBB56:
+ 999               	.LBB41:
+ 1000 00d0 80E0      		ldi r24,lo8(__c.4931)
+ 1001 00d2 90E0      		ldi r25,hi8(__c.4931)
+ 1002 00d4 0E94 0000 		call xputs
+ 399:tmk_core/common/mousekey.c ****     print_dec(mousekey_accel);
+ 1003               		.loc 1 399 5 view .LVU296
+ 1004               	.LBE41:
+ 1005               	.LBE56:
+ 1006               		.loc 1 399 5 view .LVU297
+ 1007               		.loc 1 399 5 view .LVU298
+ 1008               	.LBB57:
+ 1009               	.LBB42:
+ 1010 00d8 8091 0000 		lds r24,mousekey_accel
+ 1011 00dc 1F92      		push __zero_reg__
+ 1012               	.LCFI24:
+ 1013               		.cfi_def_cfa_offset 27
+ 1014 00de 8F93      		push r24
+ 1015               	.LCFI25:
+ 1016               		.cfi_def_cfa_offset 28
+ 1017 00e0 80E0      		ldi r24,lo8(__c.4933)
+ 1018 00e2 90E0      		ldi r25,hi8(__c.4933)
+ 1019 00e4 9F93      		push r25
+ 1020               	.LCFI26:
+ 1021               		.cfi_def_cfa_offset 29
+ 1022 00e6 8F93      		push r24
+ 1023               	.LCFI27:
+ 1024               		.cfi_def_cfa_offset 30
+ 1025 00e8 0E94 0000 		call __xprintf
+ 400:tmk_core/common/mousekey.c ****     print(")\n");
+ 1026               		.loc 1 400 5 view .LVU299
+ 1027               	.LBE42:
+ 1028               	.LBE57:
+ 1029               		.loc 1 400 5 view .LVU300
+ 1030               		.loc 1 400 5 view .LVU301
+ 1031               	.LBB58:
+ 1032               	.LBB43:
+ 1033 00ec 80E0      		ldi r24,lo8(__c.4935)
+ 1034 00ee 90E0      		ldi r25,hi8(__c.4935)
+ 1035 00f0 0E94 0000 		call xputs
+ 1036 00f4 8DB7      		in r24,__SP_L__
+ 1037 00f6 9EB7      		in r25,__SP_H__
+ 1038 00f8 4C96      		adiw r24,28
+ 1039 00fa 0FB6      		in __tmp_reg__,__SREG__
+ 1040 00fc F894      		cli
+ 1041 00fe 9EBF      		out __SP_H__,r25
+ 1042 0100 0FBE      		out __SREG__,__tmp_reg__
+ 1043 0102 8DBF      		out __SP_L__,r24
+ 1044               	.LCFI28:
+ 1045               		.cfi_def_cfa_offset 2
+ 1046               	.L80:
+ 1047               	.LBE43:
+ 1048               	.LBE58:
+ 374:tmk_core/common/mousekey.c ****     last_timer = timer_read();
+ 1049               		.loc 1 374 5 view .LVU302
+ 1050 0104 80E0      		ldi r24,lo8(mouse_report)
+ 1051 0106 90E0      		ldi r25,hi8(mouse_report)
+ 1052 0108 0E94 0000 		call host_mouse_send
+ 375:tmk_core/common/mousekey.c **** }
+ 1053               		.loc 1 375 5 view .LVU303
+ 375:tmk_core/common/mousekey.c **** }
+ 1054               		.loc 1 375 18 is_stmt 0 view .LVU304
+ 1055 010c 0E94 0000 		call timer_read
+ 375:tmk_core/common/mousekey.c **** }
+ 1056               		.loc 1 375 16 view .LVU305
+ 1057 0110 9093 0000 		sts last_timer+1,r25
+ 1058 0114 8093 0000 		sts last_timer,r24
+ 1059               	/* epilogue start */
+ 376:tmk_core/common/mousekey.c **** 
+ 1060               		.loc 1 376 1 view .LVU306
+ 1061 0118 0895      		ret
+ 1062               		.cfi_endproc
+ 1063               	.LFE108:
+ 1065               		.section	.text.mousekey_task,"ax",@progbits
+ 1066               	.global	mousekey_task
+ 1068               	mousekey_task:
+ 1069               	.LFB105:
+ 105:tmk_core/common/mousekey.c ****     // report cursor and scroll movement independently
+ 1070               		.loc 1 105 26 is_stmt 1 view -0
+ 1071               		.cfi_startproc
+ 1072 0000 CF93      		push r28
+ 1073               	.LCFI29:
+ 1074               		.cfi_def_cfa_offset 3
+ 1075               		.cfi_offset 28, -2
+ 1076 0002 DF93      		push r29
+ 1077               	.LCFI30:
+ 1078               		.cfi_def_cfa_offset 4
+ 1079               		.cfi_offset 29, -3
+ 1080 0004 00D0      		rcall .
+ 1081 0006 00D0      		rcall .
+ 1082 0008 00D0      		rcall .
+ 1083               	.LCFI31:
+ 1084               		.cfi_def_cfa_offset 10
+ 1085 000a CDB7      		in r28,__SP_L__
+ 1086 000c DEB7      		in r29,__SP_H__
+ 1087               	.LCFI32:
+ 1088               		.cfi_def_cfa_register 28
+ 1089               	/* prologue: function */
+ 1090               	/* frame size = 6 */
+ 1091               	/* stack size = 8 */
+ 1092               	.L__stack_usage = 8
+ 107:tmk_core/common/mousekey.c ****     if ((mouse_report.x || mouse_report.y) && timer_elapsed(last_timer_c) > (mousekey_repeat ? mk_i
+ 1093               		.loc 1 107 5 view .LVU308
+ 107:tmk_core/common/mousekey.c ****     if ((mouse_report.x || mouse_report.y) && timer_elapsed(last_timer_c) > (mousekey_repeat ? mk_i
+ 1094               		.loc 1 107 26 is_stmt 0 view .LVU309
+ 1095 000e 86E0      		ldi r24,lo8(6)
+ 1096 0010 E0E0      		ldi r30,lo8(mouse_report)
+ 1097 0012 F0E0      		ldi r31,hi8(mouse_report)
+ 1098 0014 DE01      		movw r26,r28
+ 1099 0016 1196      		adiw r26,1
+ 1100               		0:
+ 1101 0018 0190      		ld r0,Z+
+ 1102 001a 0D92      		st X+,r0
+ 1103 001c 8A95      		dec r24
+ 1104 001e 01F4      		brne 0b
+ 108:tmk_core/common/mousekey.c ****         if (mousekey_repeat != UINT8_MAX) mousekey_repeat++;
+ 1105               		.loc 1 108 5 is_stmt 1 view .LVU310
+ 108:tmk_core/common/mousekey.c ****         if (mousekey_repeat != UINT8_MAX) mousekey_repeat++;
+ 1106               		.loc 1 108 25 is_stmt 0 view .LVU311
+ 1107 0020 8091 0000 		lds r24,mouse_report+2
+ 1108 0024 9091 0000 		lds r25,mouse_report+3
+ 1109 0028 892B      		or r24,r25
+ 1110 002a 01F0      		breq .L86
+ 108:tmk_core/common/mousekey.c ****         if (mousekey_repeat != UINT8_MAX) mousekey_repeat++;
+ 1111               		.loc 1 108 47 discriminator 3 view .LVU312
+ 1112 002c 8091 0000 		lds r24,last_timer_c
+ 1113 0030 9091 0000 		lds r25,last_timer_c+1
+ 1114 0034 0E94 0000 		call timer_elapsed
+ 1115               	.LVL78:
+ 1116 0038 AC01      		movw r20,r24
+ 108:tmk_core/common/mousekey.c ****         if (mousekey_repeat != UINT8_MAX) mousekey_repeat++;
+ 1117               		.loc 1 108 94 discriminator 3 view .LVU313
+ 1118 003a 9091 0000 		lds r25,mousekey_repeat
+ 108:tmk_core/common/mousekey.c ****         if (mousekey_repeat != UINT8_MAX) mousekey_repeat++;
+ 1119               		.loc 1 108 108 discriminator 3 view .LVU314
+ 1120 003e 9923      		tst r25
+ 1121 0040 01F0      		breq .L87
+ 108:tmk_core/common/mousekey.c ****         if (mousekey_repeat != UINT8_MAX) mousekey_repeat++;
+ 1122               		.loc 1 108 108 discriminator 4 view .LVU315
+ 1123 0042 8091 0000 		lds r24,mk_interval
+ 108:tmk_core/common/mousekey.c ****         if (mousekey_repeat != UINT8_MAX) mousekey_repeat++;
+ 1124               		.loc 1 108 44 discriminator 4 view .LVU316
+ 1125 0046 8417      		cp r24,r20
+ 1126 0048 1506      		cpc __zero_reg__,r21
+ 1127 004a 00F0      		brlo .L88
+ 1128               	.L86:
+ 131:tmk_core/common/mousekey.c ****         if (mousekey_repeat != UINT8_MAX) mousekey_repeat++;
+ 1129               		.loc 1 131 5 is_stmt 1 view .LVU317
+ 131:tmk_core/common/mousekey.c ****         if (mousekey_repeat != UINT8_MAX) mousekey_repeat++;
+ 1130               		.loc 1 131 25 is_stmt 0 view .LVU318
+ 1131 004c 8091 0000 		lds r24,mouse_report+4
+ 1132 0050 9091 0000 		lds r25,mouse_report+5
+ 1133 0054 892B      		or r24,r25
+ 1134 0056 01F0      		breq .L84
+ 131:tmk_core/common/mousekey.c ****         if (mousekey_repeat != UINT8_MAX) mousekey_repeat++;
+ 1135               		.loc 1 131 47 discriminator 3 view .LVU319
+ 1136 0058 8091 0000 		lds r24,last_timer_w
+ 1137 005c 9091 0000 		lds r25,last_timer_w+1
+ 1138 0060 0E94 0000 		call timer_elapsed
+ 1139               	.LVL79:
+ 1140 0064 AC01      		movw r20,r24
+ 131:tmk_core/common/mousekey.c ****         if (mousekey_repeat != UINT8_MAX) mousekey_repeat++;
+ 1141               		.loc 1 131 94 discriminator 3 view .LVU320
+ 1142 0066 9091 0000 		lds r25,mousekey_repeat
+ 131:tmk_core/common/mousekey.c ****         if (mousekey_repeat != UINT8_MAX) mousekey_repeat++;
+ 1143               		.loc 1 131 114 discriminator 3 view .LVU321
+ 1144 006a 9923      		tst r25
+ 1145 006c 01F4      		brne .+2
+ 1146 006e 00C0      		rjmp .L104
+ 131:tmk_core/common/mousekey.c ****         if (mousekey_repeat != UINT8_MAX) mousekey_repeat++;
+ 1147               		.loc 1 131 114 discriminator 4 view .LVU322
+ 1148 0070 8091 0000 		lds r24,mk_wheel_interval
+ 131:tmk_core/common/mousekey.c ****         if (mousekey_repeat != UINT8_MAX) mousekey_repeat++;
+ 1149               		.loc 1 131 44 discriminator 4 view .LVU323
+ 1150 0074 8417      		cp r24,r20
+ 1151 0076 1506      		cpc __zero_reg__,r21
+ 1152 0078 00F4      		brsh .+2
+ 1153 007a 00C0      		rjmp .L105
+ 1154               	.L84:
+ 1155               	/* epilogue start */
+ 154:tmk_core/common/mousekey.c **** 
+ 1156               		.loc 1 154 1 view .LVU324
+ 1157 007c 2696      		adiw r28,6
+ 1158 007e 0FB6      		in __tmp_reg__,__SREG__
+ 1159 0080 F894      		cli
+ 1160 0082 DEBF      		out __SP_H__,r29
+ 1161 0084 0FBE      		out __SREG__,__tmp_reg__
+ 1162 0086 CDBF      		out __SP_L__,r28
+ 1163 0088 DF91      		pop r29
+ 1164 008a CF91      		pop r28
+ 1165 008c 0895      		ret
+ 1166               	.L87:
+ 108:tmk_core/common/mousekey.c ****         if (mousekey_repeat != UINT8_MAX) mousekey_repeat++;
+ 1167               		.loc 1 108 119 discriminator 5 view .LVU325
+ 1168 008e 2091 0000 		lds r18,mk_delay
+ 1169 0092 8AE0      		ldi r24,lo8(10)
+ 1170 0094 289F      		mul r18,r24
+ 1171 0096 9001      		movw r18,r0
+ 1172 0098 1124      		clr __zero_reg__
+ 108:tmk_core/common/mousekey.c ****         if (mousekey_repeat != UINT8_MAX) mousekey_repeat++;
+ 1173               		.loc 1 108 44 discriminator 5 view .LVU326
+ 1174 009a 2417      		cp r18,r20
+ 1175 009c 3507      		cpc r19,r21
+ 1176 009e 00F4      		brsh .L86
+ 1177               	.L90:
+ 109:tmk_core/common/mousekey.c ****         mouse_report.v = 0;
+ 1178               		.loc 1 109 43 is_stmt 1 discriminator 1 view .LVU327
+ 109:tmk_core/common/mousekey.c ****         mouse_report.v = 0;
+ 1179               		.loc 1 109 58 is_stmt 0 discriminator 1 view .LVU328
+ 1180 00a0 9F5F      		subi r25,lo8(-(1))
+ 1181 00a2 9093 0000 		sts mousekey_repeat,r25
+ 1182 00a6 00C0      		rjmp .L91
+ 1183               	.L88:
+ 109:tmk_core/common/mousekey.c ****         mouse_report.v = 0;
+ 1184               		.loc 1 109 9 is_stmt 1 view .LVU329
+ 109:tmk_core/common/mousekey.c ****         mouse_report.v = 0;
+ 1185               		.loc 1 109 12 is_stmt 0 view .LVU330
+ 1186 00a8 9F3F      		cpi r25,lo8(-1)
+ 1187 00aa 01F4      		brne .L90
+ 1188               	.L91:
+ 110:tmk_core/common/mousekey.c ****         mouse_report.h = 0;
+ 1189               		.loc 1 110 9 is_stmt 1 view .LVU331
+ 110:tmk_core/common/mousekey.c ****         mouse_report.h = 0;
+ 1190               		.loc 1 110 24 is_stmt 0 view .LVU332
+ 1191 00ac 1092 0000 		sts mouse_report+4,__zero_reg__
+ 111:tmk_core/common/mousekey.c ****         if (mouse_report.x > 0) mouse_report.x = move_unit();
+ 1192               		.loc 1 111 9 is_stmt 1 view .LVU333
+ 111:tmk_core/common/mousekey.c ****         if (mouse_report.x > 0) mouse_report.x = move_unit();
+ 1193               		.loc 1 111 24 is_stmt 0 view .LVU334
+ 1194 00b0 1092 0000 		sts mouse_report+5,__zero_reg__
+ 112:tmk_core/common/mousekey.c ****         if (mouse_report.x < 0) mouse_report.x = move_unit() * -1;
+ 1195               		.loc 1 112 9 is_stmt 1 view .LVU335
+ 112:tmk_core/common/mousekey.c ****         if (mouse_report.x < 0) mouse_report.x = move_unit() * -1;
+ 1196               		.loc 1 112 12 is_stmt 0 view .LVU336
+ 1197 00b4 8091 0000 		lds r24,mouse_report+2
+ 1198 00b8 1816      		cp __zero_reg__,r24
+ 1199 00ba 04F4      		brge .L92
+ 112:tmk_core/common/mousekey.c ****         if (mouse_report.x < 0) mouse_report.x = move_unit() * -1;
+ 1200               		.loc 1 112 33 is_stmt 1 discriminator 1 view .LVU337
+ 112:tmk_core/common/mousekey.c ****         if (mouse_report.x < 0) mouse_report.x = move_unit() * -1;
+ 1201               		.loc 1 112 50 is_stmt 0 discriminator 1 view .LVU338
+ 1202 00bc 0E94 0000 		call move_unit
+ 1203               	.LVL80:
+ 112:tmk_core/common/mousekey.c ****         if (mouse_report.x < 0) mouse_report.x = move_unit() * -1;
+ 1204               		.loc 1 112 48 discriminator 1 view .LVU339
+ 1205 00c0 8093 0000 		sts mouse_report+2,r24
+ 1206               	.L92:
+ 113:tmk_core/common/mousekey.c ****         if (mouse_report.y > 0) mouse_report.y = move_unit();
+ 1207               		.loc 1 113 9 is_stmt 1 view .LVU340
+ 113:tmk_core/common/mousekey.c ****         if (mouse_report.y > 0) mouse_report.y = move_unit();
+ 1208               		.loc 1 113 12 is_stmt 0 view .LVU341
+ 1209 00c4 8091 0000 		lds r24,mouse_report+2
+ 1210 00c8 87FF      		sbrs r24,7
+ 1211 00ca 00C0      		rjmp .L93
+ 113:tmk_core/common/mousekey.c ****         if (mouse_report.y > 0) mouse_report.y = move_unit();
+ 1212               		.loc 1 113 33 is_stmt 1 discriminator 1 view .LVU342
+ 113:tmk_core/common/mousekey.c ****         if (mouse_report.y > 0) mouse_report.y = move_unit();
+ 1213               		.loc 1 113 50 is_stmt 0 discriminator 1 view .LVU343
+ 1214 00cc 0E94 0000 		call move_unit
+ 1215               	.LVL81:
+ 113:tmk_core/common/mousekey.c ****         if (mouse_report.y > 0) mouse_report.y = move_unit();
+ 1216               		.loc 1 113 48 discriminator 1 view .LVU344
+ 1217 00d0 8195      		neg r24
+ 1218 00d2 8093 0000 		sts mouse_report+2,r24
+ 1219               	.L93:
+ 114:tmk_core/common/mousekey.c ****         if (mouse_report.y < 0) mouse_report.y = move_unit() * -1;
+ 1220               		.loc 1 114 9 is_stmt 1 view .LVU345
+ 114:tmk_core/common/mousekey.c ****         if (mouse_report.y < 0) mouse_report.y = move_unit() * -1;
+ 1221               		.loc 1 114 12 is_stmt 0 view .LVU346
+ 1222 00d6 8091 0000 		lds r24,mouse_report+3
+ 1223 00da 1816      		cp __zero_reg__,r24
+ 1224 00dc 04F4      		brge .L94
+ 114:tmk_core/common/mousekey.c ****         if (mouse_report.y < 0) mouse_report.y = move_unit() * -1;
+ 1225               		.loc 1 114 33 is_stmt 1 discriminator 1 view .LVU347
+ 114:tmk_core/common/mousekey.c ****         if (mouse_report.y < 0) mouse_report.y = move_unit() * -1;
+ 1226               		.loc 1 114 50 is_stmt 0 discriminator 1 view .LVU348
+ 1227 00de 0E94 0000 		call move_unit
+ 1228               	.LVL82:
+ 114:tmk_core/common/mousekey.c ****         if (mouse_report.y < 0) mouse_report.y = move_unit() * -1;
+ 1229               		.loc 1 114 48 discriminator 1 view .LVU349
+ 1230 00e2 8093 0000 		sts mouse_report+3,r24
+ 1231               	.L94:
+ 115:tmk_core/common/mousekey.c ****         /* diagonal move [1/sqrt(2)] */
+ 1232               		.loc 1 115 9 is_stmt 1 view .LVU350
+ 115:tmk_core/common/mousekey.c ****         /* diagonal move [1/sqrt(2)] */
+ 1233               		.loc 1 115 12 is_stmt 0 view .LVU351
+ 1234 00e6 8091 0000 		lds r24,mouse_report+3
+ 1235 00ea 87FF      		sbrs r24,7
+ 1236 00ec 00C0      		rjmp .L95
+ 115:tmk_core/common/mousekey.c ****         /* diagonal move [1/sqrt(2)] */
+ 1237               		.loc 1 115 33 is_stmt 1 discriminator 1 view .LVU352
+ 115:tmk_core/common/mousekey.c ****         /* diagonal move [1/sqrt(2)] */
+ 1238               		.loc 1 115 50 is_stmt 0 discriminator 1 view .LVU353
+ 1239 00ee 0E94 0000 		call move_unit
+ 1240               	.LVL83:
+ 115:tmk_core/common/mousekey.c ****         /* diagonal move [1/sqrt(2)] */
+ 1241               		.loc 1 115 48 discriminator 1 view .LVU354
+ 1242 00f2 8195      		neg r24
+ 1243 00f4 8093 0000 		sts mouse_report+3,r24
+ 1244               	.L95:
+ 117:tmk_core/common/mousekey.c ****             mouse_report.x = times_inv_sqrt2(mouse_report.x);
+ 1245               		.loc 1 117 9 is_stmt 1 view .LVU355
+ 117:tmk_core/common/mousekey.c ****             mouse_report.x = times_inv_sqrt2(mouse_report.x);
+ 1246               		.loc 1 117 25 is_stmt 0 view .LVU356
+ 1247 00f8 3091 0000 		lds r19,mouse_report+2
+ 117:tmk_core/common/mousekey.c ****             mouse_report.x = times_inv_sqrt2(mouse_report.x);
+ 1248               		.loc 1 117 12 view .LVU357
+ 1249 00fc 3323      		tst r19
+ 1250 00fe 01F0      		breq .L97
+ 117:tmk_core/common/mousekey.c ****             mouse_report.x = times_inv_sqrt2(mouse_report.x);
+ 1251               		.loc 1 117 43 discriminator 1 view .LVU358
+ 1252 0100 2091 0000 		lds r18,mouse_report+3
+ 117:tmk_core/common/mousekey.c ****             mouse_report.x = times_inv_sqrt2(mouse_report.x);
+ 1253               		.loc 1 117 28 discriminator 1 view .LVU359
+ 1254 0104 2223      		tst r18
+ 1255 0106 01F0      		breq .L97
+ 118:tmk_core/common/mousekey.c ****             if (mouse_report.x == 0) {
+ 1256               		.loc 1 118 13 is_stmt 1 view .LVU360
+ 1257               	.LVL84:
+ 1258               	.LBB59:
+ 1259               	.LBI59:
+  26:tmk_core/common/mousekey.c ****     // 181/256 is pretty close to 1/sqrt(2)
+ 1260               		.loc 1 26 15 view .LVU361
+ 1261               	.LBB60:
+  31:tmk_core/common/mousekey.c **** }
+ 1262               		.loc 1 31 5 view .LVU362
+  31:tmk_core/common/mousekey.c **** }
+ 1263               		.loc 1 31 15 is_stmt 0 view .LVU363
+ 1264 0108 45EB      		ldi r20,lo8(-75)
+ 1265 010a 3403      		mulsu r19,r20
+ 1266 010c C001      		movw r24,r0
+ 1267 010e 1124      		clr __zero_reg__
+ 1268               	.LVL85:
+  31:tmk_core/common/mousekey.c **** }
+ 1269               		.loc 1 31 15 view .LVU364
+ 1270               	.LBE60:
+ 1271               	.LBE59:
+ 119:tmk_core/common/mousekey.c ****                 mouse_report.x = 1;
+ 1272               		.loc 1 119 13 is_stmt 1 view .LVU365
+ 119:tmk_core/common/mousekey.c ****                 mouse_report.x = 1;
+ 1273               		.loc 1 119 16 is_stmt 0 view .LVU366
+ 1274 0110 9923      		tst r25
+ 1275 0112 01F0      		breq .L99
+ 118:tmk_core/common/mousekey.c ****             if (mouse_report.x == 0) {
+ 1276               		.loc 1 118 28 view .LVU367
+ 1277 0114 9093 0000 		sts mouse_report+2,r25
+ 1278               	.L100:
+ 122:tmk_core/common/mousekey.c ****             if (mouse_report.y == 0) {
+ 1279               		.loc 1 122 13 is_stmt 1 view .LVU368
+ 1280               	.LVL86:
+ 1281               	.LBB61:
+ 1282               	.LBI61:
+  26:tmk_core/common/mousekey.c ****     // 181/256 is pretty close to 1/sqrt(2)
+ 1283               		.loc 1 26 15 view .LVU369
+ 1284               	.LBB62:
+  31:tmk_core/common/mousekey.c **** }
+ 1285               		.loc 1 31 5 view .LVU370
+  31:tmk_core/common/mousekey.c **** }
+ 1286               		.loc 1 31 15 is_stmt 0 view .LVU371
+ 1287 0118 45EB      		ldi r20,lo8(-75)
+ 1288 011a 2403      		mulsu r18,r20
+ 1289 011c 9001      		movw r18,r0
+ 1290 011e 1124      		clr __zero_reg__
+ 1291               	.LVL87:
+  31:tmk_core/common/mousekey.c **** }
+ 1292               		.loc 1 31 15 view .LVU372
+ 1293               	.LBE62:
+ 1294               	.LBE61:
+ 123:tmk_core/common/mousekey.c ****                 mouse_report.y = 1;
+ 1295               		.loc 1 123 13 is_stmt 1 view .LVU373
+ 123:tmk_core/common/mousekey.c ****                 mouse_report.y = 1;
+ 1296               		.loc 1 123 16 is_stmt 0 view .LVU374
+ 1297 0120 3323      		tst r19
+ 1298 0122 01F0      		breq .L101
+ 122:tmk_core/common/mousekey.c ****             if (mouse_report.y == 0) {
+ 1299               		.loc 1 122 28 view .LVU375
+ 1300 0124 3093 0000 		sts mouse_report+3,r19
+ 1301               	.L97:
+ 127:tmk_core/common/mousekey.c ****         last_timer_c = last_timer;
+ 1302               		.loc 1 127 9 is_stmt 1 view .LVU376
+ 1303 0128 0E94 0000 		call mousekey_send
+ 1304               	.LVL88:
+ 128:tmk_core/common/mousekey.c ****         mouse_report = tmpmr;
+ 1305               		.loc 1 128 9 view .LVU377
+ 128:tmk_core/common/mousekey.c ****         mouse_report = tmpmr;
+ 1306               		.loc 1 128 22 is_stmt 0 view .LVU378
+ 1307 012c 8091 0000 		lds r24,last_timer
+ 1308 0130 9091 0000 		lds r25,last_timer+1
+ 1309 0134 9093 0000 		sts last_timer_c+1,r25
+ 1310 0138 8093 0000 		sts last_timer_c,r24
+ 129:tmk_core/common/mousekey.c ****     }
+ 1311               		.loc 1 129 9 is_stmt 1 view .LVU379
+ 129:tmk_core/common/mousekey.c ****     }
+ 1312               		.loc 1 129 22 is_stmt 0 view .LVU380
+ 1313 013c 86E0      		ldi r24,lo8(6)
+ 1314 013e FE01      		movw r30,r28
+ 1315 0140 3196      		adiw r30,1
+ 1316 0142 A0E0      		ldi r26,lo8(mouse_report)
+ 1317 0144 B0E0      		ldi r27,hi8(mouse_report)
+ 1318               		0:
+ 1319 0146 0190      		ld r0,Z+
+ 1320 0148 0D92      		st X+,r0
+ 1321 014a 8A95      		dec r24
+ 1322 014c 01F4      		brne 0b
+ 1323 014e 00C0      		rjmp .L86
+ 1324               	.L99:
+ 120:tmk_core/common/mousekey.c ****             }
+ 1325               		.loc 1 120 17 is_stmt 1 view .LVU381
+ 120:tmk_core/common/mousekey.c ****             }
+ 1326               		.loc 1 120 32 is_stmt 0 view .LVU382
+ 1327 0150 81E0      		ldi r24,lo8(1)
+ 1328 0152 8093 0000 		sts mouse_report+2,r24
+ 1329 0156 00C0      		rjmp .L100
+ 1330               	.L101:
+ 124:tmk_core/common/mousekey.c ****             }
+ 1331               		.loc 1 124 17 is_stmt 1 view .LVU383
+ 124:tmk_core/common/mousekey.c ****             }
+ 1332               		.loc 1 124 32 is_stmt 0 view .LVU384
+ 1333 0158 81E0      		ldi r24,lo8(1)
+ 1334 015a 8093 0000 		sts mouse_report+3,r24
+ 1335 015e 00C0      		rjmp .L97
+ 1336               	.L104:
+ 131:tmk_core/common/mousekey.c ****         if (mousekey_repeat != UINT8_MAX) mousekey_repeat++;
+ 1337               		.loc 1 131 131 discriminator 5 view .LVU385
+ 1338 0160 2091 0000 		lds r18,mk_wheel_delay
+ 1339 0164 8AE0      		ldi r24,lo8(10)
+ 1340 0166 289F      		mul r18,r24
+ 1341 0168 9001      		movw r18,r0
+ 1342 016a 1124      		clr __zero_reg__
+ 131:tmk_core/common/mousekey.c ****         if (mousekey_repeat != UINT8_MAX) mousekey_repeat++;
+ 1343               		.loc 1 131 44 discriminator 5 view .LVU386
+ 1344 016c 2417      		cp r18,r20
+ 1345 016e 3507      		cpc r19,r21
+ 1346 0170 00F0      		brlo .+2
+ 1347 0172 00C0      		rjmp .L84
+ 1348               	.L107:
+ 132:tmk_core/common/mousekey.c ****         mouse_report.x = 0;
+ 1349               		.loc 1 132 43 is_stmt 1 discriminator 1 view .LVU387
+ 132:tmk_core/common/mousekey.c ****         mouse_report.x = 0;
+ 1350               		.loc 1 132 58 is_stmt 0 discriminator 1 view .LVU388
+ 1351 0174 9F5F      		subi r25,lo8(-(1))
+ 1352 0176 9093 0000 		sts mousekey_repeat,r25
+ 1353 017a 00C0      		rjmp .L108
+ 1354               	.L105:
+ 132:tmk_core/common/mousekey.c ****         mouse_report.x = 0;
+ 1355               		.loc 1 132 9 is_stmt 1 view .LVU389
+ 132:tmk_core/common/mousekey.c ****         mouse_report.x = 0;
+ 1356               		.loc 1 132 12 is_stmt 0 view .LVU390
+ 1357 017c 9F3F      		cpi r25,lo8(-1)
+ 1358 017e 01F4      		brne .L107
+ 1359               	.L108:
+ 133:tmk_core/common/mousekey.c ****         mouse_report.y = 0;
+ 1360               		.loc 1 133 9 is_stmt 1 view .LVU391
+ 133:tmk_core/common/mousekey.c ****         mouse_report.y = 0;
+ 1361               		.loc 1 133 24 is_stmt 0 view .LVU392
+ 1362 0180 1092 0000 		sts mouse_report+2,__zero_reg__
+ 134:tmk_core/common/mousekey.c ****         if (mouse_report.v > 0) mouse_report.v = wheel_unit();
+ 1363               		.loc 1 134 9 is_stmt 1 view .LVU393
+ 134:tmk_core/common/mousekey.c ****         if (mouse_report.v > 0) mouse_report.v = wheel_unit();
+ 1364               		.loc 1 134 24 is_stmt 0 view .LVU394
+ 1365 0184 1092 0000 		sts mouse_report+3,__zero_reg__
+ 135:tmk_core/common/mousekey.c ****         if (mouse_report.v < 0) mouse_report.v = wheel_unit() * -1;
+ 1366               		.loc 1 135 9 is_stmt 1 view .LVU395
+ 135:tmk_core/common/mousekey.c ****         if (mouse_report.v < 0) mouse_report.v = wheel_unit() * -1;
+ 1367               		.loc 1 135 12 is_stmt 0 view .LVU396
+ 1368 0188 8091 0000 		lds r24,mouse_report+4
+ 1369 018c 1816      		cp __zero_reg__,r24
+ 1370 018e 04F4      		brge .L109
+ 135:tmk_core/common/mousekey.c ****         if (mouse_report.v < 0) mouse_report.v = wheel_unit() * -1;
+ 1371               		.loc 1 135 33 is_stmt 1 discriminator 1 view .LVU397
+ 135:tmk_core/common/mousekey.c ****         if (mouse_report.v < 0) mouse_report.v = wheel_unit() * -1;
+ 1372               		.loc 1 135 50 is_stmt 0 discriminator 1 view .LVU398
+ 1373 0190 0E94 0000 		call wheel_unit
+ 1374               	.LVL89:
+ 135:tmk_core/common/mousekey.c ****         if (mouse_report.v < 0) mouse_report.v = wheel_unit() * -1;
+ 1375               		.loc 1 135 48 discriminator 1 view .LVU399
+ 1376 0194 8093 0000 		sts mouse_report+4,r24
+ 1377               	.L109:
+ 136:tmk_core/common/mousekey.c ****         if (mouse_report.h > 0) mouse_report.h = wheel_unit();
+ 1378               		.loc 1 136 9 is_stmt 1 view .LVU400
+ 136:tmk_core/common/mousekey.c ****         if (mouse_report.h > 0) mouse_report.h = wheel_unit();
+ 1379               		.loc 1 136 12 is_stmt 0 view .LVU401
+ 1380 0198 8091 0000 		lds r24,mouse_report+4
+ 1381 019c 87FF      		sbrs r24,7
+ 1382 019e 00C0      		rjmp .L110
+ 136:tmk_core/common/mousekey.c ****         if (mouse_report.h > 0) mouse_report.h = wheel_unit();
+ 1383               		.loc 1 136 33 is_stmt 1 discriminator 1 view .LVU402
+ 136:tmk_core/common/mousekey.c ****         if (mouse_report.h > 0) mouse_report.h = wheel_unit();
+ 1384               		.loc 1 136 50 is_stmt 0 discriminator 1 view .LVU403
+ 1385 01a0 0E94 0000 		call wheel_unit
+ 1386               	.LVL90:
+ 136:tmk_core/common/mousekey.c ****         if (mouse_report.h > 0) mouse_report.h = wheel_unit();
+ 1387               		.loc 1 136 48 discriminator 1 view .LVU404
+ 1388 01a4 8195      		neg r24
+ 1389 01a6 8093 0000 		sts mouse_report+4,r24
+ 1390               	.L110:
+ 137:tmk_core/common/mousekey.c ****         if (mouse_report.h < 0) mouse_report.h = wheel_unit() * -1;
+ 1391               		.loc 1 137 9 is_stmt 1 view .LVU405
+ 137:tmk_core/common/mousekey.c ****         if (mouse_report.h < 0) mouse_report.h = wheel_unit() * -1;
+ 1392               		.loc 1 137 12 is_stmt 0 view .LVU406
+ 1393 01aa 8091 0000 		lds r24,mouse_report+5
+ 1394 01ae 1816      		cp __zero_reg__,r24
+ 1395 01b0 04F4      		brge .L111
+ 137:tmk_core/common/mousekey.c ****         if (mouse_report.h < 0) mouse_report.h = wheel_unit() * -1;
+ 1396               		.loc 1 137 33 is_stmt 1 discriminator 1 view .LVU407
+ 137:tmk_core/common/mousekey.c ****         if (mouse_report.h < 0) mouse_report.h = wheel_unit() * -1;
+ 1397               		.loc 1 137 50 is_stmt 0 discriminator 1 view .LVU408
+ 1398 01b2 0E94 0000 		call wheel_unit
+ 1399               	.LVL91:
+ 137:tmk_core/common/mousekey.c ****         if (mouse_report.h < 0) mouse_report.h = wheel_unit() * -1;
+ 1400               		.loc 1 137 48 discriminator 1 view .LVU409
+ 1401 01b6 8093 0000 		sts mouse_report+5,r24
+ 1402               	.L111:
+ 138:tmk_core/common/mousekey.c ****         /* diagonal move [1/sqrt(2)] */
+ 1403               		.loc 1 138 9 is_stmt 1 view .LVU410
+ 138:tmk_core/common/mousekey.c ****         /* diagonal move [1/sqrt(2)] */
+ 1404               		.loc 1 138 12 is_stmt 0 view .LVU411
+ 1405 01ba 8091 0000 		lds r24,mouse_report+5
+ 1406 01be 87FF      		sbrs r24,7
+ 1407 01c0 00C0      		rjmp .L112
+ 138:tmk_core/common/mousekey.c ****         /* diagonal move [1/sqrt(2)] */
+ 1408               		.loc 1 138 33 is_stmt 1 discriminator 1 view .LVU412
+ 138:tmk_core/common/mousekey.c ****         /* diagonal move [1/sqrt(2)] */
+ 1409               		.loc 1 138 50 is_stmt 0 discriminator 1 view .LVU413
+ 1410 01c2 0E94 0000 		call wheel_unit
+ 1411               	.LVL92:
+ 138:tmk_core/common/mousekey.c ****         /* diagonal move [1/sqrt(2)] */
+ 1412               		.loc 1 138 48 discriminator 1 view .LVU414
+ 1413 01c6 8195      		neg r24
+ 1414 01c8 8093 0000 		sts mouse_report+5,r24
+ 1415               	.L112:
+ 140:tmk_core/common/mousekey.c ****             mouse_report.v = times_inv_sqrt2(mouse_report.v);
+ 1416               		.loc 1 140 9 is_stmt 1 view .LVU415
+ 140:tmk_core/common/mousekey.c ****             mouse_report.v = times_inv_sqrt2(mouse_report.v);
+ 1417               		.loc 1 140 25 is_stmt 0 view .LVU416
+ 1418 01cc 3091 0000 		lds r19,mouse_report+4
+ 140:tmk_core/common/mousekey.c ****             mouse_report.v = times_inv_sqrt2(mouse_report.v);
+ 1419               		.loc 1 140 12 view .LVU417
+ 1420 01d0 3323      		tst r19
+ 1421 01d2 01F0      		breq .L114
+ 140:tmk_core/common/mousekey.c ****             mouse_report.v = times_inv_sqrt2(mouse_report.v);
+ 1422               		.loc 1 140 43 discriminator 1 view .LVU418
+ 1423 01d4 2091 0000 		lds r18,mouse_report+5
+ 140:tmk_core/common/mousekey.c ****             mouse_report.v = times_inv_sqrt2(mouse_report.v);
+ 1424               		.loc 1 140 28 discriminator 1 view .LVU419
+ 1425 01d8 2223      		tst r18
+ 1426 01da 01F0      		breq .L114
+ 141:tmk_core/common/mousekey.c ****             if (mouse_report.v == 0) {
+ 1427               		.loc 1 141 13 is_stmt 1 view .LVU420
+ 1428               	.LVL93:
+ 1429               	.LBB63:
+ 1430               	.LBI63:
+  26:tmk_core/common/mousekey.c ****     // 181/256 is pretty close to 1/sqrt(2)
+ 1431               		.loc 1 26 15 view .LVU421
+ 1432               	.LBB64:
+  31:tmk_core/common/mousekey.c **** }
+ 1433               		.loc 1 31 5 view .LVU422
+  31:tmk_core/common/mousekey.c **** }
+ 1434               		.loc 1 31 15 is_stmt 0 view .LVU423
+ 1435 01dc 45EB      		ldi r20,lo8(-75)
+ 1436 01de 3403      		mulsu r19,r20
+ 1437 01e0 C001      		movw r24,r0
+ 1438 01e2 1124      		clr __zero_reg__
+ 1439               	.LVL94:
+  31:tmk_core/common/mousekey.c **** }
+ 1440               		.loc 1 31 15 view .LVU424
+ 1441               	.LBE64:
+ 1442               	.LBE63:
+ 142:tmk_core/common/mousekey.c ****                 mouse_report.v = 1;
+ 1443               		.loc 1 142 13 is_stmt 1 view .LVU425
+ 142:tmk_core/common/mousekey.c ****                 mouse_report.v = 1;
+ 1444               		.loc 1 142 16 is_stmt 0 view .LVU426
+ 1445 01e4 9923      		tst r25
+ 1446 01e6 01F0      		breq .L116
+ 141:tmk_core/common/mousekey.c ****             if (mouse_report.v == 0) {
+ 1447               		.loc 1 141 28 view .LVU427
+ 1448 01e8 9093 0000 		sts mouse_report+4,r25
+ 1449               	.L117:
+ 145:tmk_core/common/mousekey.c ****             if (mouse_report.h == 0) {
+ 1450               		.loc 1 145 13 is_stmt 1 view .LVU428
+ 1451               	.LVL95:
+ 1452               	.LBB65:
+ 1453               	.LBI65:
+  26:tmk_core/common/mousekey.c ****     // 181/256 is pretty close to 1/sqrt(2)
+ 1454               		.loc 1 26 15 view .LVU429
+ 1455               	.LBB66:
+  31:tmk_core/common/mousekey.c **** }
+ 1456               		.loc 1 31 5 view .LVU430
+  31:tmk_core/common/mousekey.c **** }
+ 1457               		.loc 1 31 15 is_stmt 0 view .LVU431
+ 1458 01ec 45EB      		ldi r20,lo8(-75)
+ 1459 01ee 2403      		mulsu r18,r20
+ 1460 01f0 9001      		movw r18,r0
+ 1461 01f2 1124      		clr __zero_reg__
+ 1462               	.LVL96:
+  31:tmk_core/common/mousekey.c **** }
+ 1463               		.loc 1 31 15 view .LVU432
+ 1464               	.LBE66:
+ 1465               	.LBE65:
+ 146:tmk_core/common/mousekey.c ****                 mouse_report.h = 1;
+ 1466               		.loc 1 146 13 is_stmt 1 view .LVU433
+ 146:tmk_core/common/mousekey.c ****                 mouse_report.h = 1;
+ 1467               		.loc 1 146 16 is_stmt 0 view .LVU434
+ 1468 01f4 3323      		tst r19
+ 1469 01f6 01F0      		breq .L118
+ 145:tmk_core/common/mousekey.c ****             if (mouse_report.h == 0) {
+ 1470               		.loc 1 145 28 view .LVU435
+ 1471 01f8 3093 0000 		sts mouse_report+5,r19
+ 1472               	.L114:
+ 150:tmk_core/common/mousekey.c ****         last_timer_w = last_timer;
+ 1473               		.loc 1 150 9 is_stmt 1 view .LVU436
+ 1474 01fc 0E94 0000 		call mousekey_send
+ 1475               	.LVL97:
+ 151:tmk_core/common/mousekey.c ****         mouse_report = tmpmr;
+ 1476               		.loc 1 151 9 view .LVU437
+ 151:tmk_core/common/mousekey.c ****         mouse_report = tmpmr;
+ 1477               		.loc 1 151 22 is_stmt 0 view .LVU438
+ 1478 0200 8091 0000 		lds r24,last_timer
+ 1479 0204 9091 0000 		lds r25,last_timer+1
+ 1480 0208 9093 0000 		sts last_timer_w+1,r25
+ 1481 020c 8093 0000 		sts last_timer_w,r24
+ 152:tmk_core/common/mousekey.c ****     }
+ 1482               		.loc 1 152 9 is_stmt 1 view .LVU439
+ 152:tmk_core/common/mousekey.c ****     }
+ 1483               		.loc 1 152 22 is_stmt 0 view .LVU440
+ 1484 0210 86E0      		ldi r24,lo8(6)
+ 1485 0212 FE01      		movw r30,r28
+ 1486 0214 3196      		adiw r30,1
+ 1487 0216 A0E0      		ldi r26,lo8(mouse_report)
+ 1488 0218 B0E0      		ldi r27,hi8(mouse_report)
+ 1489               		0:
+ 1490 021a 0190      		ld r0,Z+
+ 1491 021c 0D92      		st X+,r0
+ 1492 021e 8A95      		dec r24
+ 1493 0220 01F4      		brne 0b
+ 154:tmk_core/common/mousekey.c **** 
+ 1494               		.loc 1 154 1 view .LVU441
+ 1495 0222 00C0      		rjmp .L84
+ 1496               	.L116:
+ 143:tmk_core/common/mousekey.c ****             }
+ 1497               		.loc 1 143 17 is_stmt 1 view .LVU442
+ 143:tmk_core/common/mousekey.c ****             }
+ 1498               		.loc 1 143 32 is_stmt 0 view .LVU443
+ 1499 0224 81E0      		ldi r24,lo8(1)
+ 1500 0226 8093 0000 		sts mouse_report+4,r24
+ 1501 022a 00C0      		rjmp .L117
+ 1502               	.L118:
+ 147:tmk_core/common/mousekey.c ****             }
+ 1503               		.loc 1 147 17 is_stmt 1 view .LVU444
+ 147:tmk_core/common/mousekey.c ****             }
+ 1504               		.loc 1 147 32 is_stmt 0 view .LVU445
+ 1505 022c 81E0      		ldi r24,lo8(1)
+ 1506 022e 8093 0000 		sts mouse_report+5,r24
+ 1507 0232 00C0      		rjmp .L114
+ 1508               		.cfi_endproc
+ 1509               	.LFE105:
+ 1511               		.section	.text.mousekey_clear,"ax",@progbits
+ 1512               	.global	mousekey_clear
+ 1514               	mousekey_clear:
+ 1515               	.LFB109:
+ 378:tmk_core/common/mousekey.c ****     mouse_report    = (report_mouse_t){};
+ 1516               		.loc 1 378 27 is_stmt 1 view -0
+ 1517               		.cfi_startproc
+ 1518               	/* prologue: function */
+ 1519               	/* frame size = 0 */
+ 1520               	/* stack size = 0 */
+ 1521               	.L__stack_usage = 0
+ 379:tmk_core/common/mousekey.c ****     mousekey_repeat = 0;
+ 1522               		.loc 1 379 5 view .LVU447
+ 379:tmk_core/common/mousekey.c ****     mousekey_repeat = 0;
+ 1523               		.loc 1 379 21 is_stmt 0 view .LVU448
+ 1524 0000 86E0      		ldi r24,lo8(6)
+ 1525 0002 E0E0      		ldi r30,lo8(mouse_report)
+ 1526 0004 F0E0      		ldi r31,hi8(mouse_report)
+ 1527 0006 DF01      		movw r26,r30
+ 1528               		0:
+ 1529 0008 1D92      		st X+,__zero_reg__
+ 1530 000a 8A95      		dec r24
+ 1531 000c 01F4      		brne 0b
+ 380:tmk_core/common/mousekey.c ****     mousekey_accel  = 0;
+ 1532               		.loc 1 380 5 is_stmt 1 view .LVU449
+ 380:tmk_core/common/mousekey.c ****     mousekey_accel  = 0;
+ 1533               		.loc 1 380 21 is_stmt 0 view .LVU450
+ 1534 000e 1092 0000 		sts mousekey_repeat,__zero_reg__
+ 381:tmk_core/common/mousekey.c **** }
+ 1535               		.loc 1 381 5 is_stmt 1 view .LVU451
+ 381:tmk_core/common/mousekey.c **** }
+ 1536               		.loc 1 381 21 is_stmt 0 view .LVU452
+ 1537 0012 1092 0000 		sts mousekey_accel,__zero_reg__
+ 1538               	/* epilogue start */
+ 382:tmk_core/common/mousekey.c **** 
+ 1539               		.loc 1 382 1 view .LVU453
+ 1540 0016 0895      		ret
+ 1541               		.cfi_endproc
+ 1542               	.LFE109:
+ 1544               		.section	.progmem.data.__c.4935,"a"
+ 1547               	__c.4935:
+ 1548 0000 290A 00   		.string	")\n"
+ 1549               		.section	.progmem.data.__c.4933,"a"
+ 1552               	__c.4933:
+ 1553 0000 2575 00   		.string	"%u"
+ 1554               		.section	.progmem.data.__c.4931,"a"
+ 1557               	__c.4931:
+ 1558 0000 2F00      		.string	"/"
+ 1559               		.section	.progmem.data.__c.4929,"a"
+ 1562               	__c.4929:
+ 1563 0000 2575 00   		.string	"%u"
+ 1564               		.section	.progmem.data.__c.4927,"a"
+ 1567               	__c.4927:
+ 1568 0000 5D28 00   		.string	"]("
+ 1569               		.section	.progmem.data.__c.4925,"a"
+ 1572               	__c.4925:
+ 1573 0000 2564 00   		.string	"%d"
+ 1574               		.section	.progmem.data.__c.4923,"a"
+ 1577               	__c.4923:
+ 1578 0000 2000      		.string	" "
+ 1579               		.section	.progmem.data.__c.4921,"a"
+ 1582               	__c.4921:
+ 1583 0000 2564 00   		.string	"%d"
+ 1584               		.section	.progmem.data.__c.4919,"a"
+ 1587               	__c.4919:
+ 1588 0000 2000      		.string	" "
+ 1589               		.section	.progmem.data.__c.4917,"a"
+ 1592               	__c.4917:
+ 1593 0000 2564 00   		.string	"%d"
+ 1594               		.section	.progmem.data.__c.4915,"a"
+ 1597               	__c.4915:
+ 1598 0000 2000      		.string	" "
+ 1599               		.section	.progmem.data.__c.4913,"a"
+ 1602               	__c.4913:
+ 1603 0000 2564 00   		.string	"%d"
+ 1604               		.section	.progmem.data.__c.4911,"a"
+ 1607               	__c.4911:
+ 1608 0000 7C00      		.string	"|"
+ 1609               		.section	.progmem.data.__c.4909,"a"
+ 1612               	__c.4909:
+ 1613 0000 2530 3258 		.string	"%02X"
+ 1613      00
+ 1614               		.section	.progmem.data.__c.4907,"a"
+ 1617               	__c.4907:
+ 1618 0000 6D6F 7573 		.string	"mousekey [btn|x y v h](rep/acl): ["
+ 1618      656B 6579 
+ 1618      205B 6274 
+ 1618      6E7C 7820 
+ 1618      7920 7620 
+ 1619               	.global	mk_wheel_time_to_max
+ 1620               		.section	.data.mk_wheel_time_to_max,"aw"
+ 1623               	mk_wheel_time_to_max:
+ 1624 0000 28        		.byte	40
+ 1625               	.global	mk_wheel_max_speed
+ 1626               		.section	.data.mk_wheel_max_speed,"aw"
+ 1629               	mk_wheel_max_speed:
+ 1630 0000 08        		.byte	8
+ 1631               	.global	mk_wheel_interval
+ 1632               		.section	.data.mk_wheel_interval,"aw"
+ 1635               	mk_wheel_interval:
+ 1636 0000 64        		.byte	100
+ 1637               	.global	mk_wheel_delay
+ 1638               		.section	.data.mk_wheel_delay,"aw"
+ 1641               	mk_wheel_delay:
+ 1642 0000 1E        		.byte	30
+ 1643               	.global	mk_time_to_max
+ 1644               		.section	.data.mk_time_to_max,"aw"
+ 1647               	mk_time_to_max:
+ 1648 0000 14        		.byte	20
+ 1649               	.global	mk_max_speed
+ 1650               		.section	.data.mk_max_speed,"aw"
+ 1653               	mk_max_speed:
+ 1654 0000 0A        		.byte	10
+ 1655               	.global	mk_interval
+ 1656               		.section	.data.mk_interval,"aw"
+ 1659               	mk_interval:
+ 1660 0000 32        		.byte	50
+ 1661               	.global	mk_delay
+ 1662               		.section	.data.mk_delay,"aw"
+ 1665               	mk_delay:
+ 1666 0000 1E        		.byte	30
+ 1667               		.section	.bss.last_timer_w,"aw",@nobits
+ 1670               	last_timer_w:
+ 1671 0000 0000      		.zero	2
+ 1672               		.section	.bss.last_timer_c,"aw",@nobits
+ 1675               	last_timer_c:
+ 1676 0000 0000      		.zero	2
+ 1677               		.section	.bss.last_timer,"aw",@nobits
+ 1680               	last_timer:
+ 1681 0000 0000      		.zero	2
+ 1682               		.section	.bss.mousekey_repeat,"aw",@nobits
+ 1685               	mousekey_repeat:
+ 1686 0000 00        		.zero	1
+ 1687               		.section	.bss.mousekey_accel,"aw",@nobits
+ 1690               	mousekey_accel:
+ 1691 0000 00        		.zero	1
+ 1692               		.section	.bss.mouse_report,"aw",@nobits
+ 1695               	mouse_report:
+ 1696 0000 0000 0000 		.zero	6
+ 1696      0000 
+ 1697               		.text
+ 1698               	.Letext0:
+ 1699               		.file 2 "c:\\msys64\\home\\kyleo\\qmk_utils\\avr8-gnu-toolchain\\avr\\include\\stdint.h"
+ 1700               		.file 3 "tmk_core/common/keycode.h"
+ 1701               		.file 4 "tmk_core/common/report.h"
+ 1702               		.file 5 "lib/lufa/LUFA/Drivers/USB/Core/AVR8/../StdRequestType.h"
+ 1703               		.file 6 "lib/lufa/LUFA/Drivers/USB/Core/AVR8/../DeviceStandardReq.h"
+ 1704               		.file 7 "lib/lufa/LUFA/Drivers/USB/Core/USBTask.h"
+ 1705               		.file 8 "lib/lufa/LUFA/Drivers/USB/Core/HostStandardReq.h"
+ 1706               		.file 9 "c:\\msys64\\home\\kyleo\\qmk_utils\\avr8-gnu-toolchain\\avr\\include\\stdio.h"
+ 1707               		.file 10 "tmk_core/common/host.h"
+ 1708               		.file 11 "tmk_core/common/timer.h"
+ 1709               		.file 12 "tmk_core/common/avr/xprintf.h"
+ 1710               		.file 13 "tmk_core/common/debug.h"
+ 1711               		.file 14 "tmk_core/common/mousekey.h"
+DEFINED SYMBOLS
+                            *ABS*:00000000 mousekey.c
+C:\Users\kyleo\AppData\Local\Temp\ccW2XUFw.s:2      *ABS*:0000003e __SP_H__
+C:\Users\kyleo\AppData\Local\Temp\ccW2XUFw.s:3      *ABS*:0000003d __SP_L__
+C:\Users\kyleo\AppData\Local\Temp\ccW2XUFw.s:4      *ABS*:0000003f __SREG__
+C:\Users\kyleo\AppData\Local\Temp\ccW2XUFw.s:5      *ABS*:00000000 __tmp_reg__
+C:\Users\kyleo\AppData\Local\Temp\ccW2XUFw.s:6      *ABS*:00000001 __zero_reg__
+C:\Users\kyleo\AppData\Local\Temp\ccW2XUFw.s:12     .text.move_unit:00000000 move_unit
+C:\Users\kyleo\AppData\Local\Temp\ccW2XUFw.s:1690   .bss.mousekey_accel:00000000 mousekey_accel
+C:\Users\kyleo\AppData\Local\Temp\ccW2XUFw.s:1653   .data.mk_max_speed:00000000 mk_max_speed
+C:\Users\kyleo\AppData\Local\Temp\ccW2XUFw.s:1685   .bss.mousekey_repeat:00000000 mousekey_repeat
+C:\Users\kyleo\AppData\Local\Temp\ccW2XUFw.s:1647   .data.mk_time_to_max:00000000 mk_time_to_max
+C:\Users\kyleo\AppData\Local\Temp\ccW2XUFw.s:148    .text.wheel_unit:00000000 wheel_unit
+C:\Users\kyleo\AppData\Local\Temp\ccW2XUFw.s:1629   .data.mk_wheel_max_speed:00000000 mk_wheel_max_speed
+C:\Users\kyleo\AppData\Local\Temp\ccW2XUFw.s:1623   .data.mk_wheel_time_to_max:00000000 mk_wheel_time_to_max
+C:\Users\kyleo\AppData\Local\Temp\ccW2XUFw.s:264    .text.mousekey_on:00000000 mousekey_on
+C:\Users\kyleo\AppData\Local\Temp\ccW2XUFw.s:1695   .bss.mouse_report:00000000 mouse_report
+C:\Users\kyleo\AppData\Local\Temp\ccW2XUFw.s:501    .text.mousekey_off:00000000 mousekey_off
+C:\Users\kyleo\AppData\Local\Temp\ccW2XUFw.s:760    .text.mousekey_send:00000000 mousekey_send
+C:\Users\kyleo\AppData\Local\Temp\ccW2XUFw.s:1617   .progmem.data.__c.4907:00000000 __c.4907
+C:\Users\kyleo\AppData\Local\Temp\ccW2XUFw.s:1612   .progmem.data.__c.4909:00000000 __c.4909
+C:\Users\kyleo\AppData\Local\Temp\ccW2XUFw.s:1607   .progmem.data.__c.4911:00000000 __c.4911
+C:\Users\kyleo\AppData\Local\Temp\ccW2XUFw.s:1602   .progmem.data.__c.4913:00000000 __c.4913
+C:\Users\kyleo\AppData\Local\Temp\ccW2XUFw.s:1597   .progmem.data.__c.4915:00000000 __c.4915
+C:\Users\kyleo\AppData\Local\Temp\ccW2XUFw.s:1592   .progmem.data.__c.4917:00000000 __c.4917
+C:\Users\kyleo\AppData\Local\Temp\ccW2XUFw.s:1587   .progmem.data.__c.4919:00000000 __c.4919
+C:\Users\kyleo\AppData\Local\Temp\ccW2XUFw.s:1582   .progmem.data.__c.4921:00000000 __c.4921
+C:\Users\kyleo\AppData\Local\Temp\ccW2XUFw.s:1577   .progmem.data.__c.4923:00000000 __c.4923
+C:\Users\kyleo\AppData\Local\Temp\ccW2XUFw.s:1572   .progmem.data.__c.4925:00000000 __c.4925
+C:\Users\kyleo\AppData\Local\Temp\ccW2XUFw.s:1567   .progmem.data.__c.4927:00000000 __c.4927
+C:\Users\kyleo\AppData\Local\Temp\ccW2XUFw.s:1562   .progmem.data.__c.4929:00000000 __c.4929
+C:\Users\kyleo\AppData\Local\Temp\ccW2XUFw.s:1557   .progmem.data.__c.4931:00000000 __c.4931
+C:\Users\kyleo\AppData\Local\Temp\ccW2XUFw.s:1552   .progmem.data.__c.4933:00000000 __c.4933
+C:\Users\kyleo\AppData\Local\Temp\ccW2XUFw.s:1547   .progmem.data.__c.4935:00000000 __c.4935
+C:\Users\kyleo\AppData\Local\Temp\ccW2XUFw.s:1680   .bss.last_timer:00000000 last_timer
+C:\Users\kyleo\AppData\Local\Temp\ccW2XUFw.s:1068   .text.mousekey_task:00000000 mousekey_task
+C:\Users\kyleo\AppData\Local\Temp\ccW2XUFw.s:1675   .bss.last_timer_c:00000000 last_timer_c
+C:\Users\kyleo\AppData\Local\Temp\ccW2XUFw.s:1659   .data.mk_interval:00000000 mk_interval
+C:\Users\kyleo\AppData\Local\Temp\ccW2XUFw.s:1670   .bss.last_timer_w:00000000 last_timer_w
+C:\Users\kyleo\AppData\Local\Temp\ccW2XUFw.s:1635   .data.mk_wheel_interval:00000000 mk_wheel_interval
+C:\Users\kyleo\AppData\Local\Temp\ccW2XUFw.s:1665   .data.mk_delay:00000000 mk_delay
+C:\Users\kyleo\AppData\Local\Temp\ccW2XUFw.s:1641   .data.mk_wheel_delay:00000000 mk_wheel_delay
+C:\Users\kyleo\AppData\Local\Temp\ccW2XUFw.s:1514   .text.mousekey_clear:00000000 mousekey_clear
+
+UNDEFINED SYMBOLS
+__divmodhi4
+debug_config
+xputs
+__xprintf
+host_mouse_send
+timer_read
+timer_elapsed
+__do_copy_data
+__do_clear_bss

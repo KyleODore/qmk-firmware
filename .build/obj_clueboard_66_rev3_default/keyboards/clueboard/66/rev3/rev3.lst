@@ -1,0 +1,285 @@
+   1               		.file	"rev3.c"
+   2               	__SP_H__ = 0x3e
+   3               	__SP_L__ = 0x3d
+   4               	__SREG__ = 0x3f
+   5               	__tmp_reg__ = 0
+   6               	__zero_reg__ = 1
+   7               		.text
+   8               	.Ltext0:
+   9               		.cfi_sections	.debug_frame
+  10               		.section	.text.matrix_scan_kb,"ax",@progbits
+  11               	.global	matrix_scan_kb
+  13               	matrix_scan_kb:
+  14               	.LFB113:
+  15               		.file 1 "keyboards/clueboard/66/rev3/rev3.c"
+   1:keyboards/clueboard/66/rev3/rev3.c **** #include "rev3.h"
+   2:keyboards/clueboard/66/rev3/rev3.c **** #include <avr/io.h>
+   3:keyboards/clueboard/66/rev3/rev3.c **** #include "backlight.h"
+   4:keyboards/clueboard/66/rev3/rev3.c **** #include "print.h"
+   5:keyboards/clueboard/66/rev3/rev3.c **** 
+   6:keyboards/clueboard/66/rev3/rev3.c **** void matrix_init_kb(void) {
+   7:keyboards/clueboard/66/rev3/rev3.c ****     // put your keyboard start-up code here
+   8:keyboards/clueboard/66/rev3/rev3.c ****     // runs once when the firmware starts up
+   9:keyboards/clueboard/66/rev3/rev3.c ****     matrix_init_user();
+  10:keyboards/clueboard/66/rev3/rev3.c ****     led_init_ports();
+  11:keyboards/clueboard/66/rev3/rev3.c **** }
+  12:keyboards/clueboard/66/rev3/rev3.c **** 
+  13:keyboards/clueboard/66/rev3/rev3.c **** 
+  14:keyboards/clueboard/66/rev3/rev3.c **** void matrix_scan_kb(void) {
+  16               		.loc 1 14 27 view -0
+  17               		.cfi_startproc
+  18               	/* prologue: function */
+  19               	/* frame size = 0 */
+  20               	/* stack size = 0 */
+  21               	.L__stack_usage = 0
+  15:keyboards/clueboard/66/rev3/rev3.c ****     matrix_scan_user();
+  22               		.loc 1 15 5 view .LVU1
+  23 0000 0C94 0000 		jmp matrix_scan_user
+  24               	.LVL0:
+  25               		.cfi_endproc
+  26               	.LFE113:
+  28               		.section	.text.backlight_init_ports,"ax",@progbits
+  29               	.global	backlight_init_ports
+  31               	backlight_init_ports:
+  32               	.LFB114:
+  16:keyboards/clueboard/66/rev3/rev3.c **** }
+  17:keyboards/clueboard/66/rev3/rev3.c **** 
+  18:keyboards/clueboard/66/rev3/rev3.c **** void backlight_init_ports(void) {
+  33               		.loc 1 18 33 view -0
+  34               		.cfi_startproc
+  35               	/* prologue: function */
+  36               	/* frame size = 0 */
+  37               	/* stack size = 0 */
+  38               	.L__stack_usage = 0
+  19:keyboards/clueboard/66/rev3/rev3.c ****     print("init_backlight_pin()\n");
+  39               		.loc 1 19 5 view .LVU3
+  40               	.LBB2:
+  41               		.loc 1 19 5 view .LVU4
+  42               		.loc 1 19 5 view .LVU5
+  43               	.LBE2:
+  44 0000 80E0      		ldi r24,lo8(__c.6318)
+  45 0002 90E0      		ldi r25,hi8(__c.6318)
+  46 0004 0E94 0000 		call xputs
+  47               	.LVL1:
+  20:keyboards/clueboard/66/rev3/rev3.c ****     // Set our LED pins as output
+  21:keyboards/clueboard/66/rev3/rev3.c ****     DDRD |= (1<<6); // Esc
+  48               		.loc 1 21 5 view .LVU6
+  49               		.loc 1 21 10 is_stmt 0 view .LVU7
+  50 0008 569A      		sbi 0xa,6
+  22:keyboards/clueboard/66/rev3/rev3.c ****     DDRB |= (1<<7); // Page Up
+  51               		.loc 1 22 5 is_stmt 1 view .LVU8
+  52               		.loc 1 22 10 is_stmt 0 view .LVU9
+  53 000a 279A      		sbi 0x4,7
+  23:keyboards/clueboard/66/rev3/rev3.c ****     DDRD |= (1<<4); // Arrows
+  54               		.loc 1 23 5 is_stmt 1 view .LVU10
+  55               		.loc 1 23 10 is_stmt 0 view .LVU11
+  56 000c 549A      		sbi 0xa,4
+  24:keyboards/clueboard/66/rev3/rev3.c **** 
+  25:keyboards/clueboard/66/rev3/rev3.c ****     // Set our LED pins low
+  26:keyboards/clueboard/66/rev3/rev3.c ****     PORTD &= ~(1<<6); // Esc
+  57               		.loc 1 26 5 is_stmt 1 view .LVU12
+  58               		.loc 1 26 11 is_stmt 0 view .LVU13
+  59 000e 5E98      		cbi 0xb,6
+  27:keyboards/clueboard/66/rev3/rev3.c ****     PORTB &= ~(1<<7); // Page Up
+  60               		.loc 1 27 5 is_stmt 1 view .LVU14
+  61               		.loc 1 27 11 is_stmt 0 view .LVU15
+  62 0010 2F98      		cbi 0x5,7
+  28:keyboards/clueboard/66/rev3/rev3.c ****     PORTD &= ~(1<<4); // Arrows
+  63               		.loc 1 28 5 is_stmt 1 view .LVU16
+  64               		.loc 1 28 11 is_stmt 0 view .LVU17
+  65 0012 5C98      		cbi 0xb,4
+  66               	/* epilogue start */
+  29:keyboards/clueboard/66/rev3/rev3.c **** }
+  67               		.loc 1 29 1 view .LVU18
+  68 0014 0895      		ret
+  69               		.cfi_endproc
+  70               	.LFE114:
+  72               		.section	.text.backlight_set,"ax",@progbits
+  73               	.global	backlight_set
+  75               	backlight_set:
+  76               	.LVL2:
+  77               	.LFB115:
+  30:keyboards/clueboard/66/rev3/rev3.c **** 
+  31:keyboards/clueboard/66/rev3/rev3.c **** void backlight_set(uint8_t level) {
+  78               		.loc 1 31 35 is_stmt 1 view -0
+  79               		.cfi_startproc
+  80               	/* prologue: function */
+  81               	/* frame size = 0 */
+  82               	/* stack size = 0 */
+  83               	.L__stack_usage = 0
+  32:keyboards/clueboard/66/rev3/rev3.c ****     if ( level == 0 ) {
+  84               		.loc 1 32 5 view .LVU20
+  85               		.loc 1 32 8 is_stmt 0 view .LVU21
+  86 0000 8111      		cpse r24,__zero_reg__
+  87 0002 00C0      		rjmp .L4
+  33:keyboards/clueboard/66/rev3/rev3.c ****         // Turn off light
+  34:keyboards/clueboard/66/rev3/rev3.c ****         PORTD |= (1<<6); // Esc
+  88               		.loc 1 34 9 is_stmt 1 view .LVU22
+  89               		.loc 1 34 15 is_stmt 0 view .LVU23
+  90 0004 5E9A      		sbi 0xb,6
+  35:keyboards/clueboard/66/rev3/rev3.c ****         PORTB |= (1<<7); // Page Up
+  91               		.loc 1 35 9 is_stmt 1 view .LVU24
+  92               		.loc 1 35 15 is_stmt 0 view .LVU25
+  93 0006 2F9A      		sbi 0x5,7
+  36:keyboards/clueboard/66/rev3/rev3.c ****         PORTD |= (1<<4); // Arrows
+  94               		.loc 1 36 9 is_stmt 1 view .LVU26
+  95               		.loc 1 36 15 is_stmt 0 view .LVU27
+  96 0008 5C9A      		sbi 0xb,4
+  97 000a 0895      		ret
+  98               	.L4:
+  37:keyboards/clueboard/66/rev3/rev3.c ****     } else {
+  38:keyboards/clueboard/66/rev3/rev3.c ****         // Turn on light
+  39:keyboards/clueboard/66/rev3/rev3.c ****         PORTD &= ~(1<<6); // Esc
+  99               		.loc 1 39 9 is_stmt 1 view .LVU28
+ 100               		.loc 1 39 15 is_stmt 0 view .LVU29
+ 101 000c 5E98      		cbi 0xb,6
+  40:keyboards/clueboard/66/rev3/rev3.c ****         PORTB &= ~(1<<7); // Page Up
+ 102               		.loc 1 40 9 is_stmt 1 view .LVU30
+ 103               		.loc 1 40 15 is_stmt 0 view .LVU31
+ 104 000e 2F98      		cbi 0x5,7
+  41:keyboards/clueboard/66/rev3/rev3.c ****         PORTD &= ~(1<<4); // Arrows
+ 105               		.loc 1 41 9 is_stmt 1 view .LVU32
+ 106               		.loc 1 41 15 is_stmt 0 view .LVU33
+ 107 0010 5C98      		cbi 0xb,4
+ 108               	/* epilogue start */
+  42:keyboards/clueboard/66/rev3/rev3.c ****     }
+  43:keyboards/clueboard/66/rev3/rev3.c **** }
+ 109               		.loc 1 43 1 view .LVU34
+ 110 0012 0895      		ret
+ 111               		.cfi_endproc
+ 112               	.LFE115:
+ 114               		.section	.text.led_init_ports,"ax",@progbits
+ 115               	.global	led_init_ports
+ 117               	led_init_ports:
+ 118               	.LFB116:
+  44:keyboards/clueboard/66/rev3/rev3.c **** 
+  45:keyboards/clueboard/66/rev3/rev3.c **** void led_init_ports() {
+ 119               		.loc 1 45 23 is_stmt 1 view -0
+ 120               		.cfi_startproc
+ 121               	/* prologue: function */
+ 122               	/* frame size = 0 */
+ 123               	/* stack size = 0 */
+ 124               	.L__stack_usage = 0
+  46:keyboards/clueboard/66/rev3/rev3.c ****     // * Set our LED pins as output
+  47:keyboards/clueboard/66/rev3/rev3.c ****     DDRB |= (1<<4);
+ 125               		.loc 1 47 5 view .LVU36
+ 126               		.loc 1 47 10 is_stmt 0 view .LVU37
+ 127 0000 249A      		sbi 0x4,4
+ 128               	/* epilogue start */
+  48:keyboards/clueboard/66/rev3/rev3.c **** }
+ 129               		.loc 1 48 1 view .LVU38
+ 130 0002 0895      		ret
+ 131               		.cfi_endproc
+ 132               	.LFE116:
+ 134               		.section	.text.matrix_init_kb,"ax",@progbits
+ 135               	.global	matrix_init_kb
+ 137               	matrix_init_kb:
+ 138               	.LFB112:
+   6:keyboards/clueboard/66/rev3/rev3.c ****     // put your keyboard start-up code here
+ 139               		.loc 1 6 27 is_stmt 1 view -0
+ 140               		.cfi_startproc
+ 141               	/* prologue: function */
+ 142               	/* frame size = 0 */
+ 143               	/* stack size = 0 */
+ 144               	.L__stack_usage = 0
+   9:keyboards/clueboard/66/rev3/rev3.c ****     led_init_ports();
+ 145               		.loc 1 9 5 view .LVU40
+ 146 0000 0E94 0000 		call matrix_init_user
+ 147               	.LVL3:
+  10:keyboards/clueboard/66/rev3/rev3.c **** }
+ 148               		.loc 1 10 5 view .LVU41
+ 149 0004 0C94 0000 		jmp led_init_ports
+ 150               	.LVL4:
+ 151               		.cfi_endproc
+ 152               	.LFE112:
+ 154               		.section	.text.led_set_kb,"ax",@progbits
+ 155               	.global	led_set_kb
+ 157               	led_set_kb:
+ 158               	.LVL5:
+ 159               	.LFB117:
+  49:keyboards/clueboard/66/rev3/rev3.c **** 
+  50:keyboards/clueboard/66/rev3/rev3.c **** void led_set_kb(uint8_t usb_led) {
+ 160               		.loc 1 50 34 view -0
+ 161               		.cfi_startproc
+ 162               	/* prologue: function */
+ 163               	/* frame size = 0 */
+ 164               	/* stack size = 0 */
+ 165               	.L__stack_usage = 0
+  51:keyboards/clueboard/66/rev3/rev3.c ****     DDRB |= (1<<4);
+ 166               		.loc 1 51 5 view .LVU43
+ 167               		.loc 1 51 10 is_stmt 0 view .LVU44
+ 168 0000 249A      		sbi 0x4,4
+  52:keyboards/clueboard/66/rev3/rev3.c ****     if (usb_led & (1<<USB_LED_CAPS_LOCK)) {
+ 169               		.loc 1 52 5 is_stmt 1 view .LVU45
+ 170               		.loc 1 52 8 is_stmt 0 view .LVU46
+ 171 0002 81FF      		sbrs r24,1
+ 172 0004 00C0      		rjmp .L9
+  53:keyboards/clueboard/66/rev3/rev3.c ****         // Turn capslock on
+  54:keyboards/clueboard/66/rev3/rev3.c ****         PORTB |= (1<<4);
+ 173               		.loc 1 54 9 is_stmt 1 view .LVU47
+ 174               		.loc 1 54 15 is_stmt 0 view .LVU48
+ 175 0006 2C9A      		sbi 0x5,4
+ 176 0008 0895      		ret
+ 177               	.L9:
+  55:keyboards/clueboard/66/rev3/rev3.c ****     } else {
+  56:keyboards/clueboard/66/rev3/rev3.c ****         // Turn capslock off
+  57:keyboards/clueboard/66/rev3/rev3.c ****         PORTB &= ~(1<<4);
+ 178               		.loc 1 57 9 is_stmt 1 view .LVU49
+ 179               		.loc 1 57 15 is_stmt 0 view .LVU50
+ 180 000a 2C98      		cbi 0x5,4
+ 181               	/* epilogue start */
+  58:keyboards/clueboard/66/rev3/rev3.c ****     }
+  59:keyboards/clueboard/66/rev3/rev3.c **** }
+ 182               		.loc 1 59 1 view .LVU51
+ 183 000c 0895      		ret
+ 184               		.cfi_endproc
+ 185               	.LFE117:
+ 187               		.section	.progmem.data.__c.6318,"a"
+ 190               	__c.6318:
+ 191 0000 696E 6974 		.string	"init_backlight_pin()\n"
+ 191      5F62 6163 
+ 191      6B6C 6967 
+ 191      6874 5F70 
+ 191      696E 2829 
+ 192               		.text
+ 193               	.Letext0:
+ 194               		.file 2 "c:\\msys64\\home\\kyleo\\qmk_utils\\avr8-gnu-toolchain\\avr\\include\\stdint.h"
+ 195               		.file 3 "c:\\msys64\\home\\kyleo\\qmk_utils\\avr8-gnu-toolchain\\lib\\gcc\\avr\\8.3.0\\include\\st
+ 196               		.file 4 "lib/lufa/LUFA/Drivers/USB/Core/AVR8/../StdRequestType.h"
+ 197               		.file 5 "tmk_core/common/action.h"
+ 198               		.file 6 "lib/lufa/LUFA/Drivers/USB/Core/AVR8/../DeviceStandardReq.h"
+ 199               		.file 7 "lib/lufa/LUFA/Drivers/USB/Core/USBTask.h"
+ 200               		.file 8 "lib/lufa/LUFA/Drivers/USB/Core/HostStandardReq.h"
+ 201               		.file 9 "c:\\msys64\\home\\kyleo\\qmk_utils\\avr8-gnu-toolchain\\avr\\include\\stdio.h"
+ 202               		.file 10 "tmk_core/common/report.h"
+ 203               		.file 11 "tmk_core/common/host.h"
+ 204               		.file 12 "tmk_core/common/avr/xprintf.h"
+ 205               		.file 13 "tmk_core/common/debug.h"
+ 206               		.file 14 "quantum/keycode_config.h"
+ 207               		.file 15 "quantum/keymap.h"
+ 208               		.file 16 "./quantum/color.h"
+ 209               		.file 17 "quantum/rgblight.h"
+ 210               		.file 18 "tmk_core/common/action_layer.h"
+ 211               		.file 19 "tmk_core/common/timer.h"
+ 212               		.file 20 "tmk_core/common/action_util.h"
+ 213               		.file 21 "c:\\msys64\\home\\kyleo\\qmk_utils\\avr8-gnu-toolchain\\avr\\include\\stdlib.h"
+ 214               		.file 22 "quantum/quantum.h"
+DEFINED SYMBOLS
+                            *ABS*:00000000 rev3.c
+C:\Users\kyleo\AppData\Local\Temp\ccvLe0sr.s:2      *ABS*:0000003e __SP_H__
+C:\Users\kyleo\AppData\Local\Temp\ccvLe0sr.s:3      *ABS*:0000003d __SP_L__
+C:\Users\kyleo\AppData\Local\Temp\ccvLe0sr.s:4      *ABS*:0000003f __SREG__
+C:\Users\kyleo\AppData\Local\Temp\ccvLe0sr.s:5      *ABS*:00000000 __tmp_reg__
+C:\Users\kyleo\AppData\Local\Temp\ccvLe0sr.s:6      *ABS*:00000001 __zero_reg__
+C:\Users\kyleo\AppData\Local\Temp\ccvLe0sr.s:13     .text.matrix_scan_kb:00000000 matrix_scan_kb
+C:\Users\kyleo\AppData\Local\Temp\ccvLe0sr.s:31     .text.backlight_init_ports:00000000 backlight_init_ports
+C:\Users\kyleo\AppData\Local\Temp\ccvLe0sr.s:190    .progmem.data.__c.6318:00000000 __c.6318
+C:\Users\kyleo\AppData\Local\Temp\ccvLe0sr.s:75     .text.backlight_set:00000000 backlight_set
+C:\Users\kyleo\AppData\Local\Temp\ccvLe0sr.s:117    .text.led_init_ports:00000000 led_init_ports
+C:\Users\kyleo\AppData\Local\Temp\ccvLe0sr.s:137    .text.matrix_init_kb:00000000 matrix_init_kb
+C:\Users\kyleo\AppData\Local\Temp\ccvLe0sr.s:157    .text.led_set_kb:00000000 led_set_kb
+
+UNDEFINED SYMBOLS
+matrix_scan_user
+xputs
+matrix_init_user

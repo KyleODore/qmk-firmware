@@ -1,0 +1,185 @@
+   1              		.cpu cortex-m0
+   2              		.eabi_attribute 20, 1
+   3              		.eabi_attribute 21, 1
+   4              		.eabi_attribute 23, 3
+   5              		.eabi_attribute 24, 1
+   6              		.eabi_attribute 25, 1
+   7              		.eabi_attribute 26, 1
+   8              		.eabi_attribute 30, 4
+   9              		.eabi_attribute 34, 0
+  10              		.eabi_attribute 18, 2
+  11              		.file	"magic.c"
+  12              		.text
+  13              	.Ltext0:
+  14              		.cfi_sections	.debug_frame
+  15              		.section	.text.magic,"ax",%progbits
+  16              		.align	1
+  17              		.global	magic
+  18              		.arch armv6s-m
+  19              		.syntax unified
+  20              		.code	16
+  21              		.thumb_func
+  22              		.fpu softvfp
+  24              	magic:
+  25              	.LFB191:
+  26              		.file 1 "tmk_core/common/magic.c"
+   1:tmk_core/common/magic.c **** #include <stdint.h>
+   2:tmk_core/common/magic.c **** #include <stdbool.h>
+   3:tmk_core/common/magic.c **** #if defined(__AVR__)
+   4:tmk_core/common/magic.c **** #    include <util/delay.h>
+   5:tmk_core/common/magic.c **** #endif
+   6:tmk_core/common/magic.c **** #include "matrix.h"
+   7:tmk_core/common/magic.c **** #include "bootloader.h"
+   8:tmk_core/common/magic.c **** #include "debug.h"
+   9:tmk_core/common/magic.c **** #include "keymap.h"
+  10:tmk_core/common/magic.c **** #include "host.h"
+  11:tmk_core/common/magic.c **** #include "action_layer.h"
+  12:tmk_core/common/magic.c **** #include "eeconfig.h"
+  13:tmk_core/common/magic.c **** #include "magic.h"
+  14:tmk_core/common/magic.c **** 
+  15:tmk_core/common/magic.c **** keymap_config_t keymap_config;
+  16:tmk_core/common/magic.c **** 
+  17:tmk_core/common/magic.c **** /** \brief Magic
+  18:tmk_core/common/magic.c ****  *
+  19:tmk_core/common/magic.c ****  * FIXME: Needs doc
+  20:tmk_core/common/magic.c ****  */
+  21:tmk_core/common/magic.c **** void magic(void) {
+  27              		.loc 1 21 18 view -0
+  28              		.cfi_startproc
+  29              		@ args = 0, pretend = 0, frame = 0
+  30              		@ frame_needed = 0, uses_anonymous_args = 0
+  22:tmk_core/common/magic.c ****     /* check signature */
+  23:tmk_core/common/magic.c ****     if (!eeconfig_is_enabled()) {
+  31              		.loc 1 23 5 view .LVU1
+  21:tmk_core/common/magic.c ****     /* check signature */
+  32              		.loc 1 21 18 is_stmt 0 view .LVU2
+  33 0000 10B5     		push	{r4, lr}
+  34              		.cfi_def_cfa_offset 8
+  35              		.cfi_offset 4, -8
+  36              		.cfi_offset 14, -4
+  37              		.loc 1 23 10 view .LVU3
+  38 0002 FFF7FEFF 		bl	eeconfig_is_enabled
+  39              	.LVL0:
+  40              		.loc 1 23 8 view .LVU4
+  41 0006 0028     		cmp	r0, #0
+  42 0008 01D1     		bne	.L2
+  24:tmk_core/common/magic.c ****         eeconfig_init();
+  43              		.loc 1 24 9 is_stmt 1 view .LVU5
+  44 000a FFF7FEFF 		bl	eeconfig_init
+  45              	.LVL1:
+  46              	.L2:
+  25:tmk_core/common/magic.c ****     }
+  26:tmk_core/common/magic.c **** 
+  27:tmk_core/common/magic.c ****     /* debug enable */
+  28:tmk_core/common/magic.c ****     debug_config.raw = eeconfig_read_debug();
+  47              		.loc 1 28 5 view .LVU6
+  48              		.loc 1 28 24 is_stmt 0 view .LVU7
+  49 000e FFF7FEFF 		bl	eeconfig_read_debug
+  50              	.LVL2:
+  51              		.loc 1 28 22 view .LVU8
+  52 0012 054B     		ldr	r3, .L3
+  29:tmk_core/common/magic.c **** 
+  30:tmk_core/common/magic.c ****     /* keymap config */
+  31:tmk_core/common/magic.c ****     keymap_config.raw = eeconfig_read_keymap();
+  32:tmk_core/common/magic.c **** 
+  33:tmk_core/common/magic.c ****     uint8_t default_layer = 0;
+  34:tmk_core/common/magic.c ****     default_layer         = eeconfig_read_default_layer();
+  35:tmk_core/common/magic.c ****     default_layer_set((layer_state_t)default_layer);
+  36:tmk_core/common/magic.c **** }
+  53              		.loc 1 36 1 view .LVU9
+  54              		@ sp needed
+  28:tmk_core/common/magic.c **** 
+  55              		.loc 1 28 22 view .LVU10
+  56 0014 1870     		strb	r0, [r3]
+  31:tmk_core/common/magic.c **** 
+  57              		.loc 1 31 5 is_stmt 1 view .LVU11
+  31:tmk_core/common/magic.c **** 
+  58              		.loc 1 31 25 is_stmt 0 view .LVU12
+  59 0016 FFF7FEFF 		bl	eeconfig_read_keymap
+  60              	.LVL3:
+  31:tmk_core/common/magic.c **** 
+  61              		.loc 1 31 23 view .LVU13
+  62 001a 044B     		ldr	r3, .L3+4
+  63 001c 1880     		strh	r0, [r3]
+  33:tmk_core/common/magic.c ****     default_layer         = eeconfig_read_default_layer();
+  64              		.loc 1 33 5 is_stmt 1 view .LVU14
+  65              	.LVL4:
+  34:tmk_core/common/magic.c ****     default_layer_set((layer_state_t)default_layer);
+  66              		.loc 1 34 5 view .LVU15
+  34:tmk_core/common/magic.c ****     default_layer_set((layer_state_t)default_layer);
+  67              		.loc 1 34 29 is_stmt 0 view .LVU16
+  68 001e FFF7FEFF 		bl	eeconfig_read_default_layer
+  69              	.LVL5:
+  35:tmk_core/common/magic.c **** }
+  70              		.loc 1 35 5 is_stmt 1 view .LVU17
+  71 0022 FFF7FEFF 		bl	default_layer_set
+  72              	.LVL6:
+  73              		.loc 1 36 1 is_stmt 0 view .LVU18
+  74 0026 10BD     		pop	{r4, pc}
+  75              	.L4:
+  76              		.align	2
+  77              	.L3:
+  78 0028 00000000 		.word	debug_config
+  79 002c 00000000 		.word	.LANCHOR0
+  80              		.cfi_endproc
+  81              	.LFE191:
+  83              		.global	keymap_config
+  84              		.section	.bss.keymap_config,"aw",%nobits
+  85              		.align	1
+  86              		.set	.LANCHOR0,. + 0
+  89              	keymap_config:
+  90 0000 0000     		.space	2
+  91              		.text
+  92              	.Letext0:
+  93              		.file 2 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\arm-none-eabi\\include\\machine\\_
+  94              		.file 3 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\arm-none-eabi\\include\\sys\\_stdi
+  95              		.file 4 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\arm-none-eabi\\include\\stdint.h"
+  96              		.file 5 "tmk_core/common/debug.h"
+  97              		.file 6 "tmk_core/common/action.h"
+  98              		.file 7 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\lib\\gcc\\arm-none-eabi\\8.3.1\\in
+  99              		.file 8 "./lib/chibios/os/common/ports/ARMCMx/compilers/GCC/chtypes.h"
+ 100              		.file 9 "./lib/chibios/os/rt/include/chsystypes.h"
+ 101              		.file 10 "./lib/chibios/os/rt/include/chschd.h"
+ 102              		.file 11 "./lib/chibios/os/rt/include/chtime.h"
+ 103              		.file 12 "./lib/chibios/os/common/ext/ST/STM32F0xx/system_stm32f0xx.h"
+ 104              		.file 13 "./lib/chibios/os/common/ext/ST/STM32F0xx/stm32f072xb.h"
+ 105              		.file 14 "./lib/chibios/os/common/ports/ARMCMx/chcore.h"
+ 106              		.file 15 "./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h"
+ 107              		.file 16 "./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/stm32_tim.h"
+ 108              		.file 17 "./lib/chibios/os/rt/include/chsem.h"
+ 109              		.file 18 "./lib/chibios/os/rt/include/chmtx.h"
+ 110              		.file 19 "./lib/chibios/os/rt/include/chsys.h"
+ 111              		.file 20 "./lib/chibios/os/rt/include/chregistry.h"
+ 112              		.file 21 "./lib/chibios/os/oslib/include/chmemcore.h"
+ 113              		.file 22 "./lib/chibios/os/hal/ports/STM32/LLD/DMAv1/stm32_dma.h"
+ 114              		.file 23 "./lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/stm32_gpio.h"
+ 115              		.file 24 "./lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.h"
+ 116              		.file 25 "./lib/chibios/os/hal/include/hal_i2c.h"
+ 117              		.file 26 "./lib/chibios/os/hal/ports/STM32/LLD/I2Cv2/hal_i2c_lld.h"
+ 118              		.file 27 "./lib/chibios/os/hal/include/hal_pwm.h"
+ 119              		.file 28 "./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_pwm_lld.h"
+ 120              		.file 29 "./lib/chibios/os/hal/include/hal_spi.h"
+ 121              		.file 30 "./lib/chibios/os/hal/ports/STM32/LLD/SPIv2/hal_spi_lld.h"
+ 122              		.file 31 "./lib/chibios/os/hal/include/hal_usb.h"
+ 123              		.file 32 "./lib/chibios/os/hal/ports/STM32/LLD/USBv1/hal_usb_lld.h"
+ 124              		.file 33 "tmk_core/common/host.h"
+ 125              		.file 34 "quantum/keycode_config.h"
+ 126              		.file 35 "quantum/keymap.h"
+ 127              		.file 36 "tmk_core/common/action_layer.h"
+ 128              		.file 37 "tmk_core/common/eeconfig.h"
+DEFINED SYMBOLS
+                            *ABS*:00000000 magic.c
+C:\Users\kyleo\AppData\Local\Temp\ccURizt6.s:16     .text.magic:00000000 $t
+C:\Users\kyleo\AppData\Local\Temp\ccURizt6.s:24     .text.magic:00000000 magic
+C:\Users\kyleo\AppData\Local\Temp\ccURizt6.s:78     .text.magic:00000028 $d
+C:\Users\kyleo\AppData\Local\Temp\ccURizt6.s:89     .bss.keymap_config:00000000 keymap_config
+C:\Users\kyleo\AppData\Local\Temp\ccURizt6.s:85     .bss.keymap_config:00000000 $d
+
+UNDEFINED SYMBOLS
+eeconfig_is_enabled
+eeconfig_init
+eeconfig_read_debug
+eeconfig_read_keymap
+eeconfig_read_default_layer
+default_layer_set
+debug_config

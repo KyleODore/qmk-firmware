@@ -1,0 +1,583 @@
+   1              		.cpu cortex-m0
+   2              		.eabi_attribute 20, 1
+   3              		.eabi_attribute 21, 1
+   4              		.eabi_attribute 23, 3
+   5              		.eabi_attribute 24, 1
+   6              		.eabi_attribute 25, 1
+   7              		.eabi_attribute 26, 1
+   8              		.eabi_attribute 30, 4
+   9              		.eabi_attribute 34, 0
+  10              		.eabi_attribute 18, 2
+  11              		.file	"suspend.c"
+  12              		.text
+  13              	.Ltext0:
+  14              		.cfi_sections	.debug_frame
+  15              		.global	__aeabi_lmul
+  16              		.global	__aeabi_uldivmod
+  17              		.global	__aeabi_ldivmod
+  18              		.section	.text.suspend_idle,"ax",%progbits
+  19              		.align	1
+  20              		.global	suspend_idle
+  21              		.arch armv6s-m
+  22              		.syntax unified
+  23              		.code	16
+  24              		.thumb_func
+  25              		.fpu softvfp
+  27              	suspend_idle:
+  28              	.LVL0:
+  29              	.LFB194:
+  30              		.file 1 "tmk_core/common/chibios/suspend.c"
+   1:tmk_core/common/chibios/suspend.c **** /* TODO */
+   2:tmk_core/common/chibios/suspend.c **** 
+   3:tmk_core/common/chibios/suspend.c **** #include "ch.h"
+   4:tmk_core/common/chibios/suspend.c **** #include "hal.h"
+   5:tmk_core/common/chibios/suspend.c **** 
+   6:tmk_core/common/chibios/suspend.c **** #include "matrix.h"
+   7:tmk_core/common/chibios/suspend.c **** #include "action.h"
+   8:tmk_core/common/chibios/suspend.c **** #include "action_util.h"
+   9:tmk_core/common/chibios/suspend.c **** #include "mousekey.h"
+  10:tmk_core/common/chibios/suspend.c **** #include "host.h"
+  11:tmk_core/common/chibios/suspend.c **** #include "suspend.h"
+  12:tmk_core/common/chibios/suspend.c **** #include "wait.h"
+  13:tmk_core/common/chibios/suspend.c **** 
+  14:tmk_core/common/chibios/suspend.c **** #ifdef BACKLIGHT_ENABLE
+  15:tmk_core/common/chibios/suspend.c **** #    include "backlight.h"
+  16:tmk_core/common/chibios/suspend.c **** #endif
+  17:tmk_core/common/chibios/suspend.c **** 
+  18:tmk_core/common/chibios/suspend.c **** #if defined(RGBLIGHT_SLEEP) && defined(RGBLIGHT_ENABLE)
+  19:tmk_core/common/chibios/suspend.c **** #    include "rgblight.h"
+  20:tmk_core/common/chibios/suspend.c **** extern rgblight_config_t rgblight_config;
+  21:tmk_core/common/chibios/suspend.c **** static bool              rgblight_enabled;
+  22:tmk_core/common/chibios/suspend.c **** static bool              is_suspended;
+  23:tmk_core/common/chibios/suspend.c **** #endif
+  24:tmk_core/common/chibios/suspend.c **** 
+  25:tmk_core/common/chibios/suspend.c **** /** \brief suspend idle
+  26:tmk_core/common/chibios/suspend.c ****  *
+  27:tmk_core/common/chibios/suspend.c ****  * FIXME: needs doc
+  28:tmk_core/common/chibios/suspend.c ****  */
+  29:tmk_core/common/chibios/suspend.c **** void suspend_idle(uint8_t time) {
+  31              		.loc 1 29 33 view -0
+  32              		.cfi_startproc
+  33              		@ args = 0, pretend = 0, frame = 0
+  34              		@ frame_needed = 0, uses_anonymous_args = 0
+  30:tmk_core/common/chibios/suspend.c ****     // TODO: this is not used anywhere - what units is 'time' in?
+  31:tmk_core/common/chibios/suspend.c ****     wait_ms(time);
+  35              		.loc 1 31 5 view .LVU1
+  36              		.loc 1 31 5 view .LVU2
+  29:tmk_core/common/chibios/suspend.c ****     // TODO: this is not used anywhere - what units is 'time' in?
+  37              		.loc 1 29 33 is_stmt 0 view .LVU3
+  38 0000 10B5     		push	{r4, lr}
+  39              		.cfi_def_cfa_offset 8
+  40              		.cfi_offset 4, -8
+  41              		.cfi_offset 14, -4
+  42              		.loc 1 31 5 view .LVU4
+  43 0002 0028     		cmp	r0, #0
+  44 0004 10D0     		beq	.L2
+  45              		.loc 1 31 5 is_stmt 1 discriminator 1 view .LVU5
+  46 0006 094A     		ldr	r2, .L5
+  47 0008 0023     		movs	r3, #0
+  48 000a 0021     		movs	r1, #0
+  49 000c FFF7FEFF 		bl	__aeabi_lmul
+  50              	.LVL1:
+  51              		.loc 1 31 5 is_stmt 0 discriminator 1 view .LVU6
+  52 0010 0023     		movs	r3, #0
+  53 0012 074A     		ldr	r2, .L5+4
+  54 0014 8018     		adds	r0, r0, r2
+  55 0016 5941     		adcs	r1, r1, r3
+  56 0018 FA22     		movs	r2, #250
+  57 001a 0023     		movs	r3, #0
+  58 001c 9200     		lsls	r2, r2, #2
+  59 001e FFF7FEFF 		bl	__aeabi_uldivmod
+  60              	.LVL2:
+  61              	.L4:
+  62              		.loc 1 31 5 discriminator 2 view .LVU7
+  63 0022 FFF7FEFF 		bl	chThdSleep
+  64              	.LVL3:
+  32:tmk_core/common/chibios/suspend.c **** }
+  65              		.loc 1 32 1 discriminator 2 view .LVU8
+  66              		@ sp needed
+  67 0026 10BD     		pop	{r4, pc}
+  68              	.LVL4:
+  69              	.L2:
+  31:tmk_core/common/chibios/suspend.c **** }
+  70              		.loc 1 31 5 is_stmt 1 discriminator 2 view .LVU9
+  71 0028 0120     		movs	r0, #1
+  72              	.LVL5:
+  31:tmk_core/common/chibios/suspend.c **** }
+  73              		.loc 1 31 5 is_stmt 0 discriminator 2 view .LVU10
+  74 002a FAE7     		b	.L4
+  75              	.L6:
+  76              		.align	2
+  77              	.L5:
+  78 002c 10270000 		.word	10000
+  79 0030 E7030000 		.word	999
+  80              		.cfi_endproc
+  81              	.LFE194:
+  83              		.section	.text.suspend_power_down_user,"ax",%progbits
+  84              		.align	1
+  85              		.weak	suspend_power_down_user
+  86              		.syntax unified
+  87              		.code	16
+  88              		.thumb_func
+  89              		.fpu softvfp
+  91              	suspend_power_down_user:
+  92              	.LFB209:
+  93              		.cfi_startproc
+  94              		@ args = 0, pretend = 0, frame = 0
+  95              		@ frame_needed = 0, uses_anonymous_args = 0
+  96              		@ link register save eliminated.
+  97              		@ sp needed
+  98 0000 7047     		bx	lr
+  99              		.cfi_endproc
+ 100              	.LFE209:
+ 102              		.section	.text.suspend_power_down_kb,"ax",%progbits
+ 103              		.align	1
+ 104              		.weak	suspend_power_down_kb
+ 105              		.syntax unified
+ 106              		.code	16
+ 107              		.thumb_func
+ 108              		.fpu softvfp
+ 110              	suspend_power_down_kb:
+ 111              	.LFB196:
+  33:tmk_core/common/chibios/suspend.c **** 
+  34:tmk_core/common/chibios/suspend.c **** /** \brief Run keyboard level Power down
+  35:tmk_core/common/chibios/suspend.c ****  *
+  36:tmk_core/common/chibios/suspend.c ****  * FIXME: needs doc
+  37:tmk_core/common/chibios/suspend.c ****  */
+  38:tmk_core/common/chibios/suspend.c **** __attribute__((weak)) void suspend_power_down_user(void) {}
+  39:tmk_core/common/chibios/suspend.c **** /** \brief Run keyboard level Power down
+  40:tmk_core/common/chibios/suspend.c ****  *
+  41:tmk_core/common/chibios/suspend.c ****  * FIXME: needs doc
+  42:tmk_core/common/chibios/suspend.c ****  */
+  43:tmk_core/common/chibios/suspend.c **** __attribute__((weak)) void suspend_power_down_kb(void) { suspend_power_down_user(); }
+ 112              		.loc 1 43 56 is_stmt 1 view -0
+ 113              		.cfi_startproc
+ 114              		@ args = 0, pretend = 0, frame = 0
+ 115              		@ frame_needed = 0, uses_anonymous_args = 0
+ 116              		.loc 1 43 58 view .LVU12
+ 117              		.loc 1 43 56 is_stmt 0 view .LVU13
+ 118 0000 10B5     		push	{r4, lr}
+ 119              		.cfi_def_cfa_offset 8
+ 120              		.cfi_offset 4, -8
+ 121              		.cfi_offset 14, -4
+ 122              		.loc 1 43 58 view .LVU14
+ 123 0002 FFF7FEFF 		bl	suspend_power_down_user
+ 124              	.LVL6:
+ 125              		.loc 1 43 1 view .LVU15
+ 126              		@ sp needed
+ 127 0006 10BD     		pop	{r4, pc}
+ 128              		.cfi_endproc
+ 129              	.LFE196:
+ 131              		.section	.text.suspend_power_down,"ax",%progbits
+ 132              		.align	1
+ 133              		.global	suspend_power_down
+ 134              		.syntax unified
+ 135              		.code	16
+ 136              		.thumb_func
+ 137              		.fpu softvfp
+ 139              	suspend_power_down:
+ 140              	.LFB197:
+  44:tmk_core/common/chibios/suspend.c **** 
+  45:tmk_core/common/chibios/suspend.c **** /** \brief suspend power down
+  46:tmk_core/common/chibios/suspend.c ****  *
+  47:tmk_core/common/chibios/suspend.c ****  * FIXME: needs doc
+  48:tmk_core/common/chibios/suspend.c ****  */
+  49:tmk_core/common/chibios/suspend.c **** void suspend_power_down(void) {
+ 141              		.loc 1 49 31 is_stmt 1 view -0
+ 142              		.cfi_startproc
+ 143              		@ args = 0, pretend = 0, frame = 0
+ 144              		@ frame_needed = 0, uses_anonymous_args = 0
+  50:tmk_core/common/chibios/suspend.c ****     // TODO: figure out what to power down and how
+  51:tmk_core/common/chibios/suspend.c ****     // shouldn't power down TPM/FTM if we want a breathing LED
+  52:tmk_core/common/chibios/suspend.c ****     // also shouldn't power down USB
+  53:tmk_core/common/chibios/suspend.c **** #if defined(RGBLIGHT_SLEEP) && defined(RGBLIGHT_ENABLE)
+  54:tmk_core/common/chibios/suspend.c ****     rgblight_timer_disable();
+  55:tmk_core/common/chibios/suspend.c ****     if (!is_suspended) {
+  56:tmk_core/common/chibios/suspend.c ****         is_suspended     = true;
+  57:tmk_core/common/chibios/suspend.c ****         rgblight_enabled = rgblight_config.enable;
+  58:tmk_core/common/chibios/suspend.c ****         rgblight_disable_noeeprom();
+  59:tmk_core/common/chibios/suspend.c ****     }
+  60:tmk_core/common/chibios/suspend.c **** #endif
+  61:tmk_core/common/chibios/suspend.c **** 
+  62:tmk_core/common/chibios/suspend.c ****     suspend_power_down_kb();
+ 145              		.loc 1 62 5 view .LVU17
+  49:tmk_core/common/chibios/suspend.c ****     // TODO: figure out what to power down and how
+ 146              		.loc 1 49 31 is_stmt 0 view .LVU18
+ 147 0000 10B5     		push	{r4, lr}
+ 148              		.cfi_def_cfa_offset 8
+ 149              		.cfi_offset 4, -8
+ 150              		.cfi_offset 14, -4
+ 151              		.loc 1 62 5 view .LVU19
+ 152 0002 FFF7FEFF 		bl	suspend_power_down_kb
+ 153              	.LVL7:
+  63:tmk_core/common/chibios/suspend.c ****     // on AVR, this enables the watchdog for 15ms (max), and goes to
+  64:tmk_core/common/chibios/suspend.c ****     // SLEEP_MODE_PWR_DOWN
+  65:tmk_core/common/chibios/suspend.c **** 
+  66:tmk_core/common/chibios/suspend.c ****     wait_ms(17);
+ 154              		.loc 1 66 5 is_stmt 1 view .LVU20
+ 155              		.loc 1 66 5 view .LVU21
+ 156              		.loc 1 66 5 view .LVU22
+ 157 0006 AA20     		movs	r0, #170
+ 158 0008 FFF7FEFF 		bl	chThdSleep
+ 159              	.LVL8:
+  67:tmk_core/common/chibios/suspend.c **** }
+ 160              		.loc 1 67 1 is_stmt 0 view .LVU23
+ 161              		@ sp needed
+ 162 000c 10BD     		pop	{r4, pc}
+ 163              		.cfi_endproc
+ 164              	.LFE197:
+ 166              		.section	.text.matrix_power_up,"ax",%progbits
+ 167              		.align	1
+ 168              		.weak	matrix_power_up
+ 169              		.syntax unified
+ 170              		.code	16
+ 171              		.thumb_func
+ 172              		.fpu softvfp
+ 174              	matrix_power_up:
+ 175              	.LFB198:
+  68:tmk_core/common/chibios/suspend.c **** 
+  69:tmk_core/common/chibios/suspend.c **** /** \brief suspend wakeup condition
+  70:tmk_core/common/chibios/suspend.c ****  *
+  71:tmk_core/common/chibios/suspend.c ****  * FIXME: needs doc
+  72:tmk_core/common/chibios/suspend.c ****  */
+  73:tmk_core/common/chibios/suspend.c **** __attribute__((weak)) void matrix_power_up(void) {}
+ 176              		.loc 1 73 50 is_stmt 1 view -0
+ 177              		.cfi_startproc
+ 178              		@ args = 0, pretend = 0, frame = 0
+ 179              		@ frame_needed = 0, uses_anonymous_args = 0
+ 180              		@ link register save eliminated.
+ 181              		.loc 1 73 51 view .LVU25
+ 182              		.loc 1 73 1 is_stmt 0 view .LVU26
+ 183              		@ sp needed
+ 184 0000 7047     		bx	lr
+ 185              		.cfi_endproc
+ 186              	.LFE198:
+ 188              		.section	.text.matrix_power_down,"ax",%progbits
+ 189              		.align	1
+ 190              		.weak	matrix_power_down
+ 191              		.syntax unified
+ 192              		.code	16
+ 193              		.thumb_func
+ 194              		.fpu softvfp
+ 196              	matrix_power_down:
+ 197              	.LFB205:
+ 198              		.cfi_startproc
+ 199              		@ args = 0, pretend = 0, frame = 0
+ 200              		@ frame_needed = 0, uses_anonymous_args = 0
+ 201              		@ link register save eliminated.
+ 202              		@ sp needed
+ 203 0000 7047     		bx	lr
+ 204              		.cfi_endproc
+ 205              	.LFE205:
+ 207              		.section	.text.suspend_wakeup_condition,"ax",%progbits
+ 208              		.align	1
+ 209              		.global	suspend_wakeup_condition
+ 210              		.syntax unified
+ 211              		.code	16
+ 212              		.thumb_func
+ 213              		.fpu softvfp
+ 215              	suspend_wakeup_condition:
+ 216              	.LFB200:
+  74:tmk_core/common/chibios/suspend.c **** __attribute__((weak)) void matrix_power_down(void) {}
+  75:tmk_core/common/chibios/suspend.c **** bool                       suspend_wakeup_condition(void) {
+ 217              		.loc 1 75 59 is_stmt 1 view -0
+ 218              		.cfi_startproc
+ 219              		@ args = 0, pretend = 0, frame = 0
+ 220              		@ frame_needed = 0, uses_anonymous_args = 0
+  76:tmk_core/common/chibios/suspend.c ****     matrix_power_up();
+ 221              		.loc 1 76 5 view .LVU28
+  75:tmk_core/common/chibios/suspend.c ****     matrix_power_up();
+ 222              		.loc 1 75 59 is_stmt 0 view .LVU29
+ 223 0000 10B5     		push	{r4, lr}
+ 224              		.cfi_def_cfa_offset 8
+ 225              		.cfi_offset 4, -8
+ 226              		.cfi_offset 14, -4
+ 227              		.loc 1 76 5 view .LVU30
+ 228 0002 FFF7FEFF 		bl	matrix_power_up
+ 229              	.LVL9:
+  77:tmk_core/common/chibios/suspend.c ****     matrix_scan();
+ 230              		.loc 1 77 5 is_stmt 1 view .LVU31
+ 231              	.LBB2:
+  78:tmk_core/common/chibios/suspend.c ****     matrix_power_down();
+  79:tmk_core/common/chibios/suspend.c ****     for (uint8_t r = 0; r < MATRIX_ROWS; r++) {
+ 232              		.loc 1 79 18 is_stmt 0 view .LVU32
+ 233 0006 0024     		movs	r4, #0
+ 234              	.LBE2:
+  77:tmk_core/common/chibios/suspend.c ****     matrix_scan();
+ 235              		.loc 1 77 5 view .LVU33
+ 236 0008 FFF7FEFF 		bl	matrix_scan
+ 237              	.LVL10:
+  78:tmk_core/common/chibios/suspend.c ****     matrix_power_down();
+ 238              		.loc 1 78 5 is_stmt 1 view .LVU34
+ 239 000c FFF7FEFF 		bl	matrix_power_down
+ 240              	.LVL11:
+ 241              		.loc 1 79 5 view .LVU35
+ 242              	.LBB3:
+ 243              		.loc 1 79 10 view .LVU36
+ 244              	.L14:
+  80:tmk_core/common/chibios/suspend.c ****         if (matrix_get_row(r)) return true;
+ 245              		.loc 1 80 9 view .LVU37
+ 246              		.loc 1 80 13 is_stmt 0 view .LVU38
+ 247 0010 2000     		movs	r0, r4
+ 248 0012 FFF7FEFF 		bl	matrix_get_row
+ 249              	.LVL12:
+ 250              		.loc 1 80 12 view .LVU39
+ 251 0016 0028     		cmp	r0, #0
+ 252 0018 04D1     		bne	.L15
+  79:tmk_core/common/chibios/suspend.c ****         if (matrix_get_row(r)) return true;
+ 253              		.loc 1 79 43 discriminator 2 view .LVU40
+ 254 001a 0134     		adds	r4, r4, #1
+ 255              	.LVL13:
+  79:tmk_core/common/chibios/suspend.c ****         if (matrix_get_row(r)) return true;
+ 256              		.loc 1 79 43 discriminator 2 view .LVU41
+ 257 001c E4B2     		uxtb	r4, r4
+ 258              	.LVL14:
+  79:tmk_core/common/chibios/suspend.c ****         if (matrix_get_row(r)) return true;
+ 259              		.loc 1 79 5 discriminator 2 view .LVU42
+ 260 001e 052C     		cmp	r4, #5
+ 261 0020 F6D1     		bne	.L14
+ 262              	.L13:
+  79:tmk_core/common/chibios/suspend.c ****         if (matrix_get_row(r)) return true;
+ 263              		.loc 1 79 5 discriminator 2 view .LVU43
+ 264              	.LBE3:
+  81:tmk_core/common/chibios/suspend.c ****     }
+  82:tmk_core/common/chibios/suspend.c ****     return false;
+  83:tmk_core/common/chibios/suspend.c **** }
+ 265              		.loc 1 83 1 view .LVU44
+ 266              		@ sp needed
+ 267              	.LVL15:
+ 268              		.loc 1 83 1 view .LVU45
+ 269 0022 10BD     		pop	{r4, pc}
+ 270              	.LVL16:
+ 271              	.L15:
+ 272              	.LBB4:
+  80:tmk_core/common/chibios/suspend.c ****     }
+ 273              		.loc 1 80 39 view .LVU46
+ 274 0024 0120     		movs	r0, #1
+ 275 0026 FCE7     		b	.L13
+ 276              	.LBE4:
+ 277              		.cfi_endproc
+ 278              	.LFE200:
+ 280              		.section	.text.suspend_wakeup_init_user,"ax",%progbits
+ 281              		.align	1
+ 282              		.weak	suspend_wakeup_init_user
+ 283              		.syntax unified
+ 284              		.code	16
+ 285              		.thumb_func
+ 286              		.fpu softvfp
+ 288              	suspend_wakeup_init_user:
+ 289              	.LFB207:
+ 290              		.cfi_startproc
+ 291              		@ args = 0, pretend = 0, frame = 0
+ 292              		@ frame_needed = 0, uses_anonymous_args = 0
+ 293              		@ link register save eliminated.
+ 294              		@ sp needed
+ 295 0000 7047     		bx	lr
+ 296              		.cfi_endproc
+ 297              	.LFE207:
+ 299              		.section	.text.suspend_wakeup_init_kb,"ax",%progbits
+ 300              		.align	1
+ 301              		.weak	suspend_wakeup_init_kb
+ 302              		.syntax unified
+ 303              		.code	16
+ 304              		.thumb_func
+ 305              		.fpu softvfp
+ 307              	suspend_wakeup_init_kb:
+ 308              	.LFB202:
+  84:tmk_core/common/chibios/suspend.c **** 
+  85:tmk_core/common/chibios/suspend.c **** /** \brief run user level code immediately after wakeup
+  86:tmk_core/common/chibios/suspend.c ****  *
+  87:tmk_core/common/chibios/suspend.c ****  * FIXME: needs doc
+  88:tmk_core/common/chibios/suspend.c ****  */
+  89:tmk_core/common/chibios/suspend.c **** __attribute__((weak)) void suspend_wakeup_init_user(void) {}
+  90:tmk_core/common/chibios/suspend.c **** 
+  91:tmk_core/common/chibios/suspend.c **** /** \brief run keyboard level code immediately after wakeup
+  92:tmk_core/common/chibios/suspend.c ****  *
+  93:tmk_core/common/chibios/suspend.c ****  * FIXME: needs doc
+  94:tmk_core/common/chibios/suspend.c ****  */
+  95:tmk_core/common/chibios/suspend.c **** __attribute__((weak)) void suspend_wakeup_init_kb(void) { suspend_wakeup_init_user(); }
+ 309              		.loc 1 95 57 is_stmt 1 view -0
+ 310              		.cfi_startproc
+ 311              		@ args = 0, pretend = 0, frame = 0
+ 312              		@ frame_needed = 0, uses_anonymous_args = 0
+ 313              		.loc 1 95 59 view .LVU48
+ 314              		.loc 1 95 57 is_stmt 0 view .LVU49
+ 315 0000 10B5     		push	{r4, lr}
+ 316              		.cfi_def_cfa_offset 8
+ 317              		.cfi_offset 4, -8
+ 318              		.cfi_offset 14, -4
+ 319              		.loc 1 95 59 view .LVU50
+ 320 0002 FFF7FEFF 		bl	suspend_wakeup_init_user
+ 321              	.LVL17:
+ 322              		.loc 1 95 1 view .LVU51
+ 323              		@ sp needed
+ 324 0006 10BD     		pop	{r4, pc}
+ 325              		.cfi_endproc
+ 326              	.LFE202:
+ 328              		.section	.text.suspend_wakeup_init,"ax",%progbits
+ 329              		.align	1
+ 330              		.global	suspend_wakeup_init
+ 331              		.syntax unified
+ 332              		.code	16
+ 333              		.thumb_func
+ 334              		.fpu softvfp
+ 336              	suspend_wakeup_init:
+ 337              	.LFB203:
+  96:tmk_core/common/chibios/suspend.c **** 
+  97:tmk_core/common/chibios/suspend.c **** /** \brief suspend wakeup condition
+  98:tmk_core/common/chibios/suspend.c ****  *
+  99:tmk_core/common/chibios/suspend.c ****  * run immediately after wakeup
+ 100:tmk_core/common/chibios/suspend.c ****  * FIXME: needs doc
+ 101:tmk_core/common/chibios/suspend.c ****  */
+ 102:tmk_core/common/chibios/suspend.c **** void suspend_wakeup_init(void) {
+ 338              		.loc 1 102 32 is_stmt 1 view -0
+ 339              		.cfi_startproc
+ 340              		@ args = 0, pretend = 0, frame = 0
+ 341              		@ frame_needed = 0, uses_anonymous_args = 0
+ 103:tmk_core/common/chibios/suspend.c ****     // clear keyboard state
+ 104:tmk_core/common/chibios/suspend.c ****     // need to do it manually, because we're running from ISR
+ 105:tmk_core/common/chibios/suspend.c ****     //  and clear_keyboard() calls print
+ 106:tmk_core/common/chibios/suspend.c ****     // so only clear the variables in memory
+ 107:tmk_core/common/chibios/suspend.c ****     // the reports will be sent from main.c afterwards
+ 108:tmk_core/common/chibios/suspend.c ****     // or if the PC asks for GET_REPORT
+ 109:tmk_core/common/chibios/suspend.c ****     clear_mods();
+ 342              		.loc 1 109 5 view .LVU53
+ 102:tmk_core/common/chibios/suspend.c ****     // clear keyboard state
+ 343              		.loc 1 102 32 is_stmt 0 view .LVU54
+ 344 0000 10B5     		push	{r4, lr}
+ 345              		.cfi_def_cfa_offset 8
+ 346              		.cfi_offset 4, -8
+ 347              		.cfi_offset 14, -4
+ 348              		.loc 1 109 5 view .LVU55
+ 349 0002 FFF7FEFF 		bl	clear_mods
+ 350              	.LVL18:
+ 110:tmk_core/common/chibios/suspend.c ****     clear_weak_mods();
+ 351              		.loc 1 110 5 is_stmt 1 view .LVU56
+ 352 0006 FFF7FEFF 		bl	clear_weak_mods
+ 353              	.LVL19:
+ 111:tmk_core/common/chibios/suspend.c ****     clear_keys();
+ 354              		.loc 1 111 5 view .LVU57
+ 355 000a FFF7FEFF 		bl	clear_keys
+ 356              	.LVL20:
+ 112:tmk_core/common/chibios/suspend.c **** #ifdef MOUSEKEY_ENABLE
+ 113:tmk_core/common/chibios/suspend.c ****     mousekey_clear();
+ 357              		.loc 1 113 5 view .LVU58
+ 358 000e FFF7FEFF 		bl	mousekey_clear
+ 359              	.LVL21:
+ 114:tmk_core/common/chibios/suspend.c **** #endif /* MOUSEKEY_ENABLE */
+ 115:tmk_core/common/chibios/suspend.c **** #ifdef EXTRAKEY_ENABLE
+ 116:tmk_core/common/chibios/suspend.c ****     host_system_send(0);
+ 360              		.loc 1 116 5 view .LVU59
+ 361 0012 0020     		movs	r0, #0
+ 362 0014 FFF7FEFF 		bl	host_system_send
+ 363              	.LVL22:
+ 117:tmk_core/common/chibios/suspend.c ****     host_consumer_send(0);
+ 364              		.loc 1 117 5 view .LVU60
+ 365 0018 0020     		movs	r0, #0
+ 366 001a FFF7FEFF 		bl	host_consumer_send
+ 367              	.LVL23:
+ 118:tmk_core/common/chibios/suspend.c **** #endif /* EXTRAKEY_ENABLE */
+ 119:tmk_core/common/chibios/suspend.c **** #ifdef BACKLIGHT_ENABLE
+ 120:tmk_core/common/chibios/suspend.c ****     backlight_init();
+ 368              		.loc 1 120 5 view .LVU61
+ 121:tmk_core/common/chibios/suspend.c **** #endif /* BACKLIGHT_ENABLE */
+ 122:tmk_core/common/chibios/suspend.c **** #if defined(RGBLIGHT_SLEEP) && defined(RGBLIGHT_ENABLE)
+ 123:tmk_core/common/chibios/suspend.c ****     is_suspended = false;
+ 124:tmk_core/common/chibios/suspend.c ****     if (rgblight_enabled) {
+ 125:tmk_core/common/chibios/suspend.c ****         rgblight_enable_noeeprom();
+ 126:tmk_core/common/chibios/suspend.c ****     }
+ 127:tmk_core/common/chibios/suspend.c ****     rgblight_timer_enable();
+ 128:tmk_core/common/chibios/suspend.c **** #endif
+ 129:tmk_core/common/chibios/suspend.c ****     suspend_wakeup_init_kb();
+ 130:tmk_core/common/chibios/suspend.c **** }
+ 369              		.loc 1 130 1 is_stmt 0 view .LVU62
+ 370              		@ sp needed
+ 120:tmk_core/common/chibios/suspend.c **** #endif /* BACKLIGHT_ENABLE */
+ 371              		.loc 1 120 5 view .LVU63
+ 372 001e FFF7FEFF 		bl	backlight_init
+ 373              	.LVL24:
+ 129:tmk_core/common/chibios/suspend.c **** }
+ 374              		.loc 1 129 5 is_stmt 1 view .LVU64
+ 375 0022 FFF7FEFF 		bl	suspend_wakeup_init_kb
+ 376              	.LVL25:
+ 377              		.loc 1 130 1 is_stmt 0 view .LVU65
+ 378 0026 10BD     		pop	{r4, pc}
+ 379              		.cfi_endproc
+ 380              	.LFE203:
+ 382              		.text
+ 383              	.Letext0:
+ 384              		.file 2 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\lib\\gcc\\arm-none-eabi\\8.3.1\\in
+ 385              		.file 3 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\arm-none-eabi\\include\\machine\\_
+ 386              		.file 4 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\arm-none-eabi\\include\\sys\\_stdi
+ 387              		.file 5 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\arm-none-eabi\\include\\stdint.h"
+ 388              		.file 6 "./lib/chibios/os/common/ports/ARMCMx/compilers/GCC/chtypes.h"
+ 389              		.file 7 "./lib/chibios/os/rt/include/chsystypes.h"
+ 390              		.file 8 "./lib/chibios/os/rt/include/chschd.h"
+ 391              		.file 9 "./lib/chibios/os/rt/include/chtime.h"
+ 392              		.file 10 "./lib/chibios/os/common/ext/ST/STM32F0xx/system_stm32f0xx.h"
+ 393              		.file 11 "./lib/chibios/os/common/ext/ST/STM32F0xx/stm32f072xb.h"
+ 394              		.file 12 "./lib/chibios/os/common/ports/ARMCMx/chcore.h"
+ 395              		.file 13 "./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h"
+ 396              		.file 14 "./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/stm32_tim.h"
+ 397              		.file 15 "./lib/chibios/os/rt/include/chsem.h"
+ 398              		.file 16 "./lib/chibios/os/rt/include/chmtx.h"
+ 399              		.file 17 "./lib/chibios/os/rt/include/chsys.h"
+ 400              		.file 18 "./lib/chibios/os/rt/include/chregistry.h"
+ 401              		.file 19 "./lib/chibios/os/oslib/include/chmemcore.h"
+ 402              		.file 20 "./lib/chibios/os/hal/ports/STM32/LLD/DMAv1/stm32_dma.h"
+ 403              		.file 21 "./lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/stm32_gpio.h"
+ 404              		.file 22 "./lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.h"
+ 405              		.file 23 "./lib/chibios/os/hal/include/hal_i2c.h"
+ 406              		.file 24 "./lib/chibios/os/hal/ports/STM32/LLD/I2Cv2/hal_i2c_lld.h"
+ 407              		.file 25 "./lib/chibios/os/hal/include/hal_pwm.h"
+ 408              		.file 26 "./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_pwm_lld.h"
+ 409              		.file 27 "./lib/chibios/os/hal/include/hal_spi.h"
+ 410              		.file 28 "./lib/chibios/os/hal/ports/STM32/LLD/SPIv2/hal_spi_lld.h"
+ 411              		.file 29 "./lib/chibios/os/hal/include/hal_usb.h"
+ 412              		.file 30 "./lib/chibios/os/hal/ports/STM32/LLD/USBv1/hal_usb_lld.h"
+ 413              		.file 31 "tmk_core/common/action.h"
+ 414              		.file 32 "tmk_core/common/report.h"
+ 415              		.file 33 "tmk_core/common/action_util.h"
+ 416              		.file 34 "tmk_core/common/host.h"
+ 417              		.file 35 "tmk_core/common/mousekey.h"
+ 418              		.file 36 "quantum/backlight/backlight.h"
+ 419              		.file 37 "tmk_core/common/matrix.h"
+ 420              		.file 38 "./lib/chibios/os/rt/include/chthreads.h"
+DEFINED SYMBOLS
+                            *ABS*:00000000 suspend.c
+C:\Users\kyleo\AppData\Local\Temp\cc2eTCdz.s:19     .text.suspend_idle:00000000 $t
+C:\Users\kyleo\AppData\Local\Temp\cc2eTCdz.s:27     .text.suspend_idle:00000000 suspend_idle
+C:\Users\kyleo\AppData\Local\Temp\cc2eTCdz.s:78     .text.suspend_idle:0000002c $d
+C:\Users\kyleo\AppData\Local\Temp\cc2eTCdz.s:84     .text.suspend_power_down_user:00000000 $t
+C:\Users\kyleo\AppData\Local\Temp\cc2eTCdz.s:91     .text.suspend_power_down_user:00000000 suspend_power_down_user
+C:\Users\kyleo\AppData\Local\Temp\cc2eTCdz.s:103    .text.suspend_power_down_kb:00000000 $t
+C:\Users\kyleo\AppData\Local\Temp\cc2eTCdz.s:110    .text.suspend_power_down_kb:00000000 suspend_power_down_kb
+C:\Users\kyleo\AppData\Local\Temp\cc2eTCdz.s:132    .text.suspend_power_down:00000000 $t
+C:\Users\kyleo\AppData\Local\Temp\cc2eTCdz.s:139    .text.suspend_power_down:00000000 suspend_power_down
+C:\Users\kyleo\AppData\Local\Temp\cc2eTCdz.s:167    .text.matrix_power_up:00000000 $t
+C:\Users\kyleo\AppData\Local\Temp\cc2eTCdz.s:174    .text.matrix_power_up:00000000 matrix_power_up
+C:\Users\kyleo\AppData\Local\Temp\cc2eTCdz.s:189    .text.matrix_power_down:00000000 $t
+C:\Users\kyleo\AppData\Local\Temp\cc2eTCdz.s:196    .text.matrix_power_down:00000000 matrix_power_down
+C:\Users\kyleo\AppData\Local\Temp\cc2eTCdz.s:208    .text.suspend_wakeup_condition:00000000 $t
+C:\Users\kyleo\AppData\Local\Temp\cc2eTCdz.s:215    .text.suspend_wakeup_condition:00000000 suspend_wakeup_condition
+C:\Users\kyleo\AppData\Local\Temp\cc2eTCdz.s:281    .text.suspend_wakeup_init_user:00000000 $t
+C:\Users\kyleo\AppData\Local\Temp\cc2eTCdz.s:288    .text.suspend_wakeup_init_user:00000000 suspend_wakeup_init_user
+C:\Users\kyleo\AppData\Local\Temp\cc2eTCdz.s:300    .text.suspend_wakeup_init_kb:00000000 $t
+C:\Users\kyleo\AppData\Local\Temp\cc2eTCdz.s:307    .text.suspend_wakeup_init_kb:00000000 suspend_wakeup_init_kb
+C:\Users\kyleo\AppData\Local\Temp\cc2eTCdz.s:329    .text.suspend_wakeup_init:00000000 $t
+C:\Users\kyleo\AppData\Local\Temp\cc2eTCdz.s:336    .text.suspend_wakeup_init:00000000 suspend_wakeup_init
+
+UNDEFINED SYMBOLS
+__aeabi_lmul
+__aeabi_uldivmod
+__aeabi_ldivmod
+chThdSleep
+matrix_scan
+matrix_get_row
+clear_mods
+clear_weak_mods
+clear_keys
+mousekey_clear
+host_system_send
+host_consumer_send
+backlight_init

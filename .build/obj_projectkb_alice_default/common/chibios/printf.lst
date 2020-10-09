@@ -1,0 +1,1702 @@
+   1              		.cpu cortex-m0
+   2              		.eabi_attribute 20, 1
+   3              		.eabi_attribute 21, 1
+   4              		.eabi_attribute 23, 3
+   5              		.eabi_attribute 24, 1
+   6              		.eabi_attribute 25, 1
+   7              		.eabi_attribute 26, 1
+   8              		.eabi_attribute 30, 4
+   9              		.eabi_attribute 34, 0
+  10              		.eabi_attribute 18, 2
+  11              		.file	"printf.c"
+  12              		.text
+  13              	.Ltext0:
+  14              		.cfi_sections	.debug_frame
+  15              		.global	__aeabi_uidiv
+  16              		.global	__aeabi_uidivmod
+  17              		.section	.text.uli2a,"ax",%progbits
+  18              		.align	1
+  19              		.arch armv6s-m
+  20              		.syntax unified
+  21              		.code	16
+  22              		.thumb_func
+  23              		.fpu softvfp
+  25              	uli2a:
+  26              	.LVL0:
+  27              	.LFB0:
+  28              		.file 1 "tmk_core/common/chibios/printf.c"
+   1:tmk_core/common/chibios/printf.c **** /*
+   2:tmk_core/common/chibios/printf.c ****  * found at: http://www.sparetimelabs.com/tinyprintf/tinyprintf.php
+   3:tmk_core/common/chibios/printf.c ****  * and:      http://www.sparetimelabs.com/printfrevisited/printfrevisited.php
+   4:tmk_core/common/chibios/printf.c ****  */
+   5:tmk_core/common/chibios/printf.c **** 
+   6:tmk_core/common/chibios/printf.c **** /*
+   7:tmk_core/common/chibios/printf.c **** File: printf.c
+   8:tmk_core/common/chibios/printf.c **** 
+   9:tmk_core/common/chibios/printf.c **** Copyright (C) 2004  Kustaa Nyholm
+  10:tmk_core/common/chibios/printf.c **** 
+  11:tmk_core/common/chibios/printf.c **** This library is free software; you can redistribute it and/or
+  12:tmk_core/common/chibios/printf.c **** modify it under the terms of the GNU Lesser General Public
+  13:tmk_core/common/chibios/printf.c **** License as published by the Free Software Foundation; either
+  14:tmk_core/common/chibios/printf.c **** version 2.1 of the License, or (at your option) any later version.
+  15:tmk_core/common/chibios/printf.c **** 
+  16:tmk_core/common/chibios/printf.c **** This library is distributed in the hope that it will be useful,
+  17:tmk_core/common/chibios/printf.c **** but WITHOUT ANY WARRANTY; without even the implied warranty of
+  18:tmk_core/common/chibios/printf.c **** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+  19:tmk_core/common/chibios/printf.c **** Lesser General Public License for more details.
+  20:tmk_core/common/chibios/printf.c **** 
+  21:tmk_core/common/chibios/printf.c **** You should have received a copy of the GNU Lesser General Public
+  22:tmk_core/common/chibios/printf.c **** License along with this library; if not, write to the Free Software
+  23:tmk_core/common/chibios/printf.c **** Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+  24:tmk_core/common/chibios/printf.c **** 
+  25:tmk_core/common/chibios/printf.c **** */
+  26:tmk_core/common/chibios/printf.c **** 
+  27:tmk_core/common/chibios/printf.c **** #include "printf.h"
+  28:tmk_core/common/chibios/printf.c **** 
+  29:tmk_core/common/chibios/printf.c **** typedef void (*putcf)(void*, char);
+  30:tmk_core/common/chibios/printf.c **** static putcf stdout_putf;
+  31:tmk_core/common/chibios/printf.c **** static void* stdout_putp;
+  32:tmk_core/common/chibios/printf.c **** 
+  33:tmk_core/common/chibios/printf.c **** // this adds cca 400 bytes
+  34:tmk_core/common/chibios/printf.c **** #define PRINTF_LONG_SUPPORT
+  35:tmk_core/common/chibios/printf.c **** 
+  36:tmk_core/common/chibios/printf.c **** #ifdef PRINTF_LONG_SUPPORT
+  37:tmk_core/common/chibios/printf.c **** 
+  38:tmk_core/common/chibios/printf.c **** static void uli2a(unsigned long int num, unsigned int base, int uc, char* bf) {
+  29              		.loc 1 38 79 view -0
+  30              		.cfi_startproc
+  31              		@ args = 0, pretend = 0, frame = 16
+  32              		@ frame_needed = 0, uses_anonymous_args = 0
+  39:tmk_core/common/chibios/printf.c ****     int          n = 0;
+  33              		.loc 1 39 5 view .LVU1
+  40:tmk_core/common/chibios/printf.c ****     unsigned int d = 1;
+  34              		.loc 1 40 5 view .LVU2
+  41:tmk_core/common/chibios/printf.c ****     while (num / d >= base) d *= base;
+  35              		.loc 1 41 5 view .LVU3
+  38:tmk_core/common/chibios/printf.c ****     int          n = 0;
+  36              		.loc 1 38 79 is_stmt 0 view .LVU4
+  37 0000 F0B5     		push	{r4, r5, r6, r7, lr}
+  38              		.cfi_def_cfa_offset 20
+  39              		.cfi_offset 4, -20
+  40              		.cfi_offset 5, -16
+  41              		.cfi_offset 6, -12
+  42              		.cfi_offset 7, -8
+  43              		.cfi_offset 14, -4
+  44 0002 0D00     		movs	r5, r1
+  45 0004 1E00     		movs	r6, r3
+  40:tmk_core/common/chibios/printf.c ****     unsigned int d = 1;
+  46              		.loc 1 40 18 view .LVU5
+  47 0006 0124     		movs	r4, #1
+  38:tmk_core/common/chibios/printf.c ****     int          n = 0;
+  48              		.loc 1 38 79 view .LVU6
+  49 0008 85B0     		sub	sp, sp, #20
+  50              		.cfi_def_cfa_offset 40
+  38:tmk_core/common/chibios/printf.c ****     int          n = 0;
+  51              		.loc 1 38 79 view .LVU7
+  52 000a 0290     		str	r0, [sp, #8]
+  53 000c 0392     		str	r2, [sp, #12]
+  54              	.LVL1:
+  55              	.L2:
+  56              		.loc 1 41 16 discriminator 1 view .LVU8
+  57 000e 2100     		movs	r1, r4
+  58 0010 0298     		ldr	r0, [sp, #8]
+  59 0012 FFF7FEFF 		bl	__aeabi_uidiv
+  60              	.LVL2:
+  61              		.loc 1 41 11 discriminator 1 view .LVU9
+  62 0016 A842     		cmp	r0, r5
+  63 0018 06D2     		bcs	.L3
+  39:tmk_core/common/chibios/printf.c ****     unsigned int d = 1;
+  64              		.loc 1 39 18 view .LVU10
+  65 001a 0023     		movs	r3, #0
+  66 001c 0193     		str	r3, [sp, #4]
+  67              	.LVL3:
+  68              	.L4:
+  42:tmk_core/common/chibios/printf.c ****     while (d != 0) {
+  69              		.loc 1 42 11 view .LVU11
+  70 001e 002C     		cmp	r4, #0
+  71 0020 04D1     		bne	.L8
+  43:tmk_core/common/chibios/printf.c ****         int dgt = num / d;
+  44:tmk_core/common/chibios/printf.c ****         num %= d;
+  45:tmk_core/common/chibios/printf.c ****         d /= base;
+  46:tmk_core/common/chibios/printf.c ****         if (n || dgt > 0 || d == 0) {
+  47:tmk_core/common/chibios/printf.c ****             *bf++ = dgt + (dgt < 10 ? '0' : (uc ? 'A' : 'a') - 10);
+  48:tmk_core/common/chibios/printf.c ****             ++n;
+  49:tmk_core/common/chibios/printf.c ****         }
+  50:tmk_core/common/chibios/printf.c ****     }
+  51:tmk_core/common/chibios/printf.c ****     *bf = 0;
+  72              		.loc 1 51 5 is_stmt 1 view .LVU12
+  73              		.loc 1 51 9 is_stmt 0 view .LVU13
+  74 0022 3470     		strb	r4, [r6]
+  52:tmk_core/common/chibios/printf.c **** }
+  75              		.loc 1 52 1 view .LVU14
+  76 0024 05B0     		add	sp, sp, #20
+  77              		@ sp needed
+  78              	.LVL4:
+  79              	.LVL5:
+  80              	.LVL6:
+  81              		.loc 1 52 1 view .LVU15
+  82 0026 F0BD     		pop	{r4, r5, r6, r7, pc}
+  83              	.LVL7:
+  84              	.L3:
+  41:tmk_core/common/chibios/printf.c ****     while (d != 0) {
+  85              		.loc 1 41 29 is_stmt 1 discriminator 2 view .LVU16
+  41:tmk_core/common/chibios/printf.c ****     while (d != 0) {
+  86              		.loc 1 41 31 is_stmt 0 discriminator 2 view .LVU17
+  87 0028 6C43     		muls	r4, r5
+  88              	.LVL8:
+  41:tmk_core/common/chibios/printf.c ****     while (d != 0) {
+  89              		.loc 1 41 31 discriminator 2 view .LVU18
+  90 002a F0E7     		b	.L2
+  91              	.LVL9:
+  92              	.L8:
+  93              	.LBB4:
+  43:tmk_core/common/chibios/printf.c ****         int dgt = num / d;
+  94              		.loc 1 43 9 is_stmt 1 view .LVU19
+  95 002c 0298     		ldr	r0, [sp, #8]
+  96 002e 2100     		movs	r1, r4
+  97 0030 FFF7FEFF 		bl	__aeabi_uidivmod
+  98              	.LVL10:
+  99 0034 0291     		str	r1, [sp, #8]
+ 100              	.LVL11:
+  43:tmk_core/common/chibios/printf.c ****         int dgt = num / d;
+ 101              		.loc 1 43 9 is_stmt 0 view .LVU20
+ 102 0036 0700     		movs	r7, r0
+ 103              	.LVL12:
+  44:tmk_core/common/chibios/printf.c ****         d /= base;
+ 104              		.loc 1 44 9 is_stmt 1 view .LVU21
+  45:tmk_core/common/chibios/printf.c ****         if (n || dgt > 0 || d == 0) {
+ 105              		.loc 1 45 9 view .LVU22
+  45:tmk_core/common/chibios/printf.c ****         if (n || dgt > 0 || d == 0) {
+ 106              		.loc 1 45 11 is_stmt 0 view .LVU23
+ 107 0038 2900     		movs	r1, r5
+ 108              	.LVL13:
+  45:tmk_core/common/chibios/printf.c ****         if (n || dgt > 0 || d == 0) {
+ 109              		.loc 1 45 11 view .LVU24
+ 110 003a 2000     		movs	r0, r4
+ 111              	.LVL14:
+  45:tmk_core/common/chibios/printf.c ****         if (n || dgt > 0 || d == 0) {
+ 112              		.loc 1 45 11 view .LVU25
+ 113 003c FFF7FEFF 		bl	__aeabi_uidiv
+ 114              	.LVL15:
+  46:tmk_core/common/chibios/printf.c ****             *bf++ = dgt + (dgt < 10 ? '0' : (uc ? 'A' : 'a') - 10);
+ 115              		.loc 1 46 9 is_stmt 1 view .LVU26
+  46:tmk_core/common/chibios/printf.c ****             *bf++ = dgt + (dgt < 10 ? '0' : (uc ? 'A' : 'a') - 10);
+ 116              		.loc 1 46 12 is_stmt 0 view .LVU27
+ 117 0040 019B     		ldr	r3, [sp, #4]
+ 118 0042 002B     		cmp	r3, #0
+ 119 0044 05D1     		bne	.L5
+ 120              	.LVL16:
+  46:tmk_core/common/chibios/printf.c ****             *bf++ = dgt + (dgt < 10 ? '0' : (uc ? 'A' : 'a') - 10);
+ 121              		.loc 1 46 15 discriminator 1 view .LVU28
+ 122 0046 002F     		cmp	r7, #0
+ 123 0048 03DC     		bgt	.L5
+  46:tmk_core/common/chibios/printf.c ****             *bf++ = dgt + (dgt < 10 ? '0' : (uc ? 'A' : 'a') - 10);
+ 124              		.loc 1 46 26 discriminator 2 view .LVU29
+ 125 004a AC42     		cmp	r4, r5
+ 126 004c 10D3     		bcc	.L9
+ 127              	.LVL17:
+ 128              	.L7:
+  47:tmk_core/common/chibios/printf.c ****             ++n;
+ 129              		.loc 1 47 16 view .LVU30
+ 130 004e 0400     		movs	r4, r0
+ 131 0050 E5E7     		b	.L4
+ 132              	.LVL18:
+ 133              	.L5:
+  47:tmk_core/common/chibios/printf.c ****             ++n;
+ 134              		.loc 1 47 13 is_stmt 1 view .LVU31
+  47:tmk_core/common/chibios/printf.c ****             ++n;
+ 135              		.loc 1 47 25 is_stmt 0 view .LVU32
+ 136 0052 3023     		movs	r3, #48
+ 137 0054 092F     		cmp	r7, #9
+ 138 0056 04DD     		ble	.L6
+  47:tmk_core/common/chibios/printf.c ****             ++n;
+ 139              		.loc 1 47 25 discriminator 1 view .LVU33
+ 140 0058 039A     		ldr	r2, [sp, #12]
+ 141 005a 0733     		adds	r3, r3, #7
+ 142 005c 002A     		cmp	r2, #0
+ 143 005e 00D1     		bne	.L6
+  47:tmk_core/common/chibios/printf.c ****             ++n;
+ 144              		.loc 1 47 25 view .LVU34
+ 145 0060 2033     		adds	r3, r3, #32
+ 146              	.L6:
+ 147              	.LVL19:
+  47:tmk_core/common/chibios/printf.c ****             ++n;
+ 148              		.loc 1 47 25 discriminator 8 view .LVU35
+ 149 0062 DF19     		adds	r7, r3, r7
+ 150              	.LVL20:
+  48:tmk_core/common/chibios/printf.c ****         }
+ 151              		.loc 1 48 13 discriminator 8 view .LVU36
+ 152 0064 019B     		ldr	r3, [sp, #4]
+  47:tmk_core/common/chibios/printf.c ****             ++n;
+ 153              		.loc 1 47 19 discriminator 8 view .LVU37
+ 154 0066 3770     		strb	r7, [r6]
+  48:tmk_core/common/chibios/printf.c ****         }
+ 155              		.loc 1 48 13 is_stmt 1 discriminator 8 view .LVU38
+ 156 0068 0133     		adds	r3, r3, #1
+ 157 006a 0193     		str	r3, [sp, #4]
+ 158              	.LVL21:
+  47:tmk_core/common/chibios/printf.c ****             ++n;
+ 159              		.loc 1 47 16 is_stmt 0 discriminator 8 view .LVU39
+ 160 006c 0136     		adds	r6, r6, #1
+ 161              	.LVL22:
+  47:tmk_core/common/chibios/printf.c ****             ++n;
+ 162              		.loc 1 47 16 discriminator 8 view .LVU40
+ 163 006e EEE7     		b	.L7
+ 164              	.LVL23:
+ 165              	.L9:
+  47:tmk_core/common/chibios/printf.c ****             ++n;
+ 166              		.loc 1 47 25 view .LVU41
+ 167 0070 3023     		movs	r3, #48
+ 168 0072 F6E7     		b	.L6
+ 169              	.LBE4:
+ 170              		.cfi_endproc
+ 171              	.LFE0:
+ 173              		.section	.text.ui2a,"ax",%progbits
+ 174              		.align	1
+ 175              		.syntax unified
+ 176              		.code	16
+ 177              		.thumb_func
+ 178              		.fpu softvfp
+ 180              	ui2a:
+ 181              	.LVL24:
+ 182              	.LFB2:
+  53:tmk_core/common/chibios/printf.c **** 
+  54:tmk_core/common/chibios/printf.c **** static void li2a(long num, char* bf) {
+  55:tmk_core/common/chibios/printf.c ****     if (num < 0) {
+  56:tmk_core/common/chibios/printf.c ****         num   = -num;
+  57:tmk_core/common/chibios/printf.c ****         *bf++ = '-';
+  58:tmk_core/common/chibios/printf.c ****     }
+  59:tmk_core/common/chibios/printf.c ****     uli2a(num, 10, 0, bf);
+  60:tmk_core/common/chibios/printf.c **** }
+  61:tmk_core/common/chibios/printf.c **** 
+  62:tmk_core/common/chibios/printf.c **** #endif
+  63:tmk_core/common/chibios/printf.c **** 
+  64:tmk_core/common/chibios/printf.c **** static void ui2a(unsigned int num, unsigned int base, int uc, char* bf) {
+ 183              		.loc 1 64 73 is_stmt 1 view -0
+ 184              		.cfi_startproc
+ 185              		@ args = 0, pretend = 0, frame = 16
+ 186              		@ frame_needed = 0, uses_anonymous_args = 0
+  65:tmk_core/common/chibios/printf.c ****     int          n = 0;
+ 187              		.loc 1 65 5 view .LVU43
+  66:tmk_core/common/chibios/printf.c ****     unsigned int d = 1;
+ 188              		.loc 1 66 5 view .LVU44
+  67:tmk_core/common/chibios/printf.c ****     while (num / d >= base) d *= base;
+ 189              		.loc 1 67 5 view .LVU45
+  64:tmk_core/common/chibios/printf.c ****     int          n = 0;
+ 190              		.loc 1 64 73 is_stmt 0 view .LVU46
+ 191 0000 F0B5     		push	{r4, r5, r6, r7, lr}
+ 192              		.cfi_def_cfa_offset 20
+ 193              		.cfi_offset 4, -20
+ 194              		.cfi_offset 5, -16
+ 195              		.cfi_offset 6, -12
+ 196              		.cfi_offset 7, -8
+ 197              		.cfi_offset 14, -4
+ 198 0002 0D00     		movs	r5, r1
+ 199 0004 1E00     		movs	r6, r3
+  66:tmk_core/common/chibios/printf.c ****     unsigned int d = 1;
+ 200              		.loc 1 66 18 view .LVU47
+ 201 0006 0124     		movs	r4, #1
+  64:tmk_core/common/chibios/printf.c ****     int          n = 0;
+ 202              		.loc 1 64 73 view .LVU48
+ 203 0008 85B0     		sub	sp, sp, #20
+ 204              		.cfi_def_cfa_offset 40
+  64:tmk_core/common/chibios/printf.c ****     int          n = 0;
+ 205              		.loc 1 64 73 view .LVU49
+ 206 000a 0290     		str	r0, [sp, #8]
+ 207 000c 0392     		str	r2, [sp, #12]
+ 208              	.LVL25:
+ 209              	.L13:
+ 210              		.loc 1 67 16 discriminator 1 view .LVU50
+ 211 000e 2100     		movs	r1, r4
+ 212 0010 0298     		ldr	r0, [sp, #8]
+ 213 0012 FFF7FEFF 		bl	__aeabi_uidiv
+ 214              	.LVL26:
+ 215              		.loc 1 67 11 discriminator 1 view .LVU51
+ 216 0016 A842     		cmp	r0, r5
+ 217 0018 06D2     		bcs	.L14
+  65:tmk_core/common/chibios/printf.c ****     unsigned int d = 1;
+ 218              		.loc 1 65 18 view .LVU52
+ 219 001a 0023     		movs	r3, #0
+ 220 001c 0193     		str	r3, [sp, #4]
+ 221              	.LVL27:
+ 222              	.L15:
+  68:tmk_core/common/chibios/printf.c ****     while (d != 0) {
+ 223              		.loc 1 68 11 view .LVU53
+ 224 001e 002C     		cmp	r4, #0
+ 225 0020 04D1     		bne	.L19
+  69:tmk_core/common/chibios/printf.c ****         int dgt = num / d;
+  70:tmk_core/common/chibios/printf.c ****         num %= d;
+  71:tmk_core/common/chibios/printf.c ****         d /= base;
+  72:tmk_core/common/chibios/printf.c ****         if (n || dgt > 0 || d == 0) {
+  73:tmk_core/common/chibios/printf.c ****             *bf++ = dgt + (dgt < 10 ? '0' : (uc ? 'A' : 'a') - 10);
+  74:tmk_core/common/chibios/printf.c ****             ++n;
+  75:tmk_core/common/chibios/printf.c ****         }
+  76:tmk_core/common/chibios/printf.c ****     }
+  77:tmk_core/common/chibios/printf.c ****     *bf = 0;
+ 226              		.loc 1 77 5 is_stmt 1 view .LVU54
+ 227              		.loc 1 77 9 is_stmt 0 view .LVU55
+ 228 0022 3470     		strb	r4, [r6]
+  78:tmk_core/common/chibios/printf.c **** }
+ 229              		.loc 1 78 1 view .LVU56
+ 230 0024 05B0     		add	sp, sp, #20
+ 231              		@ sp needed
+ 232              	.LVL28:
+ 233              	.LVL29:
+ 234              	.LVL30:
+ 235              		.loc 1 78 1 view .LVU57
+ 236 0026 F0BD     		pop	{r4, r5, r6, r7, pc}
+ 237              	.LVL31:
+ 238              	.L14:
+  67:tmk_core/common/chibios/printf.c ****     while (d != 0) {
+ 239              		.loc 1 67 29 is_stmt 1 discriminator 2 view .LVU58
+  67:tmk_core/common/chibios/printf.c ****     while (d != 0) {
+ 240              		.loc 1 67 31 is_stmt 0 discriminator 2 view .LVU59
+ 241 0028 6C43     		muls	r4, r5
+ 242              	.LVL32:
+  67:tmk_core/common/chibios/printf.c ****     while (d != 0) {
+ 243              		.loc 1 67 31 discriminator 2 view .LVU60
+ 244 002a F0E7     		b	.L13
+ 245              	.LVL33:
+ 246              	.L19:
+ 247              	.LBB5:
+  69:tmk_core/common/chibios/printf.c ****         int dgt = num / d;
+ 248              		.loc 1 69 9 is_stmt 1 view .LVU61
+ 249 002c 0298     		ldr	r0, [sp, #8]
+ 250 002e 2100     		movs	r1, r4
+ 251 0030 FFF7FEFF 		bl	__aeabi_uidivmod
+ 252              	.LVL34:
+ 253 0034 0291     		str	r1, [sp, #8]
+ 254              	.LVL35:
+  69:tmk_core/common/chibios/printf.c ****         int dgt = num / d;
+ 255              		.loc 1 69 9 is_stmt 0 view .LVU62
+ 256 0036 0700     		movs	r7, r0
+ 257              	.LVL36:
+  70:tmk_core/common/chibios/printf.c ****         d /= base;
+ 258              		.loc 1 70 9 is_stmt 1 view .LVU63
+  71:tmk_core/common/chibios/printf.c ****         if (n || dgt > 0 || d == 0) {
+ 259              		.loc 1 71 9 view .LVU64
+  71:tmk_core/common/chibios/printf.c ****         if (n || dgt > 0 || d == 0) {
+ 260              		.loc 1 71 11 is_stmt 0 view .LVU65
+ 261 0038 2900     		movs	r1, r5
+ 262              	.LVL37:
+  71:tmk_core/common/chibios/printf.c ****         if (n || dgt > 0 || d == 0) {
+ 263              		.loc 1 71 11 view .LVU66
+ 264 003a 2000     		movs	r0, r4
+ 265              	.LVL38:
+  71:tmk_core/common/chibios/printf.c ****         if (n || dgt > 0 || d == 0) {
+ 266              		.loc 1 71 11 view .LVU67
+ 267 003c FFF7FEFF 		bl	__aeabi_uidiv
+ 268              	.LVL39:
+  72:tmk_core/common/chibios/printf.c ****             *bf++ = dgt + (dgt < 10 ? '0' : (uc ? 'A' : 'a') - 10);
+ 269              		.loc 1 72 9 is_stmt 1 view .LVU68
+  72:tmk_core/common/chibios/printf.c ****             *bf++ = dgt + (dgt < 10 ? '0' : (uc ? 'A' : 'a') - 10);
+ 270              		.loc 1 72 12 is_stmt 0 view .LVU69
+ 271 0040 019B     		ldr	r3, [sp, #4]
+ 272 0042 002B     		cmp	r3, #0
+ 273 0044 05D1     		bne	.L16
+ 274              	.LVL40:
+  72:tmk_core/common/chibios/printf.c ****             *bf++ = dgt + (dgt < 10 ? '0' : (uc ? 'A' : 'a') - 10);
+ 275              		.loc 1 72 15 discriminator 1 view .LVU70
+ 276 0046 002F     		cmp	r7, #0
+ 277 0048 03DC     		bgt	.L16
+  72:tmk_core/common/chibios/printf.c ****             *bf++ = dgt + (dgt < 10 ? '0' : (uc ? 'A' : 'a') - 10);
+ 278              		.loc 1 72 26 discriminator 2 view .LVU71
+ 279 004a AC42     		cmp	r4, r5
+ 280 004c 10D3     		bcc	.L20
+ 281              	.LVL41:
+ 282              	.L18:
+  73:tmk_core/common/chibios/printf.c ****             ++n;
+ 283              		.loc 1 73 16 view .LVU72
+ 284 004e 0400     		movs	r4, r0
+ 285 0050 E5E7     		b	.L15
+ 286              	.LVL42:
+ 287              	.L16:
+  73:tmk_core/common/chibios/printf.c ****             ++n;
+ 288              		.loc 1 73 13 is_stmt 1 view .LVU73
+  73:tmk_core/common/chibios/printf.c ****             ++n;
+ 289              		.loc 1 73 25 is_stmt 0 view .LVU74
+ 290 0052 3023     		movs	r3, #48
+ 291 0054 092F     		cmp	r7, #9
+ 292 0056 04DD     		ble	.L17
+  73:tmk_core/common/chibios/printf.c ****             ++n;
+ 293              		.loc 1 73 25 discriminator 1 view .LVU75
+ 294 0058 039A     		ldr	r2, [sp, #12]
+ 295 005a 0733     		adds	r3, r3, #7
+ 296 005c 002A     		cmp	r2, #0
+ 297 005e 00D1     		bne	.L17
+  73:tmk_core/common/chibios/printf.c ****             ++n;
+ 298              		.loc 1 73 25 view .LVU76
+ 299 0060 2033     		adds	r3, r3, #32
+ 300              	.L17:
+ 301              	.LVL43:
+  73:tmk_core/common/chibios/printf.c ****             ++n;
+ 302              		.loc 1 73 25 discriminator 8 view .LVU77
+ 303 0062 DF19     		adds	r7, r3, r7
+ 304              	.LVL44:
+  74:tmk_core/common/chibios/printf.c ****         }
+ 305              		.loc 1 74 13 discriminator 8 view .LVU78
+ 306 0064 019B     		ldr	r3, [sp, #4]
+  73:tmk_core/common/chibios/printf.c ****             ++n;
+ 307              		.loc 1 73 19 discriminator 8 view .LVU79
+ 308 0066 3770     		strb	r7, [r6]
+  74:tmk_core/common/chibios/printf.c ****         }
+ 309              		.loc 1 74 13 is_stmt 1 discriminator 8 view .LVU80
+ 310 0068 0133     		adds	r3, r3, #1
+ 311 006a 0193     		str	r3, [sp, #4]
+ 312              	.LVL45:
+  73:tmk_core/common/chibios/printf.c ****             ++n;
+ 313              		.loc 1 73 16 is_stmt 0 discriminator 8 view .LVU81
+ 314 006c 0136     		adds	r6, r6, #1
+ 315              	.LVL46:
+  73:tmk_core/common/chibios/printf.c ****             ++n;
+ 316              		.loc 1 73 16 discriminator 8 view .LVU82
+ 317 006e EEE7     		b	.L18
+ 318              	.LVL47:
+ 319              	.L20:
+  73:tmk_core/common/chibios/printf.c ****             ++n;
+ 320              		.loc 1 73 25 view .LVU83
+ 321 0070 3023     		movs	r3, #48
+ 322 0072 F6E7     		b	.L17
+ 323              	.LBE5:
+ 324              		.cfi_endproc
+ 325              	.LFE2:
+ 327              		.section	.text.putcp,"ax",%progbits
+ 328              		.align	1
+ 329              		.syntax unified
+ 330              		.code	16
+ 331              		.thumb_func
+ 332              		.fpu softvfp
+ 334              	putcp:
+ 335              	.LVL48:
+ 336              	.LFB10:
+  79:tmk_core/common/chibios/printf.c **** 
+  80:tmk_core/common/chibios/printf.c **** static void i2a(int num, char* bf) {
+  81:tmk_core/common/chibios/printf.c ****     if (num < 0) {
+  82:tmk_core/common/chibios/printf.c ****         num   = -num;
+  83:tmk_core/common/chibios/printf.c ****         *bf++ = '-';
+  84:tmk_core/common/chibios/printf.c ****     }
+  85:tmk_core/common/chibios/printf.c ****     ui2a(num, 10, 0, bf);
+  86:tmk_core/common/chibios/printf.c **** }
+  87:tmk_core/common/chibios/printf.c **** 
+  88:tmk_core/common/chibios/printf.c **** static int a2d(char ch) {
+  89:tmk_core/common/chibios/printf.c ****     if (ch >= '0' && ch <= '9')
+  90:tmk_core/common/chibios/printf.c ****         return ch - '0';
+  91:tmk_core/common/chibios/printf.c ****     else if (ch >= 'a' && ch <= 'f')
+  92:tmk_core/common/chibios/printf.c ****         return ch - 'a' + 10;
+  93:tmk_core/common/chibios/printf.c ****     else if (ch >= 'A' && ch <= 'F')
+  94:tmk_core/common/chibios/printf.c ****         return ch - 'A' + 10;
+  95:tmk_core/common/chibios/printf.c ****     else
+  96:tmk_core/common/chibios/printf.c ****         return -1;
+  97:tmk_core/common/chibios/printf.c **** }
+  98:tmk_core/common/chibios/printf.c **** 
+  99:tmk_core/common/chibios/printf.c **** static char a2i(char ch, const char** src, int base, int* nump) {
+ 100:tmk_core/common/chibios/printf.c ****     const char* p   = *src;
+ 101:tmk_core/common/chibios/printf.c ****     int         num = 0;
+ 102:tmk_core/common/chibios/printf.c ****     int         digit;
+ 103:tmk_core/common/chibios/printf.c ****     while ((digit = a2d(ch)) >= 0) {
+ 104:tmk_core/common/chibios/printf.c ****         if (digit > base) break;
+ 105:tmk_core/common/chibios/printf.c ****         num = num * base + digit;
+ 106:tmk_core/common/chibios/printf.c ****         ch  = *p++;
+ 107:tmk_core/common/chibios/printf.c ****     }
+ 108:tmk_core/common/chibios/printf.c ****     *src  = p;
+ 109:tmk_core/common/chibios/printf.c ****     *nump = num;
+ 110:tmk_core/common/chibios/printf.c ****     return ch;
+ 111:tmk_core/common/chibios/printf.c **** }
+ 112:tmk_core/common/chibios/printf.c **** 
+ 113:tmk_core/common/chibios/printf.c **** static void putchw(void* putp, putcf putf, int n, char z, char* bf) {
+ 114:tmk_core/common/chibios/printf.c ****     char  fc = z ? '0' : ' ';
+ 115:tmk_core/common/chibios/printf.c ****     char  ch;
+ 116:tmk_core/common/chibios/printf.c ****     char* p = bf;
+ 117:tmk_core/common/chibios/printf.c ****     while (*p++ && n > 0) n--;
+ 118:tmk_core/common/chibios/printf.c ****     while (n-- > 0) putf(putp, fc);
+ 119:tmk_core/common/chibios/printf.c ****     while ((ch = *bf++)) putf(putp, ch);
+ 120:tmk_core/common/chibios/printf.c **** }
+ 121:tmk_core/common/chibios/printf.c **** 
+ 122:tmk_core/common/chibios/printf.c **** void tfp_format(void* putp, putcf putf, const char* fmt, va_list va) {
+ 123:tmk_core/common/chibios/printf.c ****     // This used to handle max of 12, but binary support jumps this to at least 32
+ 124:tmk_core/common/chibios/printf.c ****     char bf[36];
+ 125:tmk_core/common/chibios/printf.c **** 
+ 126:tmk_core/common/chibios/printf.c ****     char ch;
+ 127:tmk_core/common/chibios/printf.c **** 
+ 128:tmk_core/common/chibios/printf.c ****     while ((ch = *(fmt++))) {
+ 129:tmk_core/common/chibios/printf.c ****         if (ch != '%')
+ 130:tmk_core/common/chibios/printf.c ****             putf(putp, ch);
+ 131:tmk_core/common/chibios/printf.c ****         else {
+ 132:tmk_core/common/chibios/printf.c ****             char lz = 0;
+ 133:tmk_core/common/chibios/printf.c **** #ifdef PRINTF_LONG_SUPPORT
+ 134:tmk_core/common/chibios/printf.c ****             char lng = 0;
+ 135:tmk_core/common/chibios/printf.c **** #endif
+ 136:tmk_core/common/chibios/printf.c ****             int w = 0;
+ 137:tmk_core/common/chibios/printf.c ****             ch    = *(fmt++);
+ 138:tmk_core/common/chibios/printf.c ****             if (ch == '0') {
+ 139:tmk_core/common/chibios/printf.c ****                 ch = *(fmt++);
+ 140:tmk_core/common/chibios/printf.c ****                 lz = 1;
+ 141:tmk_core/common/chibios/printf.c ****             }
+ 142:tmk_core/common/chibios/printf.c ****             if (ch >= '0' && ch <= '9') {
+ 143:tmk_core/common/chibios/printf.c ****                 ch = a2i(ch, &fmt, 10, &w);
+ 144:tmk_core/common/chibios/printf.c ****             }
+ 145:tmk_core/common/chibios/printf.c **** #ifdef PRINTF_LONG_SUPPORT
+ 146:tmk_core/common/chibios/printf.c ****             if (ch == 'l') {
+ 147:tmk_core/common/chibios/printf.c ****                 ch  = *(fmt++);
+ 148:tmk_core/common/chibios/printf.c ****                 lng = 1;
+ 149:tmk_core/common/chibios/printf.c ****             }
+ 150:tmk_core/common/chibios/printf.c **** #endif
+ 151:tmk_core/common/chibios/printf.c ****             switch (ch) {
+ 152:tmk_core/common/chibios/printf.c ****                 case 0:
+ 153:tmk_core/common/chibios/printf.c ****                     goto abort;
+ 154:tmk_core/common/chibios/printf.c ****                 case 'u': {
+ 155:tmk_core/common/chibios/printf.c **** #ifdef PRINTF_LONG_SUPPORT
+ 156:tmk_core/common/chibios/printf.c ****                     if (lng)
+ 157:tmk_core/common/chibios/printf.c ****                         uli2a(va_arg(va, unsigned long int), 10, 0, bf);
+ 158:tmk_core/common/chibios/printf.c ****                     else
+ 159:tmk_core/common/chibios/printf.c **** #endif
+ 160:tmk_core/common/chibios/printf.c ****                         ui2a(va_arg(va, unsigned int), 10, 0, bf);
+ 161:tmk_core/common/chibios/printf.c ****                     putchw(putp, putf, w, lz, bf);
+ 162:tmk_core/common/chibios/printf.c ****                     break;
+ 163:tmk_core/common/chibios/printf.c ****                 }
+ 164:tmk_core/common/chibios/printf.c ****                 case 'd': {
+ 165:tmk_core/common/chibios/printf.c **** #ifdef PRINTF_LONG_SUPPORT
+ 166:tmk_core/common/chibios/printf.c ****                     if (lng)
+ 167:tmk_core/common/chibios/printf.c ****                         li2a(va_arg(va, unsigned long int), bf);
+ 168:tmk_core/common/chibios/printf.c ****                     else
+ 169:tmk_core/common/chibios/printf.c **** #endif
+ 170:tmk_core/common/chibios/printf.c ****                         i2a(va_arg(va, int), bf);
+ 171:tmk_core/common/chibios/printf.c ****                     putchw(putp, putf, w, lz, bf);
+ 172:tmk_core/common/chibios/printf.c ****                     break;
+ 173:tmk_core/common/chibios/printf.c ****                 }
+ 174:tmk_core/common/chibios/printf.c ****                 case 'x':
+ 175:tmk_core/common/chibios/printf.c ****                 case 'X':
+ 176:tmk_core/common/chibios/printf.c **** #ifdef PRINTF_LONG_SUPPORT
+ 177:tmk_core/common/chibios/printf.c ****                     if (lng)
+ 178:tmk_core/common/chibios/printf.c ****                         uli2a(va_arg(va, unsigned long int), 16, (ch == 'X'), bf);
+ 179:tmk_core/common/chibios/printf.c ****                     else
+ 180:tmk_core/common/chibios/printf.c **** #endif
+ 181:tmk_core/common/chibios/printf.c ****                         ui2a(va_arg(va, unsigned int), 16, (ch == 'X'), bf);
+ 182:tmk_core/common/chibios/printf.c ****                     putchw(putp, putf, w, lz, bf);
+ 183:tmk_core/common/chibios/printf.c ****                     break;
+ 184:tmk_core/common/chibios/printf.c ****                 case 'c':
+ 185:tmk_core/common/chibios/printf.c ****                     putf(putp, (char)(va_arg(va, int)));
+ 186:tmk_core/common/chibios/printf.c ****                     break;
+ 187:tmk_core/common/chibios/printf.c ****                 case 's':
+ 188:tmk_core/common/chibios/printf.c ****                     putchw(putp, putf, w, 0, va_arg(va, char*));
+ 189:tmk_core/common/chibios/printf.c ****                     break;
+ 190:tmk_core/common/chibios/printf.c ****                 case 'b':
+ 191:tmk_core/common/chibios/printf.c **** #ifdef PRINTF_LONG_SUPPORT
+ 192:tmk_core/common/chibios/printf.c ****                     if (lng)
+ 193:tmk_core/common/chibios/printf.c ****                         uli2a(va_arg(va, unsigned long int), 2, 0, bf);
+ 194:tmk_core/common/chibios/printf.c ****                     else
+ 195:tmk_core/common/chibios/printf.c **** #endif
+ 196:tmk_core/common/chibios/printf.c ****                         ui2a(va_arg(va, unsigned int), 2, 0, bf);
+ 197:tmk_core/common/chibios/printf.c ****                     putchw(putp, putf, w, lz, bf);
+ 198:tmk_core/common/chibios/printf.c ****                     break;
+ 199:tmk_core/common/chibios/printf.c ****                 case '%':
+ 200:tmk_core/common/chibios/printf.c ****                     putf(putp, ch);
+ 201:tmk_core/common/chibios/printf.c ****                 default:
+ 202:tmk_core/common/chibios/printf.c ****                     break;
+ 203:tmk_core/common/chibios/printf.c ****             }
+ 204:tmk_core/common/chibios/printf.c ****         }
+ 205:tmk_core/common/chibios/printf.c ****     }
+ 206:tmk_core/common/chibios/printf.c **** abort:;
+ 207:tmk_core/common/chibios/printf.c **** }
+ 208:tmk_core/common/chibios/printf.c **** 
+ 209:tmk_core/common/chibios/printf.c **** void init_printf(void* putp, void (*putf)(void*, char)) {
+ 210:tmk_core/common/chibios/printf.c ****     stdout_putf = putf;
+ 211:tmk_core/common/chibios/printf.c ****     stdout_putp = putp;
+ 212:tmk_core/common/chibios/printf.c **** }
+ 213:tmk_core/common/chibios/printf.c **** 
+ 214:tmk_core/common/chibios/printf.c **** int tfp_printf(const char* fmt, ...) {
+ 215:tmk_core/common/chibios/printf.c ****     va_list va;
+ 216:tmk_core/common/chibios/printf.c ****     va_start(va, fmt);
+ 217:tmk_core/common/chibios/printf.c ****     tfp_format(stdout_putp, stdout_putf, fmt, va);
+ 218:tmk_core/common/chibios/printf.c ****     va_end(va);
+ 219:tmk_core/common/chibios/printf.c **** 
+ 220:tmk_core/common/chibios/printf.c ****     return 1;
+ 221:tmk_core/common/chibios/printf.c **** }
+ 222:tmk_core/common/chibios/printf.c **** 
+ 223:tmk_core/common/chibios/printf.c **** static void putcp(void* p, char c) { *(*((char**)p))++ = c; }
+ 337              		.loc 1 223 36 is_stmt 1 view -0
+ 338              		.cfi_startproc
+ 339              		@ args = 0, pretend = 0, frame = 0
+ 340              		@ frame_needed = 0, uses_anonymous_args = 0
+ 341              		@ link register save eliminated.
+ 342              		.loc 1 223 38 view .LVU85
+ 343              		.loc 1 223 40 is_stmt 0 view .LVU86
+ 344 0000 0368     		ldr	r3, [r0]
+ 345              		.loc 1 223 1 view .LVU87
+ 346              		@ sp needed
+ 347              		.loc 1 223 53 view .LVU88
+ 348 0002 5A1C     		adds	r2, r3, #1
+ 349 0004 0260     		str	r2, [r0]
+ 350              		.loc 1 223 56 view .LVU89
+ 351 0006 1970     		strb	r1, [r3]
+ 352              		.loc 1 223 1 view .LVU90
+ 353 0008 7047     		bx	lr
+ 354              		.cfi_endproc
+ 355              	.LFE10:
+ 357              		.section	.text.putchw,"ax",%progbits
+ 358              		.align	1
+ 359              		.syntax unified
+ 360              		.code	16
+ 361              		.thumb_func
+ 362              		.fpu softvfp
+ 364              	putchw:
+ 365              	.LVL49:
+ 366              	.LFB6:
+ 113:tmk_core/common/chibios/printf.c ****     char  fc = z ? '0' : ' ';
+ 367              		.loc 1 113 69 is_stmt 1 view -0
+ 368              		.cfi_startproc
+ 369              		@ args = 4, pretend = 0, frame = 0
+ 370              		@ frame_needed = 0, uses_anonymous_args = 0
+ 113:tmk_core/common/chibios/printf.c ****     char  fc = z ? '0' : ' ';
+ 371              		.loc 1 113 69 is_stmt 0 view .LVU92
+ 372 0000 F8B5     		push	{r3, r4, r5, r6, r7, lr}
+ 373              		.cfi_def_cfa_offset 24
+ 374              		.cfi_offset 3, -24
+ 375              		.cfi_offset 4, -20
+ 376              		.cfi_offset 5, -16
+ 377              		.cfi_offset 6, -12
+ 378              		.cfi_offset 7, -8
+ 379              		.cfi_offset 14, -4
+ 113:tmk_core/common/chibios/printf.c ****     char  fc = z ? '0' : ' ';
+ 380              		.loc 1 113 69 view .LVU93
+ 381 0002 0500     		movs	r5, r0
+ 382 0004 0E00     		movs	r6, r1
+ 114:tmk_core/common/chibios/printf.c ****     char  ch;
+ 383              		.loc 1 114 5 is_stmt 1 view .LVU94
+ 114:tmk_core/common/chibios/printf.c ****     char  ch;
+ 384              		.loc 1 114 11 is_stmt 0 view .LVU95
+ 385 0006 3027     		movs	r7, #48
+ 386 0008 002B     		cmp	r3, #0
+ 387 000a 00D1     		bne	.L25
+ 388 000c 103F     		subs	r7, r7, #16
+ 389              	.L25:
+ 390              	.LVL50:
+ 115:tmk_core/common/chibios/printf.c ****     char* p = bf;
+ 391              		.loc 1 115 5 is_stmt 1 discriminator 4 view .LVU96
+ 116:tmk_core/common/chibios/printf.c ****     while (*p++ && n > 0) n--;
+ 392              		.loc 1 116 5 discriminator 4 view .LVU97
+ 117:tmk_core/common/chibios/printf.c ****     while (n-- > 0) putf(putp, fc);
+ 393              		.loc 1 117 5 discriminator 4 view .LVU98
+ 117:tmk_core/common/chibios/printf.c ****     while (n-- > 0) putf(putp, fc);
+ 394              		.loc 1 117 12 is_stmt 0 discriminator 4 view .LVU99
+ 395 000e 069B     		ldr	r3, [sp, #24]
+ 396              	.LVL51:
+ 117:tmk_core/common/chibios/printf.c ****     while (n-- > 0) putf(putp, fc);
+ 397              		.loc 1 117 12 discriminator 4 view .LVU100
+ 398 0010 9918     		adds	r1, r3, r2
+ 399              	.LVL52:
+ 400              	.L27:
+ 117:tmk_core/common/chibios/printf.c ****     while (n-- > 0) putf(putp, fc);
+ 401              		.loc 1 117 12 discriminator 1 view .LVU101
+ 402 0012 5042     		rsbs	r0, r2, #0
+ 117:tmk_core/common/chibios/printf.c ****     while (n-- > 0) putf(putp, fc);
+ 403              		.loc 1 117 11 discriminator 1 view .LVU102
+ 404 0014 085C     		ldrb	r0, [r1, r0]
+ 405 0016 1400     		movs	r4, r2
+ 406 0018 531E     		subs	r3, r2, #1
+ 407 001a 0028     		cmp	r0, #0
+ 408 001c 01D0     		beq	.L28
+ 117:tmk_core/common/chibios/printf.c ****     while (n-- > 0) putf(putp, fc);
+ 409              		.loc 1 117 17 discriminator 2 view .LVU103
+ 410 001e 002A     		cmp	r2, #0
+ 411 0020 08DC     		bgt	.L33
+ 412              	.LVL53:
+ 413              	.L28:
+ 118:tmk_core/common/chibios/printf.c ****     while ((ch = *bf++)) putf(putp, ch);
+ 414              		.loc 1 118 11 discriminator 1 view .LVU104
+ 415 0022 002C     		cmp	r4, #0
+ 416 0024 08DC     		bgt	.L29
+ 417 0026 069C     		ldr	r4, [sp, #24]
+ 418              	.LVL54:
+ 419              	.L30:
+ 118:tmk_core/common/chibios/printf.c ****     while ((ch = *bf++)) putf(putp, ch);
+ 420              		.loc 1 118 11 discriminator 1 view .LVU105
+ 421 0028 0134     		adds	r4, r4, #1
+ 422              	.LVL55:
+ 423              	.LBB8:
+ 424              	.LBB9:
+ 119:tmk_core/common/chibios/printf.c **** }
+ 425              		.loc 1 119 16 view .LVU106
+ 426 002a 631E     		subs	r3, r4, #1
+ 427 002c 1978     		ldrb	r1, [r3]
+ 428              	.LVL56:
+ 119:tmk_core/common/chibios/printf.c **** }
+ 429              		.loc 1 119 11 view .LVU107
+ 430 002e 0029     		cmp	r1, #0
+ 431 0030 07D1     		bne	.L31
+ 432              	.LBE9:
+ 433              	.LBE8:
+ 120:tmk_core/common/chibios/printf.c **** 
+ 434              		.loc 1 120 1 view .LVU108
+ 435              		@ sp needed
+ 436              	.LVL57:
+ 437              	.LVL58:
+ 438              	.LVL59:
+ 439              	.LVL60:
+ 120:tmk_core/common/chibios/printf.c **** 
+ 440              		.loc 1 120 1 view .LVU109
+ 441 0032 F8BD     		pop	{r3, r4, r5, r6, r7, pc}
+ 442              	.LVL61:
+ 443              	.L33:
+ 117:tmk_core/common/chibios/printf.c ****     while (n-- > 0) putf(putp, fc);
+ 444              		.loc 1 117 28 view .LVU110
+ 445 0034 1A00     		movs	r2, r3
+ 446              	.LVL62:
+ 117:tmk_core/common/chibios/printf.c ****     while (n-- > 0) putf(putp, fc);
+ 447              		.loc 1 117 28 view .LVU111
+ 448 0036 ECE7     		b	.L27
+ 449              	.LVL63:
+ 450              	.L29:
+ 118:tmk_core/common/chibios/printf.c ****     while ((ch = *bf++)) putf(putp, ch);
+ 451              		.loc 1 118 21 is_stmt 1 discriminator 2 view .LVU112
+ 452 0038 3900     		movs	r1, r7
+ 453 003a 2800     		movs	r0, r5
+ 454 003c B047     		blx	r6
+ 455              	.LVL64:
+ 456 003e 013C     		subs	r4, r4, #1
+ 457              	.LVL65:
+ 118:tmk_core/common/chibios/printf.c ****     while ((ch = *bf++)) putf(putp, ch);
+ 458              		.loc 1 118 21 is_stmt 0 discriminator 2 view .LVU113
+ 459 0040 EFE7     		b	.L28
+ 460              	.LVL66:
+ 461              	.L31:
+ 462              	.LBB11:
+ 463              	.LBB10:
+ 119:tmk_core/common/chibios/printf.c **** }
+ 464              		.loc 1 119 26 is_stmt 1 view .LVU114
+ 465 0042 2800     		movs	r0, r5
+ 466 0044 B047     		blx	r6
+ 467              	.LVL67:
+ 119:tmk_core/common/chibios/printf.c **** }
+ 468              		.loc 1 119 26 is_stmt 0 view .LVU115
+ 469 0046 EFE7     		b	.L30
+ 470              	.LBE10:
+ 471              	.LBE11:
+ 472              		.cfi_endproc
+ 473              	.LFE6:
+ 475              		.section	.text.tfp_format,"ax",%progbits
+ 476              		.align	1
+ 477              		.global	tfp_format
+ 478              		.syntax unified
+ 479              		.code	16
+ 480              		.thumb_func
+ 481              		.fpu softvfp
+ 483              	tfp_format:
+ 484              	.LVL68:
+ 485              	.LFB7:
+ 122:tmk_core/common/chibios/printf.c ****     // This used to handle max of 12, but binary support jumps this to at least 32
+ 486              		.loc 1 122 70 is_stmt 1 view -0
+ 487              		.cfi_startproc
+ 488              		@ args = 0, pretend = 0, frame = 56
+ 489              		@ frame_needed = 0, uses_anonymous_args = 0
+ 122:tmk_core/common/chibios/printf.c ****     // This used to handle max of 12, but binary support jumps this to at least 32
+ 490              		.loc 1 122 70 is_stmt 0 view .LVU117
+ 491 0000 F0B5     		push	{r4, r5, r6, r7, lr}
+ 492              		.cfi_def_cfa_offset 20
+ 493              		.cfi_offset 4, -20
+ 494              		.cfi_offset 5, -16
+ 495              		.cfi_offset 6, -12
+ 496              		.cfi_offset 7, -8
+ 497              		.cfi_offset 14, -4
+ 498 0002 1500     		movs	r5, r2
+ 499 0004 1C00     		movs	r4, r3
+ 500              	.LVL69:
+ 124:tmk_core/common/chibios/printf.c **** 
+ 501              		.loc 1 124 5 is_stmt 1 view .LVU118
+ 126:tmk_core/common/chibios/printf.c **** 
+ 502              		.loc 1 126 5 view .LVU119
+ 128:tmk_core/common/chibios/printf.c ****         if (ch != '%')
+ 503              		.loc 1 128 5 view .LVU120
+ 122:tmk_core/common/chibios/printf.c ****     // This used to handle max of 12, but binary support jumps this to at least 32
+ 504              		.loc 1 122 70 is_stmt 0 view .LVU121
+ 505 0006 91B0     		sub	sp, sp, #68
+ 506              		.cfi_def_cfa_offset 88
+ 507 0008 0390     		str	r0, [sp, #12]
+ 508 000a 0491     		str	r1, [sp, #16]
+ 509              	.LVL70:
+ 510              	.L38:
+ 128:tmk_core/common/chibios/printf.c ****         if (ch != '%')
+ 511              		.loc 1 128 16 view .LVU122
+ 512 000c 2978     		ldrb	r1, [r5]
+ 513              	.LVL71:
+ 128:tmk_core/common/chibios/printf.c ****         if (ch != '%')
+ 514              		.loc 1 128 11 view .LVU123
+ 515 000e 0029     		cmp	r1, #0
+ 516 0010 38D0     		beq	.L37
+ 129:tmk_core/common/chibios/printf.c ****             putf(putp, ch);
+ 517              		.loc 1 129 9 is_stmt 1 view .LVU124
+ 129:tmk_core/common/chibios/printf.c ****             putf(putp, ch);
+ 518              		.loc 1 129 12 is_stmt 0 view .LVU125
+ 519 0012 2529     		cmp	r1, #37
+ 520 0014 04D0     		beq	.L39
+ 128:tmk_core/common/chibios/printf.c ****         if (ch != '%')
+ 521              		.loc 1 128 23 view .LVU126
+ 522 0016 0135     		adds	r5, r5, #1
+ 523              	.LVL72:
+ 130:tmk_core/common/chibios/printf.c ****         else {
+ 524              		.loc 1 130 13 is_stmt 1 view .LVU127
+ 525              	.L110:
+ 526              	.LBB21:
+ 200:tmk_core/common/chibios/printf.c ****                 default:
+ 527              		.loc 1 200 21 is_stmt 0 view .LVU128
+ 528 0018 0398     		ldr	r0, [sp, #12]
+ 529 001a 049B     		ldr	r3, [sp, #16]
+ 530              	.LVL73:
+ 200:tmk_core/common/chibios/printf.c ****                 default:
+ 531              		.loc 1 200 21 view .LVU129
+ 532 001c 9847     		blx	r3
+ 533              	.LVL74:
+ 534 001e F5E7     		b	.L38
+ 535              	.LVL75:
+ 536              	.L39:
+ 132:tmk_core/common/chibios/printf.c **** #ifdef PRINTF_LONG_SUPPORT
+ 537              		.loc 1 132 13 is_stmt 1 view .LVU130
+ 134:tmk_core/common/chibios/printf.c **** #endif
+ 538              		.loc 1 134 13 view .LVU131
+ 136:tmk_core/common/chibios/printf.c ****             ch    = *(fmt++);
+ 539              		.loc 1 136 13 view .LVU132
+ 137:tmk_core/common/chibios/printf.c ****             if (ch == '0') {
+ 540              		.loc 1 137 13 view .LVU133
+ 137:tmk_core/common/chibios/printf.c ****             if (ch == '0') {
+ 541              		.loc 1 137 19 is_stmt 0 view .LVU134
+ 542 0020 6A78     		ldrb	r2, [r5, #1]
+ 543              	.LVL76:
+ 138:tmk_core/common/chibios/printf.c ****                 ch = *(fmt++);
+ 544              		.loc 1 138 13 is_stmt 1 view .LVU135
+ 138:tmk_core/common/chibios/printf.c ****                 ch = *(fmt++);
+ 545              		.loc 1 138 16 is_stmt 0 view .LVU136
+ 546 0022 302A     		cmp	r2, #48
+ 547 0024 1AD0     		beq	.L41
+ 132:tmk_core/common/chibios/printf.c **** #ifdef PRINTF_LONG_SUPPORT
+ 548              		.loc 1 132 18 view .LVU137
+ 549 0026 0023     		movs	r3, #0
+ 550              	.LVL77:
+ 137:tmk_core/common/chibios/printf.c ****             if (ch == '0') {
+ 551              		.loc 1 137 26 view .LVU138
+ 552 0028 AE1C     		adds	r6, r5, #2
+ 553              	.LVL78:
+ 554              	.L108:
+ 140:tmk_core/common/chibios/printf.c ****             }
+ 555              		.loc 1 140 20 view .LVU139
+ 556 002a 0593     		str	r3, [sp, #20]
+ 557              	.LVL79:
+ 142:tmk_core/common/chibios/printf.c ****                 ch = a2i(ch, &fmt, 10, &w);
+ 558              		.loc 1 142 13 is_stmt 1 view .LVU140
+ 142:tmk_core/common/chibios/printf.c ****                 ch = a2i(ch, &fmt, 10, &w);
+ 559              		.loc 1 142 16 is_stmt 0 view .LVU141
+ 560 002c 1300     		movs	r3, r2
+ 561 002e 303B     		subs	r3, r3, #48
+ 136:tmk_core/common/chibios/printf.c ****             ch    = *(fmt++);
+ 562              		.loc 1 136 17 view .LVU142
+ 563 0030 0027     		movs	r7, #0
+ 142:tmk_core/common/chibios/printf.c ****                 ch = a2i(ch, &fmt, 10, &w);
+ 564              		.loc 1 142 16 view .LVU143
+ 565 0032 092B     		cmp	r3, #9
+ 566 0034 1AD8     		bhi	.L43
+ 142:tmk_core/common/chibios/printf.c ****                 ch = a2i(ch, &fmt, 10, &w);
+ 567              		.loc 1 142 16 view .LVU144
+ 568 0036 3100     		movs	r1, r6
+ 569              	.LBB22:
+ 570              	.LBB23:
+ 105:tmk_core/common/chibios/printf.c ****         ch  = *p++;
+ 571              		.loc 1 105 19 view .LVU145
+ 572 0038 0A20     		movs	r0, #10
+ 573              	.LVL80:
+ 574              	.L44:
+ 575              	.LBB24:
+ 576              	.LBB25:
+  89:tmk_core/common/chibios/printf.c ****         return ch - '0';
+ 577              		.loc 1 89 19 view .LVU146
+ 578 003a 1300     		movs	r3, r2
+ 579 003c 303B     		subs	r3, r3, #48
+  89:tmk_core/common/chibios/printf.c ****         return ch - '0';
+ 580              		.loc 1 89 8 view .LVU147
+ 581 003e DDB2     		uxtb	r5, r3
+ 582 0040 0E00     		movs	r6, r1
+ 583              	.LVL81:
+  89:tmk_core/common/chibios/printf.c ****         return ch - '0';
+ 584              		.loc 1 89 8 view .LVU148
+ 585              	.LBE25:
+ 586              	.LBI24:
+  88:tmk_core/common/chibios/printf.c ****     if (ch >= '0' && ch <= '9')
+ 587              		.loc 1 88 12 is_stmt 1 view .LVU149
+ 588              	.LBB26:
+  89:tmk_core/common/chibios/printf.c ****         return ch - '0';
+ 589              		.loc 1 89 5 view .LVU150
+  89:tmk_core/common/chibios/printf.c ****         return ch - '0';
+ 590              		.loc 1 89 8 is_stmt 0 view .LVU151
+ 591 0042 092D     		cmp	r5, #9
+ 592 0044 05D9     		bls	.L46
+  91:tmk_core/common/chibios/printf.c ****         return ch - 'a' + 10;
+ 593              		.loc 1 91 10 is_stmt 1 view .LVU152
+  91:tmk_core/common/chibios/printf.c ****         return ch - 'a' + 10;
+ 594              		.loc 1 91 13 is_stmt 0 view .LVU153
+ 595 0046 313B     		subs	r3, r3, #49
+ 596 0048 052B     		cmp	r3, #5
+ 597 004a 0BD8     		bhi	.L47
+ 598              	.L112:
+  94:tmk_core/common/chibios/printf.c ****     else
+ 599              		.loc 1 94 9 is_stmt 1 view .LVU154
+  94:tmk_core/common/chibios/printf.c ****     else
+ 600              		.loc 1 94 25 is_stmt 0 view .LVU155
+ 601 004c 0A33     		adds	r3, r3, #10
+ 602              	.LVL82:
+  94:tmk_core/common/chibios/printf.c ****     else
+ 603              		.loc 1 94 25 view .LVU156
+ 604              	.LBE26:
+ 605              	.LBE24:
+ 104:tmk_core/common/chibios/printf.c ****         num = num * base + digit;
+ 606              		.loc 1 104 9 is_stmt 1 view .LVU157
+ 104:tmk_core/common/chibios/printf.c ****         num = num * base + digit;
+ 607              		.loc 1 104 12 is_stmt 0 view .LVU158
+ 608 004e 0A2B     		cmp	r3, #10
+ 609 0050 0CD1     		bne	.L43
+ 610              	.LVL83:
+ 611              	.L46:
+ 105:tmk_core/common/chibios/printf.c ****         ch  = *p++;
+ 612              		.loc 1 105 9 is_stmt 1 view .LVU159
+ 105:tmk_core/common/chibios/printf.c ****         ch  = *p++;
+ 613              		.loc 1 105 19 is_stmt 0 view .LVU160
+ 614 0052 4743     		muls	r7, r0
+ 615              	.LVL84:
+ 106:tmk_core/common/chibios/printf.c ****     }
+ 616              		.loc 1 106 13 view .LVU161
+ 617 0054 0A78     		ldrb	r2, [r1]
+ 618              	.LVL85:
+ 105:tmk_core/common/chibios/printf.c ****         ch  = *p++;
+ 619              		.loc 1 105 13 view .LVU162
+ 620 0056 DF19     		adds	r7, r3, r7
+ 621              	.LVL86:
+ 106:tmk_core/common/chibios/printf.c ****     }
+ 622              		.loc 1 106 9 is_stmt 1 view .LVU163
+ 106:tmk_core/common/chibios/printf.c ****     }
+ 623              		.loc 1 106 9 is_stmt 0 view .LVU164
+ 624 0058 0131     		adds	r1, r1, #1
+ 625              	.LVL87:
+ 106:tmk_core/common/chibios/printf.c ****     }
+ 626              		.loc 1 106 9 view .LVU165
+ 627 005a EEE7     		b	.L44
+ 628              	.LVL88:
+ 629              	.L41:
+ 106:tmk_core/common/chibios/printf.c ****     }
+ 630              		.loc 1 106 9 view .LVU166
+ 631              	.LBE23:
+ 632              	.LBE22:
+ 139:tmk_core/common/chibios/printf.c ****                 lz = 1;
+ 633              		.loc 1 139 17 is_stmt 1 view .LVU167
+ 139:tmk_core/common/chibios/printf.c ****                 lz = 1;
+ 634              		.loc 1 139 27 is_stmt 0 view .LVU168
+ 635 005c EE1C     		adds	r6, r5, #3
+ 636              	.LVL89:
+ 139:tmk_core/common/chibios/printf.c ****                 lz = 1;
+ 637              		.loc 1 139 20 view .LVU169
+ 638 005e AA78     		ldrb	r2, [r5, #2]
+ 639              	.LVL90:
+ 140:tmk_core/common/chibios/printf.c ****             }
+ 640              		.loc 1 140 17 is_stmt 1 view .LVU170
+ 140:tmk_core/common/chibios/printf.c ****             }
+ 641              		.loc 1 140 20 is_stmt 0 view .LVU171
+ 642 0060 0123     		movs	r3, #1
+ 643              	.LVL91:
+ 140:tmk_core/common/chibios/printf.c ****             }
+ 644              		.loc 1 140 20 view .LVU172
+ 645 0062 E2E7     		b	.L108
+ 646              	.LVL92:
+ 647              	.L47:
+ 648              	.LBB30:
+ 649              	.LBB29:
+ 650              	.LBB28:
+ 651              	.LBB27:
+  93:tmk_core/common/chibios/printf.c ****         return ch - 'A' + 10;
+ 652              		.loc 1 93 10 is_stmt 1 view .LVU173
+  93:tmk_core/common/chibios/printf.c ****         return ch - 'A' + 10;
+ 653              		.loc 1 93 13 is_stmt 0 view .LVU174
+ 654 0064 1300     		movs	r3, r2
+ 655 0066 413B     		subs	r3, r3, #65
+ 656 0068 052B     		cmp	r3, #5
+ 657 006a EFD9     		bls	.L112
+ 658              	.LVL93:
+ 659              	.L43:
+  93:tmk_core/common/chibios/printf.c ****         return ch - 'A' + 10;
+ 660              		.loc 1 93 13 view .LVU175
+ 661              	.LBE27:
+ 662              	.LBE28:
+ 663              	.LBE29:
+ 664              	.LBE30:
+ 146:tmk_core/common/chibios/printf.c ****                 ch  = *(fmt++);
+ 665              		.loc 1 146 13 is_stmt 1 view .LVU176
+ 146:tmk_core/common/chibios/printf.c ****                 ch  = *(fmt++);
+ 666              		.loc 1 146 16 is_stmt 0 view .LVU177
+ 667 006c 6C2A     		cmp	r2, #108
+ 668 006e 52D1     		bne	.L49
+ 147:tmk_core/common/chibios/printf.c ****                 lng = 1;
+ 669              		.loc 1 147 17 is_stmt 1 view .LVU178
+ 147:tmk_core/common/chibios/printf.c ****                 lng = 1;
+ 670              		.loc 1 147 21 is_stmt 0 view .LVU179
+ 671 0070 3278     		ldrb	r2, [r6]
+ 672              	.LVL94:
+ 147:tmk_core/common/chibios/printf.c ****                 lng = 1;
+ 673              		.loc 1 147 28 view .LVU180
+ 674 0072 751C     		adds	r5, r6, #1
+ 675              	.LVL95:
+ 148:tmk_core/common/chibios/printf.c ****             }
+ 676              		.loc 1 148 17 is_stmt 1 view .LVU181
+ 151:tmk_core/common/chibios/printf.c ****                 case 0:
+ 677              		.loc 1 151 13 view .LVU182
+ 678 0074 632A     		cmp	r2, #99
+ 679 0076 3ED0     		beq	.L50
+ 680 0078 0ED8     		bhi	.L51
+ 681 007a 252A     		cmp	r2, #37
+ 682 007c 49D0     		beq	.L52
+ 683 007e 03D8     		bhi	.L53
+ 684 0080 002A     		cmp	r2, #0
+ 685 0082 C3D1     		bne	.L38
+ 686              	.LVL96:
+ 687              	.L37:
+ 151:tmk_core/common/chibios/printf.c ****                 case 0:
+ 688              		.loc 1 151 13 is_stmt 0 view .LVU183
+ 689              	.LBE21:
+ 207:tmk_core/common/chibios/printf.c **** 
+ 690              		.loc 1 207 1 view .LVU184
+ 691 0084 11B0     		add	sp, sp, #68
+ 692              		@ sp needed
+ 693              	.LVL97:
+ 207:tmk_core/common/chibios/printf.c **** 
+ 694              		.loc 1 207 1 view .LVU185
+ 695 0086 F0BD     		pop	{r4, r5, r6, r7, pc}
+ 696              	.LVL98:
+ 697              	.L53:
+ 698              	.LBB39:
+ 151:tmk_core/common/chibios/printf.c ****                 case 0:
+ 699              		.loc 1 151 13 view .LVU186
+ 700 0088 582A     		cmp	r2, #88
+ 701 008a 1AD0     		beq	.L55
+ 702 008c 622A     		cmp	r2, #98
+ 703 008e BDD1     		bne	.L38
+ 193:tmk_core/common/chibios/printf.c ****                     else
+ 704              		.loc 1 193 25 is_stmt 1 view .LVU187
+ 705              	.LVL99:
+ 193:tmk_core/common/chibios/printf.c ****                     else
+ 706              		.loc 1 193 25 is_stmt 0 view .LVU188
+ 707 0090 07AB     		add	r3, sp, #28
+ 708 0092 0022     		movs	r2, #0
+ 709              	.LVL100:
+ 193:tmk_core/common/chibios/printf.c ****                     else
+ 710              		.loc 1 193 25 view .LVU189
+ 711 0094 0221     		movs	r1, #2
+ 712 0096 1DE0     		b	.L113
+ 713              	.LVL101:
+ 714              	.L51:
+ 151:tmk_core/common/chibios/printf.c ****                 case 0:
+ 715              		.loc 1 151 13 view .LVU190
+ 716 0098 732A     		cmp	r2, #115
+ 717 009a 30D0     		beq	.L57
+ 718 009c 0DD8     		bhi	.L58
+ 719 009e 642A     		cmp	r2, #100
+ 720 00a0 B4D1     		bne	.L38
+ 166:tmk_core/common/chibios/printf.c ****                         li2a(va_arg(va, unsigned long int), bf);
+ 721              		.loc 1 166 21 is_stmt 1 view .LVU191
+ 167:tmk_core/common/chibios/printf.c ****                     else
+ 722              		.loc 1 167 25 view .LVU192
+ 167:tmk_core/common/chibios/printf.c ****                     else
+ 723              		.loc 1 167 25 is_stmt 0 view .LVU193
+ 724 00a2 01CC     		ldmia	r4!, {r0}
+ 725              	.LVL102:
+ 726              	.LBB31:
+ 727              	.LBI31:
+  54:tmk_core/common/chibios/printf.c ****     if (num < 0) {
+ 728              		.loc 1 54 13 is_stmt 1 view .LVU194
+ 729              	.LBB32:
+  55:tmk_core/common/chibios/printf.c ****         num   = -num;
+ 730              		.loc 1 55 5 view .LVU195
+ 731 00a4 07AB     		add	r3, sp, #28
+ 732              	.LVL103:
+  55:tmk_core/common/chibios/printf.c ****         num   = -num;
+ 733              		.loc 1 55 8 is_stmt 0 view .LVU196
+ 734 00a6 0028     		cmp	r0, #0
+ 735 00a8 16DB     		blt	.L61
+ 736              	.LVL104:
+ 737              	.L62:
+  59:tmk_core/common/chibios/printf.c **** }
+ 738              		.loc 1 59 5 is_stmt 1 view .LVU197
+ 739 00aa 0022     		movs	r2, #0
+ 740 00ac 0A21     		movs	r1, #10
+ 741              	.LVL105:
+ 742              	.L114:
+  59:tmk_core/common/chibios/printf.c **** }
+ 743              		.loc 1 59 5 is_stmt 0 view .LVU198
+ 744              	.LBE32:
+ 745              	.LBE31:
+ 193:tmk_core/common/chibios/printf.c ****                     else
+ 746              		.loc 1 193 25 view .LVU199
+ 747 00ae FFF7FEFF 		bl	uli2a
+ 748              	.LVL106:
+ 749              	.L67:
+ 197:tmk_core/common/chibios/printf.c ****                     break;
+ 750              		.loc 1 197 21 is_stmt 1 view .LVU200
+ 751 00b2 07AB     		add	r3, sp, #28
+ 752 00b4 0093     		str	r3, [sp]
+ 753 00b6 059B     		ldr	r3, [sp, #20]
+ 754 00b8 24E0     		b	.L111
+ 755              	.LVL107:
+ 756              	.L58:
+ 151:tmk_core/common/chibios/printf.c ****                 case 0:
+ 757              		.loc 1 151 13 is_stmt 0 view .LVU201
+ 758 00ba 752A     		cmp	r2, #117
+ 759 00bc 07D0     		beq	.L60
+ 760 00be 782A     		cmp	r2, #120
+ 761 00c0 A4D1     		bne	.L38
+ 762              	.L55:
+ 177:tmk_core/common/chibios/printf.c ****                         uli2a(va_arg(va, unsigned long int), 16, (ch == 'X'), bf);
+ 763              		.loc 1 177 21 is_stmt 1 view .LVU202
+ 178:tmk_core/common/chibios/printf.c ****                     else
+ 764              		.loc 1 178 25 view .LVU203
+ 178:tmk_core/common/chibios/printf.c ****                     else
+ 765              		.loc 1 178 25 is_stmt 0 view .LVU204
+ 766 00c2 583A     		subs	r2, r2, #88
+ 767              	.LVL108:
+ 178:tmk_core/common/chibios/printf.c ****                     else
+ 768              		.loc 1 178 25 view .LVU205
+ 769 00c4 5342     		rsbs	r3, r2, #0
+ 770 00c6 5A41     		adcs	r2, r2, r3
+ 771              	.LVL109:
+ 178:tmk_core/common/chibios/printf.c ****                     else
+ 772              		.loc 1 178 25 view .LVU206
+ 773 00c8 1021     		movs	r1, #16
+ 774 00ca 07AB     		add	r3, sp, #28
+ 775 00cc 02E0     		b	.L113
+ 776              	.LVL110:
+ 777              	.L60:
+ 156:tmk_core/common/chibios/printf.c ****                         uli2a(va_arg(va, unsigned long int), 10, 0, bf);
+ 778              		.loc 1 156 21 is_stmt 1 view .LVU207
+ 157:tmk_core/common/chibios/printf.c ****                     else
+ 779              		.loc 1 157 25 view .LVU208
+ 157:tmk_core/common/chibios/printf.c ****                     else
+ 780              		.loc 1 157 25 is_stmt 0 view .LVU209
+ 781 00ce 0022     		movs	r2, #0
+ 782              	.LVL111:
+ 157:tmk_core/common/chibios/printf.c ****                     else
+ 783              		.loc 1 157 25 view .LVU210
+ 784 00d0 0A21     		movs	r1, #10
+ 785 00d2 07AB     		add	r3, sp, #28
+ 786              	.L113:
+ 193:tmk_core/common/chibios/printf.c ****                     else
+ 787              		.loc 1 193 25 view .LVU211
+ 788 00d4 01CC     		ldmia	r4!, {r0}
+ 789              	.LVL112:
+ 193:tmk_core/common/chibios/printf.c ****                     else
+ 790              		.loc 1 193 25 view .LVU212
+ 791 00d6 EAE7     		b	.L114
+ 792              	.LVL113:
+ 793              	.L61:
+ 794              	.LBB34:
+ 795              	.LBB33:
+  56:tmk_core/common/chibios/printf.c ****         *bf++ = '-';
+ 796              		.loc 1 56 9 is_stmt 1 view .LVU213
+  57:tmk_core/common/chibios/printf.c ****     }
+ 797              		.loc 1 57 15 is_stmt 0 view .LVU214
+ 798 00d8 2D22     		movs	r2, #45
+ 799              	.LVL114:
+  57:tmk_core/common/chibios/printf.c ****     }
+ 800              		.loc 1 57 15 view .LVU215
+ 801 00da 1A70     		strb	r2, [r3]
+  57:tmk_core/common/chibios/printf.c ****     }
+ 802              		.loc 1 57 12 view .LVU216
+ 803 00dc 0D23     		movs	r3, #13
+ 804              	.LVL115:
+  57:tmk_core/common/chibios/printf.c ****     }
+ 805              		.loc 1 57 12 view .LVU217
+ 806 00de 04AA     		add	r2, sp, #16
+ 807              	.LVL116:
+  56:tmk_core/common/chibios/printf.c ****         *bf++ = '-';
+ 808              		.loc 1 56 15 view .LVU218
+ 809 00e0 4042     		rsbs	r0, r0, #0
+ 810              	.LVL117:
+  57:tmk_core/common/chibios/printf.c ****     }
+ 811              		.loc 1 57 9 is_stmt 1 view .LVU219
+  57:tmk_core/common/chibios/printf.c ****     }
+ 812              		.loc 1 57 12 is_stmt 0 view .LVU220
+ 813 00e2 9B18     		adds	r3, r3, r2
+ 814 00e4 E1E7     		b	.L62
+ 815              	.LVL118:
+ 816              	.L63:
+  57:tmk_core/common/chibios/printf.c ****     }
+ 817              		.loc 1 57 12 view .LVU221
+ 818              	.LBE33:
+ 819              	.LBE34:
+ 820              	.LBB35:
+ 821              	.LBB36:
+  82:tmk_core/common/chibios/printf.c ****         *bf++ = '-';
+ 822              		.loc 1 82 9 is_stmt 1 view .LVU222
+  83:tmk_core/common/chibios/printf.c ****     }
+ 823              		.loc 1 83 15 is_stmt 0 view .LVU223
+ 824 00e6 2D22     		movs	r2, #45
+ 825              	.LVL119:
+  83:tmk_core/common/chibios/printf.c ****     }
+ 826              		.loc 1 83 15 view .LVU224
+ 827 00e8 1A70     		strb	r2, [r3]
+  83:tmk_core/common/chibios/printf.c ****     }
+ 828              		.loc 1 83 12 view .LVU225
+ 829 00ea 0D23     		movs	r3, #13
+ 830              	.LVL120:
+  83:tmk_core/common/chibios/printf.c ****     }
+ 831              		.loc 1 83 12 view .LVU226
+ 832 00ec 04AA     		add	r2, sp, #16
+ 833              	.LVL121:
+  82:tmk_core/common/chibios/printf.c ****         *bf++ = '-';
+ 834              		.loc 1 82 15 view .LVU227
+ 835 00ee 4042     		rsbs	r0, r0, #0
+ 836              	.LVL122:
+  83:tmk_core/common/chibios/printf.c ****     }
+ 837              		.loc 1 83 9 is_stmt 1 view .LVU228
+  83:tmk_core/common/chibios/printf.c ****     }
+ 838              		.loc 1 83 12 is_stmt 0 view .LVU229
+ 839 00f0 9B18     		adds	r3, r3, r2
+ 840 00f2 2BE0     		b	.L64
+ 841              	.LVL123:
+ 842              	.L78:
+  83:tmk_core/common/chibios/printf.c ****     }
+ 843              		.loc 1 83 12 view .LVU230
+ 844              	.LBE36:
+ 845              	.LBE35:
+ 151:tmk_core/common/chibios/printf.c ****                 case 0:
+ 846              		.loc 1 151 13 view .LVU231
+ 847 00f4 3500     		movs	r5, r6
+ 848              	.LVL124:
+ 849              	.L50:
+ 185:tmk_core/common/chibios/printf.c ****                     break;
+ 850              		.loc 1 185 21 is_stmt 1 view .LVU232
+ 185:tmk_core/common/chibios/printf.c ****                     break;
+ 851              		.loc 1 185 21 is_stmt 0 view .LVU233
+ 852 00f6 02CC     		ldmia	r4!, {r1}
+ 853              	.LVL125:
+ 185:tmk_core/common/chibios/printf.c ****                     break;
+ 854              		.loc 1 185 21 view .LVU234
+ 855 00f8 C9B2     		uxtb	r1, r1
+ 856 00fa 8DE7     		b	.L110
+ 857              	.LVL126:
+ 858              	.L80:
+ 151:tmk_core/common/chibios/printf.c ****                 case 0:
+ 859              		.loc 1 151 13 view .LVU235
+ 860 00fc 3500     		movs	r5, r6
+ 861              	.LVL127:
+ 862              	.L57:
+ 188:tmk_core/common/chibios/printf.c ****                     break;
+ 863              		.loc 1 188 21 is_stmt 1 view .LVU236
+ 188:tmk_core/common/chibios/printf.c ****                     break;
+ 864              		.loc 1 188 21 is_stmt 0 view .LVU237
+ 865 00fe 08CC     		ldmia	r4!, {r3}
+ 866              	.LVL128:
+ 188:tmk_core/common/chibios/printf.c ****                     break;
+ 867              		.loc 1 188 21 view .LVU238
+ 868 0100 0093     		str	r3, [sp]
+ 869 0102 0023     		movs	r3, #0
+ 870              	.LVL129:
+ 871              	.L111:
+ 197:tmk_core/common/chibios/printf.c ****                     break;
+ 872              		.loc 1 197 21 view .LVU239
+ 873 0104 3A00     		movs	r2, r7
+ 874 0106 0499     		ldr	r1, [sp, #16]
+ 875 0108 0398     		ldr	r0, [sp, #12]
+ 876 010a FFF7FEFF 		bl	putchw
+ 877              	.LVL130:
+ 198:tmk_core/common/chibios/printf.c ****                 case '%':
+ 878              		.loc 1 198 21 is_stmt 1 view .LVU240
+ 879 010e 7DE7     		b	.L38
+ 880              	.LVL131:
+ 881              	.L79:
+ 151:tmk_core/common/chibios/printf.c ****                 case 0:
+ 882              		.loc 1 151 13 is_stmt 0 view .LVU241
+ 883 0110 3500     		movs	r5, r6
+ 884              	.LVL132:
+ 885              	.L52:
+ 200:tmk_core/common/chibios/printf.c ****                 default:
+ 886              		.loc 1 200 21 is_stmt 1 view .LVU242
+ 887 0112 2521     		movs	r1, #37
+ 888 0114 80E7     		b	.L110
+ 889              	.L54:
+ 890              	.LVL133:
+ 891              	.L49:
+ 151:tmk_core/common/chibios/printf.c ****                 case 0:
+ 892              		.loc 1 151 13 view .LVU243
+ 893 0116 632A     		cmp	r2, #99
+ 894 0118 ECD0     		beq	.L78
+ 895 011a 0ED8     		bhi	.L69
+ 896 011c 252A     		cmp	r2, #37
+ 897 011e F7D0     		beq	.L79
+ 898 0120 03D8     		bhi	.L70
+ 899 0122 002A     		cmp	r2, #0
+ 900 0124 AED0     		beq	.L37
+ 901              	.L109:
+ 151:tmk_core/common/chibios/printf.c ****                 case 0:
+ 902              		.loc 1 151 13 is_stmt 0 view .LVU244
+ 903 0126 3500     		movs	r5, r6
+ 151:tmk_core/common/chibios/printf.c ****                 case 0:
+ 904              		.loc 1 151 13 view .LVU245
+ 905 0128 70E7     		b	.L38
+ 906              	.L70:
+ 151:tmk_core/common/chibios/printf.c ****                 case 0:
+ 907              		.loc 1 151 13 view .LVU246
+ 908 012a 582A     		cmp	r2, #88
+ 909 012c 18D0     		beq	.L71
+ 910 012e 622A     		cmp	r2, #98
+ 911 0130 F9D1     		bne	.L109
+ 192:tmk_core/common/chibios/printf.c ****                         uli2a(va_arg(va, unsigned long int), 2, 0, bf);
+ 912              		.loc 1 192 21 is_stmt 1 view .LVU247
+ 196:tmk_core/common/chibios/printf.c ****                     putchw(putp, putf, w, lz, bf);
+ 913              		.loc 1 196 25 view .LVU248
+ 196:tmk_core/common/chibios/printf.c ****                     putchw(putp, putf, w, lz, bf);
+ 914              		.loc 1 196 25 is_stmt 0 view .LVU249
+ 915 0132 07AB     		add	r3, sp, #28
+ 916 0134 0022     		movs	r2, #0
+ 917              	.LVL134:
+ 196:tmk_core/common/chibios/printf.c ****                     putchw(putp, putf, w, lz, bf);
+ 918              		.loc 1 196 25 view .LVU250
+ 919 0136 0221     		movs	r1, #2
+ 920 0138 17E0     		b	.L115
+ 921              	.LVL135:
+ 922              	.L69:
+ 151:tmk_core/common/chibios/printf.c ****                 case 0:
+ 923              		.loc 1 151 13 view .LVU251
+ 924 013a 732A     		cmp	r2, #115
+ 925 013c DED0     		beq	.L80
+ 926 013e 0BD8     		bhi	.L73
+ 927 0140 642A     		cmp	r2, #100
+ 928 0142 F0D1     		bne	.L109
+ 166:tmk_core/common/chibios/printf.c ****                         li2a(va_arg(va, unsigned long int), bf);
+ 929              		.loc 1 166 21 is_stmt 1 view .LVU252
+ 170:tmk_core/common/chibios/printf.c ****                     putchw(putp, putf, w, lz, bf);
+ 930              		.loc 1 170 25 view .LVU253
+ 170:tmk_core/common/chibios/printf.c ****                     putchw(putp, putf, w, lz, bf);
+ 931              		.loc 1 170 25 is_stmt 0 view .LVU254
+ 932 0144 01CC     		ldmia	r4!, {r0}
+ 933              	.LVL136:
+ 934              	.LBB38:
+ 935              	.LBI35:
+  80:tmk_core/common/chibios/printf.c ****     if (num < 0) {
+ 936              		.loc 1 80 13 is_stmt 1 view .LVU255
+ 937              	.LBB37:
+  81:tmk_core/common/chibios/printf.c ****         num   = -num;
+ 938              		.loc 1 81 5 view .LVU256
+ 939 0146 07AB     		add	r3, sp, #28
+ 940              	.LVL137:
+  81:tmk_core/common/chibios/printf.c ****         num   = -num;
+ 941              		.loc 1 81 8 is_stmt 0 view .LVU257
+ 942 0148 0028     		cmp	r0, #0
+ 943 014a CCDB     		blt	.L63
+ 944              	.LVL138:
+ 945              	.L64:
+  85:tmk_core/common/chibios/printf.c **** }
+ 946              		.loc 1 85 5 is_stmt 1 view .LVU258
+ 947 014c 0022     		movs	r2, #0
+ 948 014e 0A21     		movs	r1, #10
+ 949              	.LVL139:
+ 950              	.L116:
+  85:tmk_core/common/chibios/printf.c **** }
+ 951              		.loc 1 85 5 is_stmt 0 view .LVU259
+ 952              	.LBE37:
+ 953              	.LBE38:
+ 196:tmk_core/common/chibios/printf.c ****                     putchw(putp, putf, w, lz, bf);
+ 954              		.loc 1 196 25 view .LVU260
+ 955 0150 FFF7FEFF 		bl	ui2a
+ 956              	.LVL140:
+ 957 0154 3500     		movs	r5, r6
+ 958 0156 ACE7     		b	.L67
+ 959              	.LVL141:
+ 960              	.L73:
+ 151:tmk_core/common/chibios/printf.c ****                 case 0:
+ 961              		.loc 1 151 13 view .LVU261
+ 962 0158 752A     		cmp	r2, #117
+ 963 015a 08D0     		beq	.L75
+ 964 015c 782A     		cmp	r2, #120
+ 965 015e E2D1     		bne	.L109
+ 966              	.L71:
+ 181:tmk_core/common/chibios/printf.c ****                     putchw(putp, putf, w, lz, bf);
+ 967              		.loc 1 181 25 is_stmt 1 view .LVU262
+ 181:tmk_core/common/chibios/printf.c ****                     putchw(putp, putf, w, lz, bf);
+ 968              		.loc 1 181 25 is_stmt 0 view .LVU263
+ 969 0160 1021     		movs	r1, #16
+ 970 0162 583A     		subs	r2, r2, #88
+ 971              	.LVL142:
+ 181:tmk_core/common/chibios/printf.c ****                     putchw(putp, putf, w, lz, bf);
+ 972              		.loc 1 181 25 view .LVU264
+ 973 0164 5342     		rsbs	r3, r2, #0
+ 974 0166 5A41     		adcs	r2, r2, r3
+ 975 0168 07AB     		add	r3, sp, #28
+ 976              	.L115:
+ 196:tmk_core/common/chibios/printf.c ****                     putchw(putp, putf, w, lz, bf);
+ 977              		.loc 1 196 25 view .LVU265
+ 978 016a 01CC     		ldmia	r4!, {r0}
+ 979              	.LVL143:
+ 196:tmk_core/common/chibios/printf.c ****                     putchw(putp, putf, w, lz, bf);
+ 980              		.loc 1 196 25 view .LVU266
+ 981 016c F0E7     		b	.L116
+ 982              	.LVL144:
+ 983              	.L75:
+ 156:tmk_core/common/chibios/printf.c ****                         uli2a(va_arg(va, unsigned long int), 10, 0, bf);
+ 984              		.loc 1 156 21 is_stmt 1 view .LVU267
+ 160:tmk_core/common/chibios/printf.c ****                     putchw(putp, putf, w, lz, bf);
+ 985              		.loc 1 160 25 view .LVU268
+ 160:tmk_core/common/chibios/printf.c ****                     putchw(putp, putf, w, lz, bf);
+ 986              		.loc 1 160 25 is_stmt 0 view .LVU269
+ 987 016e 07AB     		add	r3, sp, #28
+ 988 0170 0022     		movs	r2, #0
+ 989              	.LVL145:
+ 160:tmk_core/common/chibios/printf.c ****                     putchw(putp, putf, w, lz, bf);
+ 990              		.loc 1 160 25 view .LVU270
+ 991 0172 0A21     		movs	r1, #10
+ 992 0174 F9E7     		b	.L115
+ 993              	.LBE39:
+ 994              		.cfi_endproc
+ 995              	.LFE7:
+ 997              		.section	.text.init_printf,"ax",%progbits
+ 998              		.align	1
+ 999              		.global	init_printf
+ 1000              		.syntax unified
+ 1001              		.code	16
+ 1002              		.thumb_func
+ 1003              		.fpu softvfp
+ 1005              	init_printf:
+ 1006              	.LVL146:
+ 1007              	.LFB8:
+ 209:tmk_core/common/chibios/printf.c ****     stdout_putf = putf;
+ 1008              		.loc 1 209 57 is_stmt 1 view -0
+ 1009              		.cfi_startproc
+ 1010              		@ args = 0, pretend = 0, frame = 0
+ 1011              		@ frame_needed = 0, uses_anonymous_args = 0
+ 1012              		@ link register save eliminated.
+ 210:tmk_core/common/chibios/printf.c ****     stdout_putp = putp;
+ 1013              		.loc 1 210 5 view .LVU272
+ 210:tmk_core/common/chibios/printf.c ****     stdout_putp = putp;
+ 1014              		.loc 1 210 17 is_stmt 0 view .LVU273
+ 1015 0000 024B     		ldr	r3, .L118
+ 212:tmk_core/common/chibios/printf.c **** 
+ 1016              		.loc 1 212 1 view .LVU274
+ 1017              		@ sp needed
+ 210:tmk_core/common/chibios/printf.c ****     stdout_putp = putp;
+ 1018              		.loc 1 210 17 view .LVU275
+ 1019 0002 1960     		str	r1, [r3]
+ 211:tmk_core/common/chibios/printf.c **** }
+ 1020              		.loc 1 211 5 is_stmt 1 view .LVU276
+ 211:tmk_core/common/chibios/printf.c **** }
+ 1021              		.loc 1 211 17 is_stmt 0 view .LVU277
+ 1022 0004 024B     		ldr	r3, .L118+4
+ 1023 0006 1860     		str	r0, [r3]
+ 212:tmk_core/common/chibios/printf.c **** 
+ 1024              		.loc 1 212 1 view .LVU278
+ 1025 0008 7047     		bx	lr
+ 1026              	.L119:
+ 1027 000a C046     		.align	2
+ 1028              	.L118:
+ 1029 000c 00000000 		.word	.LANCHOR0
+ 1030 0010 00000000 		.word	.LANCHOR1
+ 1031              		.cfi_endproc
+ 1032              	.LFE8:
+ 1034              		.section	.text.tfp_printf,"ax",%progbits
+ 1035              		.align	1
+ 1036              		.global	tfp_printf
+ 1037              		.syntax unified
+ 1038              		.code	16
+ 1039              		.thumb_func
+ 1040              		.fpu softvfp
+ 1042              	tfp_printf:
+ 1043              	.LVL147:
+ 1044              	.LFB9:
+ 214:tmk_core/common/chibios/printf.c ****     va_list va;
+ 1045              		.loc 1 214 38 is_stmt 1 view -0
+ 1046              		.cfi_startproc
+ 1047              		@ args = 4, pretend = 16, frame = 8
+ 1048              		@ frame_needed = 0, uses_anonymous_args = 1
+ 215:tmk_core/common/chibios/printf.c ****     va_start(va, fmt);
+ 1049              		.loc 1 215 5 view .LVU280
+ 216:tmk_core/common/chibios/printf.c ****     tfp_format(stdout_putp, stdout_putf, fmt, va);
+ 1050              		.loc 1 216 5 view .LVU281
+ 214:tmk_core/common/chibios/printf.c ****     va_list va;
+ 1051              		.loc 1 214 38 is_stmt 0 view .LVU282
+ 1052 0000 0FB4     		push	{r0, r1, r2, r3}
+ 1053              		.cfi_def_cfa_offset 16
+ 1054 0002 07B5     		push	{r0, r1, r2, lr}
+ 1055              		.cfi_def_cfa_offset 32
+ 1056              		.cfi_offset 0, -32
+ 1057              		.cfi_offset 1, -28
+ 1058              		.cfi_offset 2, -24
+ 1059              		.cfi_offset 14, -20
+ 217:tmk_core/common/chibios/printf.c ****     va_end(va);
+ 1060              		.loc 1 217 5 view .LVU283
+ 1061 0004 0649     		ldr	r1, .L121
+ 214:tmk_core/common/chibios/printf.c ****     va_list va;
+ 1062              		.loc 1 214 38 view .LVU284
+ 1063 0006 04AB     		add	r3, sp, #16
+ 217:tmk_core/common/chibios/printf.c ****     va_end(va);
+ 1064              		.loc 1 217 5 view .LVU285
+ 1065 0008 0648     		ldr	r0, .L121+4
+ 214:tmk_core/common/chibios/printf.c ****     va_list va;
+ 1066              		.loc 1 214 38 view .LVU286
+ 1067 000a 04CB     		ldmia	r3!, {r2}
+ 217:tmk_core/common/chibios/printf.c ****     va_end(va);
+ 1068              		.loc 1 217 5 view .LVU287
+ 1069 000c 0968     		ldr	r1, [r1]
+ 1070 000e 0068     		ldr	r0, [r0]
+ 216:tmk_core/common/chibios/printf.c ****     tfp_format(stdout_putp, stdout_putf, fmt, va);
+ 1071              		.loc 1 216 5 view .LVU288
+ 1072 0010 0193     		str	r3, [sp, #4]
+ 217:tmk_core/common/chibios/printf.c ****     va_end(va);
+ 1073              		.loc 1 217 5 is_stmt 1 view .LVU289
+ 1074 0012 FFF7FEFF 		bl	tfp_format
+ 1075              	.LVL148:
+ 218:tmk_core/common/chibios/printf.c **** 
+ 1076              		.loc 1 218 5 view .LVU290
+ 220:tmk_core/common/chibios/printf.c **** }
+ 1077              		.loc 1 220 5 view .LVU291
+ 221:tmk_core/common/chibios/printf.c **** 
+ 1078              		.loc 1 221 1 is_stmt 0 view .LVU292
+ 1079 0016 0120     		movs	r0, #1
+ 1080 0018 03B0     		add	sp, sp, #12
+ 1081              		@ sp needed
+ 1082 001a 08BC     		pop	{r3}
+ 1083 001c 04B0     		add	sp, sp, #16
+ 1084 001e 1847     		bx	r3
+ 1085              	.L122:
+ 1086              		.align	2
+ 1087              	.L121:
+ 1088 0020 00000000 		.word	.LANCHOR0
+ 1089 0024 00000000 		.word	.LANCHOR1
+ 1090              		.cfi_endproc
+ 1091              	.LFE9:
+ 1093              		.section	.text.tfp_sprintf,"ax",%progbits
+ 1094              		.align	1
+ 1095              		.global	tfp_sprintf
+ 1096              		.syntax unified
+ 1097              		.code	16
+ 1098              		.thumb_func
+ 1099              		.fpu softvfp
+ 1101              	tfp_sprintf:
+ 1102              	.LVL149:
+ 1103              	.LFB11:
+ 224:tmk_core/common/chibios/printf.c **** 
+ 225:tmk_core/common/chibios/printf.c **** int tfp_sprintf(char* s, const char* fmt, ...) {
+ 1104              		.loc 1 225 48 is_stmt 1 view -0
+ 1105              		.cfi_startproc
+ 1106              		@ args = 4, pretend = 12, frame = 16
+ 1107              		@ frame_needed = 0, uses_anonymous_args = 1
+ 226:tmk_core/common/chibios/printf.c ****     va_list va;
+ 1108              		.loc 1 226 5 view .LVU294
+ 227:tmk_core/common/chibios/printf.c ****     va_start(va, fmt);
+ 1109              		.loc 1 227 5 view .LVU295
+ 225:tmk_core/common/chibios/printf.c ****     va_list va;
+ 1110              		.loc 1 225 48 is_stmt 0 view .LVU296
+ 1111 0000 0EB4     		push	{r1, r2, r3}
+ 1112              		.cfi_def_cfa_offset 12
+ 1113 0002 0FB5     		push	{r0, r1, r2, r3, lr}
+ 1114              		.cfi_def_cfa_offset 32
+ 1115              		.cfi_offset 0, -32
+ 1116              		.cfi_offset 1, -28
+ 1117              		.cfi_offset 2, -24
+ 1118              		.cfi_offset 3, -20
+ 1119              		.cfi_offset 14, -16
+ 225:tmk_core/common/chibios/printf.c ****     va_list va;
+ 1120              		.loc 1 225 48 view .LVU297
+ 1121 0004 05AB     		add	r3, sp, #20
+ 1122 0006 04CB     		ldmia	r3!, {r2}
+ 1123 0008 0190     		str	r0, [sp, #4]
+ 228:tmk_core/common/chibios/printf.c ****     tfp_format(&s, putcp, fmt, va);
+ 1124              		.loc 1 228 5 view .LVU298
+ 1125 000a 0649     		ldr	r1, .L124
+ 1126 000c 01A8     		add	r0, sp, #4
+ 1127              	.LVL150:
+ 227:tmk_core/common/chibios/printf.c ****     va_start(va, fmt);
+ 1128              		.loc 1 227 5 view .LVU299
+ 1129 000e 0393     		str	r3, [sp, #12]
+ 1130              		.loc 1 228 5 is_stmt 1 view .LVU300
+ 1131 0010 FFF7FEFF 		bl	tfp_format
+ 1132              	.LVL151:
+ 229:tmk_core/common/chibios/printf.c ****     putcp(&s, 0);
+ 1133              		.loc 1 229 5 view .LVU301
+ 1134              	.LBB40:
+ 1135              	.LBI40:
+ 223:tmk_core/common/chibios/printf.c **** 
+ 1136              		.loc 1 223 13 view .LVU302
+ 1137              	.LBB41:
+ 223:tmk_core/common/chibios/printf.c **** 
+ 1138              		.loc 1 223 38 view .LVU303
+ 223:tmk_core/common/chibios/printf.c **** 
+ 1139              		.loc 1 223 56 is_stmt 0 view .LVU304
+ 1140 0014 0023     		movs	r3, #0
+ 1141              	.LBE41:
+ 1142              	.LBE40:
+ 230:tmk_core/common/chibios/printf.c ****     va_end(va);
+ 231:tmk_core/common/chibios/printf.c **** 
+ 232:tmk_core/common/chibios/printf.c ****     return 1;
+ 233:tmk_core/common/chibios/printf.c **** }
+ 1143              		.loc 1 233 1 view .LVU305
+ 1144 0016 0120     		movs	r0, #1
+ 1145              	.LBB43:
+ 1146              	.LBB42:
+ 223:tmk_core/common/chibios/printf.c **** 
+ 1147              		.loc 1 223 56 view .LVU306
+ 1148 0018 019A     		ldr	r2, [sp, #4]
+ 1149 001a 1370     		strb	r3, [r2]
+ 1150              	.LVL152:
+ 223:tmk_core/common/chibios/printf.c **** 
+ 1151              		.loc 1 223 56 view .LVU307
+ 1152              	.LBE42:
+ 1153              	.LBE43:
+ 230:tmk_core/common/chibios/printf.c ****     va_end(va);
+ 1154              		.loc 1 230 5 is_stmt 1 view .LVU308
+ 232:tmk_core/common/chibios/printf.c **** }
+ 1155              		.loc 1 232 5 view .LVU309
+ 1156              		.loc 1 233 1 is_stmt 0 view .LVU310
+ 1157 001c 04B0     		add	sp, sp, #16
+ 1158              		@ sp needed
+ 1159 001e 08BC     		pop	{r3}
+ 1160 0020 03B0     		add	sp, sp, #12
+ 1161 0022 1847     		bx	r3
+ 1162              	.L125:
+ 1163              		.align	2
+ 1164              	.L124:
+ 1165 0024 00000000 		.word	putcp
+ 1166              		.cfi_endproc
+ 1167              	.LFE11:
+ 1169              		.section	.bss.stdout_putf,"aw",%nobits
+ 1170              		.align	2
+ 1171              		.set	.LANCHOR0,. + 0
+ 1174              	stdout_putf:
+ 1175 0000 00000000 		.space	4
+ 1176              		.section	.bss.stdout_putp,"aw",%nobits
+ 1177              		.align	2
+ 1178              		.set	.LANCHOR1,. + 0
+ 1181              	stdout_putp:
+ 1182 0000 00000000 		.space	4
+ 1183              		.text
+ 1184              	.Letext0:
+ 1185              		.file 2 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\lib\\gcc\\arm-none-eabi\\8.3.1\\in
+ 1186              		.file 3 "<built-in>"
+DEFINED SYMBOLS
+                            *ABS*:00000000 printf.c
+C:\Users\kyleo\AppData\Local\Temp\cc0XdwfI.s:18     .text.uli2a:00000000 $t
+C:\Users\kyleo\AppData\Local\Temp\cc0XdwfI.s:25     .text.uli2a:00000000 uli2a
+C:\Users\kyleo\AppData\Local\Temp\cc0XdwfI.s:174    .text.ui2a:00000000 $t
+C:\Users\kyleo\AppData\Local\Temp\cc0XdwfI.s:180    .text.ui2a:00000000 ui2a
+C:\Users\kyleo\AppData\Local\Temp\cc0XdwfI.s:328    .text.putcp:00000000 $t
+C:\Users\kyleo\AppData\Local\Temp\cc0XdwfI.s:334    .text.putcp:00000000 putcp
+C:\Users\kyleo\AppData\Local\Temp\cc0XdwfI.s:358    .text.putchw:00000000 $t
+C:\Users\kyleo\AppData\Local\Temp\cc0XdwfI.s:364    .text.putchw:00000000 putchw
+C:\Users\kyleo\AppData\Local\Temp\cc0XdwfI.s:476    .text.tfp_format:00000000 $t
+C:\Users\kyleo\AppData\Local\Temp\cc0XdwfI.s:483    .text.tfp_format:00000000 tfp_format
+C:\Users\kyleo\AppData\Local\Temp\cc0XdwfI.s:998    .text.init_printf:00000000 $t
+C:\Users\kyleo\AppData\Local\Temp\cc0XdwfI.s:1005   .text.init_printf:00000000 init_printf
+C:\Users\kyleo\AppData\Local\Temp\cc0XdwfI.s:1029   .text.init_printf:0000000c $d
+C:\Users\kyleo\AppData\Local\Temp\cc0XdwfI.s:1035   .text.tfp_printf:00000000 $t
+C:\Users\kyleo\AppData\Local\Temp\cc0XdwfI.s:1042   .text.tfp_printf:00000000 tfp_printf
+C:\Users\kyleo\AppData\Local\Temp\cc0XdwfI.s:1088   .text.tfp_printf:00000020 $d
+C:\Users\kyleo\AppData\Local\Temp\cc0XdwfI.s:1094   .text.tfp_sprintf:00000000 $t
+C:\Users\kyleo\AppData\Local\Temp\cc0XdwfI.s:1101   .text.tfp_sprintf:00000000 tfp_sprintf
+C:\Users\kyleo\AppData\Local\Temp\cc0XdwfI.s:1165   .text.tfp_sprintf:00000024 $d
+C:\Users\kyleo\AppData\Local\Temp\cc0XdwfI.s:1170   .bss.stdout_putf:00000000 $d
+C:\Users\kyleo\AppData\Local\Temp\cc0XdwfI.s:1174   .bss.stdout_putf:00000000 stdout_putf
+C:\Users\kyleo\AppData\Local\Temp\cc0XdwfI.s:1177   .bss.stdout_putp:00000000 $d
+C:\Users\kyleo\AppData\Local\Temp\cc0XdwfI.s:1181   .bss.stdout_putp:00000000 stdout_putp
+
+UNDEFINED SYMBOLS
+__aeabi_uidiv
+__aeabi_uidivmod

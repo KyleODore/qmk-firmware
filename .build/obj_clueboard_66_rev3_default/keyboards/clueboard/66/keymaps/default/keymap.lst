@@ -1,0 +1,288 @@
+   1               		.file	"keymap.c"
+   2               	__SP_H__ = 0x3e
+   3               	__SP_L__ = 0x3d
+   4               	__SREG__ = 0x3f
+   5               	__tmp_reg__ = 0
+   6               	__zero_reg__ = 1
+   7               		.text
+   8               	.Ltext0:
+   9               		.cfi_sections	.debug_frame
+  10               	.global	keymaps
+  11               		.section	.progmem.data.keymaps,"a"
+  14               	keymaps:
+  15 0000 165C      		.word	23574
+  16 0002 1E00      		.word	30
+  17 0004 1F00      		.word	31
+  18 0006 2000      		.word	32
+  19 0008 2100      		.word	33
+  20 000a 2200      		.word	34
+  21 000c 2300      		.word	35
+  22 000e 2400      		.word	36
+  23 0010 2B00      		.word	43
+  24 0012 1400      		.word	20
+  25 0014 1A00      		.word	26
+  26 0016 0800      		.word	8
+  27 0018 1500      		.word	21
+  28 001a 1700      		.word	23
+  29 001c 1C00      		.word	28
+  30 001e 1800      		.word	24
+  31 0020 3900      		.word	57
+  32 0022 0400      		.word	4
+  33 0024 1600      		.word	22
+  34 0026 0700      		.word	7
+  35 0028 0900      		.word	9
+  36 002a 0A00      		.word	10
+  37 002c 0B00      		.word	11
+  38 002e 0D00      		.word	13
+  39 0030 E100      		.word	225
+  40 0032 6400      		.word	100
+  41 0034 1D00      		.word	29
+  42 0036 1B00      		.word	27
+  43 0038 0600      		.word	6
+  44 003a 1900      		.word	25
+  45 003c 0500      		.word	5
+  46 003e 1100      		.word	17
+  47 0040 E000      		.word	224
+  48 0042 E300      		.word	227
+  49 0044 E200      		.word	226
+  50 0046 8B00      		.word	139
+  51 0048 0000      		.word	0
+  52 004a 2C00      		.word	44
+  53 004c 2C00      		.word	44
+  54 004e 0000      		.word	0
+  55 0050 2500      		.word	37
+  56 0052 2600      		.word	38
+  57 0054 2700      		.word	39
+  58 0056 2D00      		.word	45
+  59 0058 2E00      		.word	46
+  60 005a 3500      		.word	53
+  61 005c 2A00      		.word	42
+  62 005e 4B00      		.word	75
+  63 0060 0C00      		.word	12
+  64 0062 1200      		.word	18
+  65 0064 1300      		.word	19
+  66 0066 2F00      		.word	47
+  67 0068 3000      		.word	48
+  68 006a 3100      		.word	49
+  69 006c 0000      		.word	0
+  70 006e 4E00      		.word	78
+  71 0070 0E00      		.word	14
+  72 0072 0F00      		.word	15
+  73 0074 3300      		.word	51
+  74 0076 3400      		.word	52
+  75 0078 3200      		.word	50
+  76 007a 2800      		.word	40
+  77 007c 0000      		.word	0
+  78 007e 0000      		.word	0
+  79 0080 1000      		.word	16
+  80 0082 3600      		.word	54
+  81 0084 3700      		.word	55
+  82 0086 3800      		.word	56
+  83 0088 8700      		.word	135
+  84 008a E500      		.word	229
+  85 008c 5200      		.word	82
+  86 008e 0000      		.word	0
+  87 0090 8A00      		.word	138
+  88 0092 0000      		.word	0
+  89 0094 E600      		.word	230
+  90 0096 0151      		.word	20737
+  91 0098 E400      		.word	228
+  92 009a 5000      		.word	80
+  93 009c 5100      		.word	81
+  94 009e 4F00      		.word	79
+  95 00a0 3500      		.word	53
+  96 00a2 3A00      		.word	58
+  97 00a4 3B00      		.word	59
+  98 00a6 3C00      		.word	60
+  99 00a8 3D00      		.word	61
+ 100 00aa 3E00      		.word	62
+ 101 00ac 3F00      		.word	63
+ 102 00ae 4000      		.word	64
+ 103 00b0 0100      		.word	1
+ 104 00b2 0100      		.word	1
+ 105 00b4 0100      		.word	1
+ 106 00b6 0100      		.word	1
+ 107 00b8 0100      		.word	1
+ 108 00ba 0100      		.word	1
+ 109 00bc 0100      		.word	1
+ 110 00be 0100      		.word	1
+ 111 00c0 0100      		.word	1
+ 112 00c2 0100      		.word	1
+ 113 00c4 0251      		.word	20738
+ 114 00c6 0100      		.word	1
+ 115 00c8 0100      		.word	1
+ 116 00ca 0100      		.word	1
+ 117 00cc 0100      		.word	1
+ 118 00ce 0100      		.word	1
+ 119 00d0 0100      		.word	1
+ 120 00d2 0100      		.word	1
+ 121 00d4 0100      		.word	1
+ 122 00d6 0100      		.word	1
+ 123 00d8 0100      		.word	1
+ 124 00da 0100      		.word	1
+ 125 00dc 0100      		.word	1
+ 126 00de 0100      		.word	1
+ 127 00e0 0100      		.word	1
+ 128 00e2 0100      		.word	1
+ 129 00e4 0100      		.word	1
+ 130 00e6 0100      		.word	1
+ 131 00e8 0000      		.word	0
+ 132 00ea 0100      		.word	1
+ 133 00ec 0100      		.word	1
+ 134 00ee 0000      		.word	0
+ 135 00f0 4100      		.word	65
+ 136 00f2 4200      		.word	66
+ 137 00f4 4300      		.word	67
+ 138 00f6 4400      		.word	68
+ 139 00f8 4500      		.word	69
+ 140 00fa 0100      		.word	1
+ 141 00fc 4C00      		.word	76
+ 142 00fe A900      		.word	169
+ 143 0100 0100      		.word	1
+ 144 0102 AC00      		.word	172
+ 145 0104 AE00      		.word	174
+ 146 0106 AB00      		.word	171
+ 147 0108 0100      		.word	1
+ 148 010a A800      		.word	168
+ 149 010c 0000      		.word	0
+ 150 010e AA00      		.word	170
+ 151 0110 0100      		.word	1
+ 152 0112 0100      		.word	1
+ 153 0114 0100      		.word	1
+ 154 0116 0100      		.word	1
+ 155 0118 0100      		.word	1
+ 156 011a 0100      		.word	1
+ 157 011c 0000      		.word	0
+ 158 011e 0000      		.word	0
+ 159 0120 0100      		.word	1
+ 160 0122 0100      		.word	1
+ 161 0124 0100      		.word	1
+ 162 0126 0100      		.word	1
+ 163 0128 0100      		.word	1
+ 164 012a 0100      		.word	1
+ 165 012c 4B00      		.word	75
+ 166 012e 0000      		.word	0
+ 167 0130 0100      		.word	1
+ 168 0132 0000      		.word	0
+ 169 0134 0100      		.word	1
+ 170 0136 0151      		.word	20737
+ 171 0138 0100      		.word	1
+ 172 013a 4A00      		.word	74
+ 173 013c 4E00      		.word	78
+ 174 013e 4D00      		.word	77
+ 175 0140 C05C      		.word	23744
+ 176 0142 CD5C      		.word	23757
+ 177 0144 CE5C      		.word	23758
+ 178 0146 CF5C      		.word	23759
+ 179 0148 D05C      		.word	23760
+ 180 014a D15C      		.word	23761
+ 181 014c D25C      		.word	23762
+ 182 014e D35C      		.word	23763
+ 183 0150 0100      		.word	1
+ 184 0152 0100      		.word	1
+ 185 0154 0100      		.word	1
+ 186 0156 0100      		.word	1
+ 187 0158 005C      		.word	23552
+ 188 015a 0100      		.word	1
+ 189 015c 0100      		.word	1
+ 190 015e 0100      		.word	1
+ 191 0160 0100      		.word	1
+ 192 0162 0100      		.word	1
+ 193 0164 0251      		.word	20738
+ 194 0166 0100      		.word	1
+ 195 0168 0100      		.word	1
+ 196 016a 0100      		.word	1
+ 197 016c 0100      		.word	1
+ 198 016e 0100      		.word	1
+ 199 0170 0151      		.word	20737
+ 200 0172 0100      		.word	1
+ 201 0174 0100      		.word	1
+ 202 0176 0100      		.word	1
+ 203 0178 0100      		.word	1
+ 204 017a 0100      		.word	1
+ 205 017c 0100      		.word	1
+ 206 017e 0100      		.word	1
+ 207 0180 0100      		.word	1
+ 208 0182 0100      		.word	1
+ 209 0184 0100      		.word	1
+ 210 0186 0100      		.word	1
+ 211 0188 0000      		.word	0
+ 212 018a C35C      		.word	23747
+ 213 018c C35C      		.word	23747
+ 214 018e 0000      		.word	0
+ 215 0190 D45C      		.word	23764
+ 216 0192 0100      		.word	1
+ 217 0194 0100      		.word	1
+ 218 0196 0100      		.word	1
+ 219 0198 0100      		.word	1
+ 220 019a 0100      		.word	1
+ 221 019c C25C      		.word	23746
+ 222 019e C95C      		.word	23753
+ 223 01a0 0100      		.word	1
+ 224 01a2 0100      		.word	1
+ 225 01a4 0100      		.word	1
+ 226 01a6 0100      		.word	1
+ 227 01a8 0100      		.word	1
+ 228 01aa 0100      		.word	1
+ 229 01ac 0000      		.word	0
+ 230 01ae CA5C      		.word	23754
+ 231 01b0 0100      		.word	1
+ 232 01b2 0100      		.word	1
+ 233 01b4 0100      		.word	1
+ 234 01b6 0100      		.word	1
+ 235 01b8 0100      		.word	1
+ 236 01ba 0100      		.word	1
+ 237 01bc 0000      		.word	0
+ 238 01be 0000      		.word	0
+ 239 01c0 0100      		.word	1
+ 240 01c2 0100      		.word	1
+ 241 01c4 0100      		.word	1
+ 242 01c6 0100      		.word	1
+ 243 01c8 0100      		.word	1
+ 244 01ca 0100      		.word	1
+ 245 01cc C75C      		.word	23751
+ 246 01ce 0000      		.word	0
+ 247 01d0 0100      		.word	1
+ 248 01d2 0000      		.word	0
+ 249 01d4 0100      		.word	1
+ 250 01d6 0151      		.word	20737
+ 251 01d8 0100      		.word	1
+ 252 01da C65C      		.word	23750
+ 253 01dc C85C      		.word	23752
+ 254 01de C55C      		.word	23749
+ 255               		.text
+ 256               	.Letext0:
+ 257               		.file 1 "c:\\msys64\\home\\kyleo\\qmk_utils\\avr8-gnu-toolchain\\avr\\include\\stdint.h"
+ 258               		.file 2 "c:\\msys64\\home\\kyleo\\qmk_utils\\avr8-gnu-toolchain\\lib\\gcc\\avr\\8.3.0\\include\\st
+ 259               		.file 3 "tmk_core/common/keycode.h"
+ 260               		.file 4 "lib/lufa/LUFA/Drivers/USB/Core/AVR8/../StdRequestType.h"
+ 261               		.file 5 "tmk_core/common/action.h"
+ 262               		.file 6 "lib/lufa/LUFA/Drivers/USB/Core/AVR8/../DeviceStandardReq.h"
+ 263               		.file 7 "lib/lufa/LUFA/Drivers/USB/Core/USBTask.h"
+ 264               		.file 8 "lib/lufa/LUFA/Drivers/USB/Core/HostStandardReq.h"
+ 265               		.file 9 "c:\\msys64\\home\\kyleo\\qmk_utils\\avr8-gnu-toolchain\\avr\\include\\stdio.h"
+ 266               		.file 10 "tmk_core/common/report.h"
+ 267               		.file 11 "tmk_core/common/host.h"
+ 268               		.file 12 "tmk_core/common/avr/xprintf.h"
+ 269               		.file 13 "tmk_core/common/debug.h"
+ 270               		.file 14 "quantum/keycode_config.h"
+ 271               		.file 15 "quantum/quantum_keycodes.h"
+ 272               		.file 16 "quantum/keymap.h"
+ 273               		.file 17 "./quantum/color.h"
+ 274               		.file 18 "quantum/rgblight.h"
+ 275               		.file 19 "tmk_core/common/action_layer.h"
+ 276               		.file 20 "tmk_core/common/timer.h"
+ 277               		.file 21 "tmk_core/common/action_util.h"
+ 278               		.file 22 "c:\\msys64\\home\\kyleo\\qmk_utils\\avr8-gnu-toolchain\\avr\\include\\stdlib.h"
+ 279               		.file 23 "quantum/quantum.h"
+ 280               		.file 24 "keyboards/clueboard/66/keymaps/default/keymap.c"
+DEFINED SYMBOLS
+                            *ABS*:00000000 keymap.c
+C:\Users\kyleo\AppData\Local\Temp\ccP9wNZ0.s:2      *ABS*:0000003e __SP_H__
+C:\Users\kyleo\AppData\Local\Temp\ccP9wNZ0.s:3      *ABS*:0000003d __SP_L__
+C:\Users\kyleo\AppData\Local\Temp\ccP9wNZ0.s:4      *ABS*:0000003f __SREG__
+C:\Users\kyleo\AppData\Local\Temp\ccP9wNZ0.s:5      *ABS*:00000000 __tmp_reg__
+C:\Users\kyleo\AppData\Local\Temp\ccP9wNZ0.s:6      *ABS*:00000001 __zero_reg__
+C:\Users\kyleo\AppData\Local\Temp\ccP9wNZ0.s:14     .progmem.data.keymaps:00000000 keymaps
+
+NO UNDEFINED SYMBOLS

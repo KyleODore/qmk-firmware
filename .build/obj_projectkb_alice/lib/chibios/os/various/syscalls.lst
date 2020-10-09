@@ -1,0 +1,702 @@
+   1              		.cpu cortex-m0
+   2              		.eabi_attribute 20, 1
+   3              		.eabi_attribute 21, 1
+   4              		.eabi_attribute 23, 3
+   5              		.eabi_attribute 24, 1
+   6              		.eabi_attribute 25, 1
+   7              		.eabi_attribute 26, 1
+   8              		.eabi_attribute 30, 4
+   9              		.eabi_attribute 34, 0
+  10              		.eabi_attribute 18, 2
+  11              		.file	"syscalls.c"
+  12              		.text
+  13              	.Ltext0:
+  14              		.cfi_sections	.debug_frame
+  15              		.section	.text._read_r,"ax",%progbits
+  16              		.align	1
+  17              		.global	_read_r
+  18              		.arch armv6s-m
+  19              		.syntax unified
+  20              		.code	16
+  21              		.thumb_func
+  22              		.fpu softvfp
+  24              	_read_r:
+  25              	.LVL0:
+  26              	.LFB154:
+  27              		.file 1 "lib/chibios/os/various/syscalls.c"
+   1:lib/chibios/os/various/syscalls.c **** /*
+   2:lib/chibios/os/various/syscalls.c ****     ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
+   3:lib/chibios/os/various/syscalls.c **** 
+   4:lib/chibios/os/various/syscalls.c ****     Licensed under the Apache License, Version 2.0 (the "License");
+   5:lib/chibios/os/various/syscalls.c ****     you may not use this file except in compliance with the License.
+   6:lib/chibios/os/various/syscalls.c ****     You may obtain a copy of the License at
+   7:lib/chibios/os/various/syscalls.c **** 
+   8:lib/chibios/os/various/syscalls.c ****         http://www.apache.org/licenses/LICENSE-2.0
+   9:lib/chibios/os/various/syscalls.c **** 
+  10:lib/chibios/os/various/syscalls.c ****     Unless required by applicable law or agreed to in writing, software
+  11:lib/chibios/os/various/syscalls.c ****     distributed under the License is distributed on an "AS IS" BASIS,
+  12:lib/chibios/os/various/syscalls.c ****     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  13:lib/chibios/os/various/syscalls.c ****     See the License for the specific language governing permissions and
+  14:lib/chibios/os/various/syscalls.c ****     limitations under the License.
+  15:lib/chibios/os/various/syscalls.c **** */
+  16:lib/chibios/os/various/syscalls.c **** /*
+  17:lib/chibios/os/various/syscalls.c **** * **** This file incorporates work covered by the following copyright and ****
+  18:lib/chibios/os/various/syscalls.c **** * **** permission notice:                                                 ****
+  19:lib/chibios/os/various/syscalls.c **** *
+  20:lib/chibios/os/various/syscalls.c **** *  Copyright (c) 2009 by Michael Fischer. All rights reserved.
+  21:lib/chibios/os/various/syscalls.c **** *
+  22:lib/chibios/os/various/syscalls.c **** *  Redistribution and use in source and binary forms, with or without
+  23:lib/chibios/os/various/syscalls.c **** *  modification, are permitted provided that the following conditions
+  24:lib/chibios/os/various/syscalls.c **** *  are met:
+  25:lib/chibios/os/various/syscalls.c **** *
+  26:lib/chibios/os/various/syscalls.c **** *  1. Redistributions of source code must retain the above copyright
+  27:lib/chibios/os/various/syscalls.c **** *     notice, this list of conditions and the following disclaimer.
+  28:lib/chibios/os/various/syscalls.c **** *  2. Redistributions in binary form must reproduce the above copyright
+  29:lib/chibios/os/various/syscalls.c **** *     notice, this list of conditions and the following disclaimer in the
+  30:lib/chibios/os/various/syscalls.c **** *     documentation and/or other materials provided with the distribution.
+  31:lib/chibios/os/various/syscalls.c **** *  3. Neither the name of the author nor the names of its contributors may
+  32:lib/chibios/os/various/syscalls.c **** *     be used to endorse or promote products derived from this software
+  33:lib/chibios/os/various/syscalls.c **** *     without specific prior written permission.
+  34:lib/chibios/os/various/syscalls.c **** *
+  35:lib/chibios/os/various/syscalls.c **** *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+  36:lib/chibios/os/various/syscalls.c **** *  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+  37:lib/chibios/os/various/syscalls.c **** *  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+  38:lib/chibios/os/various/syscalls.c **** *  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
+  39:lib/chibios/os/various/syscalls.c **** *  THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+  40:lib/chibios/os/various/syscalls.c **** *  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+  41:lib/chibios/os/various/syscalls.c **** *  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+  42:lib/chibios/os/various/syscalls.c **** *  OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+  43:lib/chibios/os/various/syscalls.c **** *  AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+  44:lib/chibios/os/various/syscalls.c **** *  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
+  45:lib/chibios/os/various/syscalls.c **** *  THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+  46:lib/chibios/os/various/syscalls.c **** *  SUCH DAMAGE.
+  47:lib/chibios/os/various/syscalls.c **** *
+  48:lib/chibios/os/various/syscalls.c **** ****************************************************************************
+  49:lib/chibios/os/various/syscalls.c **** *  History:
+  50:lib/chibios/os/various/syscalls.c **** *
+  51:lib/chibios/os/various/syscalls.c **** *  28.03.09  mifi       First Version, based on the original syscall.c from
+  52:lib/chibios/os/various/syscalls.c **** *                       newlib version 1.17.0
+  53:lib/chibios/os/various/syscalls.c **** *  17.08.09  gdisirio   Modified the file for use under ChibiOS/RT
+  54:lib/chibios/os/various/syscalls.c **** *  15.11.09  gdisirio   Added read and write handling
+  55:lib/chibios/os/various/syscalls.c **** ****************************************************************************/
+  56:lib/chibios/os/various/syscalls.c **** 
+  57:lib/chibios/os/various/syscalls.c **** #include <stdlib.h>
+  58:lib/chibios/os/various/syscalls.c **** #include <errno.h>
+  59:lib/chibios/os/various/syscalls.c **** #include <string.h>
+  60:lib/chibios/os/various/syscalls.c **** #include <sys/stat.h>
+  61:lib/chibios/os/various/syscalls.c **** #include <sys/types.h>
+  62:lib/chibios/os/various/syscalls.c **** 
+  63:lib/chibios/os/various/syscalls.c **** #include "ch.h"
+  64:lib/chibios/os/various/syscalls.c **** #if defined(STDOUT_SD) || defined(STDIN_SD)
+  65:lib/chibios/os/various/syscalls.c **** #include "hal.h"
+  66:lib/chibios/os/various/syscalls.c **** #endif
+  67:lib/chibios/os/various/syscalls.c **** 
+  68:lib/chibios/os/various/syscalls.c **** /***************************************************************************/
+  69:lib/chibios/os/various/syscalls.c **** 
+  70:lib/chibios/os/various/syscalls.c **** __attribute__((used))
+  71:lib/chibios/os/various/syscalls.c **** int _read_r(struct _reent *r, int file, char * ptr, int len)
+  72:lib/chibios/os/various/syscalls.c **** {
+  28              		.loc 1 72 1 view -0
+  29              		.cfi_startproc
+  30              		@ args = 0, pretend = 0, frame = 0
+  31              		@ frame_needed = 0, uses_anonymous_args = 0
+  32              		@ link register save eliminated.
+  73:lib/chibios/os/various/syscalls.c ****   (void)r;
+  33              		.loc 1 73 3 view .LVU1
+  74:lib/chibios/os/various/syscalls.c **** #if defined(STDIN_SD)
+  75:lib/chibios/os/various/syscalls.c ****   if (!len || (file != 0)) {
+  76:lib/chibios/os/various/syscalls.c ****     __errno_r(r) = EINVAL;
+  77:lib/chibios/os/various/syscalls.c ****     return -1;
+  78:lib/chibios/os/various/syscalls.c ****   }
+  79:lib/chibios/os/various/syscalls.c ****   len = sdRead(&STDIN_SD, (uint8_t *)ptr, (size_t)len);
+  80:lib/chibios/os/various/syscalls.c ****   return len;
+  81:lib/chibios/os/various/syscalls.c **** #else
+  82:lib/chibios/os/various/syscalls.c ****   (void)file;
+  34              		.loc 1 82 3 view .LVU2
+  83:lib/chibios/os/various/syscalls.c ****   (void)ptr;
+  35              		.loc 1 83 3 view .LVU3
+  84:lib/chibios/os/various/syscalls.c ****   (void)len;
+  36              		.loc 1 84 3 view .LVU4
+  85:lib/chibios/os/various/syscalls.c ****   __errno_r(r) = EINVAL;
+  37              		.loc 1 85 3 view .LVU5
+  38              		.loc 1 85 16 is_stmt 0 view .LVU6
+  39 0000 1623     		movs	r3, #22
+  40              	.LVL1:
+  41              		.loc 1 85 16 view .LVU7
+  42 0002 0360     		str	r3, [r0]
+  86:lib/chibios/os/various/syscalls.c ****   return -1;
+  43              		.loc 1 86 3 is_stmt 1 view .LVU8
+  44              		.loc 1 86 10 is_stmt 0 view .LVU9
+  45 0004 0120     		movs	r0, #1
+  46              	.LVL2:
+  87:lib/chibios/os/various/syscalls.c **** #endif
+  88:lib/chibios/os/various/syscalls.c **** }
+  47              		.loc 1 88 1 view .LVU10
+  48              		@ sp needed
+  49 0006 4042     		rsbs	r0, r0, #0
+  50 0008 7047     		bx	lr
+  51              		.cfi_endproc
+  52              	.LFE154:
+  54              		.section	.text._lseek_r,"ax",%progbits
+  55              		.align	1
+  56              		.global	_lseek_r
+  57              		.syntax unified
+  58              		.code	16
+  59              		.thumb_func
+  60              		.fpu softvfp
+  62              	_lseek_r:
+  63              	.LVL3:
+  64              	.LFB155:
+  89:lib/chibios/os/various/syscalls.c **** 
+  90:lib/chibios/os/various/syscalls.c **** /***************************************************************************/
+  91:lib/chibios/os/various/syscalls.c **** 
+  92:lib/chibios/os/various/syscalls.c **** __attribute__((used))
+  93:lib/chibios/os/various/syscalls.c **** int _lseek_r(struct _reent *r, int file, int ptr, int dir)
+  94:lib/chibios/os/various/syscalls.c **** {
+  65              		.loc 1 94 1 is_stmt 1 view -0
+  66              		.cfi_startproc
+  67              		@ args = 0, pretend = 0, frame = 0
+  68              		@ frame_needed = 0, uses_anonymous_args = 0
+  69              		@ link register save eliminated.
+  95:lib/chibios/os/various/syscalls.c ****   (void)r;
+  70              		.loc 1 95 3 view .LVU12
+  96:lib/chibios/os/various/syscalls.c ****   (void)file;
+  71              		.loc 1 96 3 view .LVU13
+  97:lib/chibios/os/various/syscalls.c ****   (void)ptr;
+  72              		.loc 1 97 3 view .LVU14
+  98:lib/chibios/os/various/syscalls.c ****   (void)dir;
+  73              		.loc 1 98 3 view .LVU15
+  99:lib/chibios/os/various/syscalls.c **** 
+ 100:lib/chibios/os/various/syscalls.c ****   return 0;
+  74              		.loc 1 100 3 view .LVU16
+ 101:lib/chibios/os/various/syscalls.c **** }
+  75              		.loc 1 101 1 is_stmt 0 view .LVU17
+  76 0000 0020     		movs	r0, #0
+  77              	.LVL4:
+  78              		.loc 1 101 1 view .LVU18
+  79              		@ sp needed
+  80 0002 7047     		bx	lr
+  81              		.cfi_endproc
+  82              	.LFE155:
+  84              		.section	.text._write_r,"ax",%progbits
+  85              		.align	1
+  86              		.global	_write_r
+  87              		.syntax unified
+  88              		.code	16
+  89              		.thumb_func
+  90              		.fpu softvfp
+  92              	_write_r:
+  93              	.LVL5:
+  94              	.LFB156:
+ 102:lib/chibios/os/various/syscalls.c **** 
+ 103:lib/chibios/os/various/syscalls.c **** /***************************************************************************/
+ 104:lib/chibios/os/various/syscalls.c **** 
+ 105:lib/chibios/os/various/syscalls.c **** __attribute__((used))
+ 106:lib/chibios/os/various/syscalls.c **** int _write_r(struct _reent *r, int file, char * ptr, int len)
+ 107:lib/chibios/os/various/syscalls.c **** {
+  95              		.loc 1 107 1 is_stmt 1 view -0
+  96              		.cfi_startproc
+  97              		@ args = 0, pretend = 0, frame = 0
+  98              		@ frame_needed = 0, uses_anonymous_args = 0
+  99              		@ link register save eliminated.
+ 108:lib/chibios/os/various/syscalls.c ****   (void)r;
+ 100              		.loc 1 108 3 view .LVU20
+ 109:lib/chibios/os/various/syscalls.c ****   (void)file;
+ 101              		.loc 1 109 3 view .LVU21
+ 110:lib/chibios/os/various/syscalls.c ****   (void)ptr;
+ 102              		.loc 1 110 3 view .LVU22
+ 111:lib/chibios/os/various/syscalls.c **** #if defined(STDOUT_SD)
+ 112:lib/chibios/os/various/syscalls.c ****   if (file != 1) {
+ 113:lib/chibios/os/various/syscalls.c ****     __errno_r(r) = EINVAL;
+ 114:lib/chibios/os/various/syscalls.c ****     return -1;
+ 115:lib/chibios/os/various/syscalls.c ****   }
+ 116:lib/chibios/os/various/syscalls.c ****   sdWrite(&STDOUT_SD, (uint8_t *)ptr, (size_t)len);
+ 117:lib/chibios/os/various/syscalls.c **** #endif
+ 118:lib/chibios/os/various/syscalls.c ****   return len;
+ 103              		.loc 1 118 3 view .LVU23
+ 119:lib/chibios/os/various/syscalls.c **** }
+ 104              		.loc 1 119 1 is_stmt 0 view .LVU24
+ 105 0000 1800     		movs	r0, r3
+ 106              	.LVL6:
+ 107              		.loc 1 119 1 view .LVU25
+ 108              		@ sp needed
+ 109 0002 7047     		bx	lr
+ 110              		.cfi_endproc
+ 111              	.LFE156:
+ 113              		.section	.text._close_r,"ax",%progbits
+ 114              		.align	1
+ 115              		.global	_close_r
+ 116              		.syntax unified
+ 117              		.code	16
+ 118              		.thumb_func
+ 119              		.fpu softvfp
+ 121              	_close_r:
+ 122              	.LVL7:
+ 123              	.LFB157:
+ 120:lib/chibios/os/various/syscalls.c **** 
+ 121:lib/chibios/os/various/syscalls.c **** /***************************************************************************/
+ 122:lib/chibios/os/various/syscalls.c **** 
+ 123:lib/chibios/os/various/syscalls.c **** __attribute__((used))
+ 124:lib/chibios/os/various/syscalls.c **** int _close_r(struct _reent *r, int file)
+ 125:lib/chibios/os/various/syscalls.c **** {
+ 124              		.loc 1 125 1 is_stmt 1 view -0
+ 125              		.cfi_startproc
+ 126              		@ args = 0, pretend = 0, frame = 0
+ 127              		@ frame_needed = 0, uses_anonymous_args = 0
+ 128              		@ link register save eliminated.
+ 126:lib/chibios/os/various/syscalls.c ****   (void)r;
+ 129              		.loc 1 126 3 view .LVU27
+ 127:lib/chibios/os/various/syscalls.c ****   (void)file;
+ 130              		.loc 1 127 3 view .LVU28
+ 128:lib/chibios/os/various/syscalls.c **** 
+ 129:lib/chibios/os/various/syscalls.c ****   return 0;
+ 131              		.loc 1 129 3 view .LVU29
+ 130:lib/chibios/os/various/syscalls.c **** }
+ 132              		.loc 1 130 1 is_stmt 0 view .LVU30
+ 133 0000 0020     		movs	r0, #0
+ 134              	.LVL8:
+ 135              		.loc 1 130 1 view .LVU31
+ 136              		@ sp needed
+ 137 0002 7047     		bx	lr
+ 138              		.cfi_endproc
+ 139              	.LFE157:
+ 141              		.section	.text._sbrk_r,"ax",%progbits
+ 142              		.align	1
+ 143              		.global	_sbrk_r
+ 144              		.syntax unified
+ 145              		.code	16
+ 146              		.thumb_func
+ 147              		.fpu softvfp
+ 149              	_sbrk_r:
+ 150              	.LVL9:
+ 151              	.LFB158:
+ 131:lib/chibios/os/various/syscalls.c **** 
+ 132:lib/chibios/os/various/syscalls.c **** /***************************************************************************/
+ 133:lib/chibios/os/various/syscalls.c **** 
+ 134:lib/chibios/os/various/syscalls.c **** __attribute__((used))
+ 135:lib/chibios/os/various/syscalls.c **** caddr_t _sbrk_r(struct _reent *r, int incr)
+ 136:lib/chibios/os/various/syscalls.c **** {
+ 152              		.loc 1 136 1 is_stmt 1 view -0
+ 153              		.cfi_startproc
+ 154              		@ args = 0, pretend = 0, frame = 0
+ 155              		@ frame_needed = 0, uses_anonymous_args = 0
+ 137:lib/chibios/os/various/syscalls.c **** #if CH_CFG_USE_MEMCORE
+ 138:lib/chibios/os/various/syscalls.c ****   void *p;
+ 156              		.loc 1 138 3 view .LVU33
+ 139:lib/chibios/os/various/syscalls.c **** 
+ 140:lib/chibios/os/various/syscalls.c ****   chDbgCheck(incr >= 0);
+ 157              		.loc 1 140 3 view .LVU34
+ 158              		.loc 1 140 3 view .LVU35
+ 141:lib/chibios/os/various/syscalls.c **** 
+ 142:lib/chibios/os/various/syscalls.c ****   p = chCoreAlloc((size_t)incr);
+ 159              		.loc 1 142 3 view .LVU36
+ 136:lib/chibios/os/various/syscalls.c **** #if CH_CFG_USE_MEMCORE
+ 160              		.loc 1 136 1 is_stmt 0 view .LVU37
+ 161 0000 10B5     		push	{r4, lr}
+ 162              		.cfi_def_cfa_offset 8
+ 163              		.cfi_offset 4, -8
+ 164              		.cfi_offset 14, -4
+ 165              	.LBB4:
+ 166              	.LBB5:
+ 167              		.file 2 "./lib/chibios/os/oslib/include/chmemcore.h"
+   1:./lib/chibios/os/oslib/include/chmemcore.h **** /*
+   2:./lib/chibios/os/oslib/include/chmemcore.h ****     ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio.
+   3:./lib/chibios/os/oslib/include/chmemcore.h **** 
+   4:./lib/chibios/os/oslib/include/chmemcore.h ****     This file is part of ChibiOS.
+   5:./lib/chibios/os/oslib/include/chmemcore.h **** 
+   6:./lib/chibios/os/oslib/include/chmemcore.h ****     ChibiOS is free software; you can redistribute it and/or modify
+   7:./lib/chibios/os/oslib/include/chmemcore.h ****     it under the terms of the GNU General Public License as published by
+   8:./lib/chibios/os/oslib/include/chmemcore.h ****     the Free Software Foundation; either version 3 of the License, or
+   9:./lib/chibios/os/oslib/include/chmemcore.h ****     (at your option) any later version.
+  10:./lib/chibios/os/oslib/include/chmemcore.h **** 
+  11:./lib/chibios/os/oslib/include/chmemcore.h ****     ChibiOS is distributed in the hope that it will be useful,
+  12:./lib/chibios/os/oslib/include/chmemcore.h ****     but WITHOUT ANY WARRANTY; without even the implied warranty of
+  13:./lib/chibios/os/oslib/include/chmemcore.h ****     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  14:./lib/chibios/os/oslib/include/chmemcore.h ****     GNU General Public License for more details.
+  15:./lib/chibios/os/oslib/include/chmemcore.h **** 
+  16:./lib/chibios/os/oslib/include/chmemcore.h ****     You should have received a copy of the GNU General Public License
+  17:./lib/chibios/os/oslib/include/chmemcore.h ****     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  18:./lib/chibios/os/oslib/include/chmemcore.h **** */
+  19:./lib/chibios/os/oslib/include/chmemcore.h **** 
+  20:./lib/chibios/os/oslib/include/chmemcore.h **** /**
+  21:./lib/chibios/os/oslib/include/chmemcore.h ****  * @file    chmemcore.h
+  22:./lib/chibios/os/oslib/include/chmemcore.h ****  * @brief   Core memory manager macros and structures.
+  23:./lib/chibios/os/oslib/include/chmemcore.h ****  *
+  24:./lib/chibios/os/oslib/include/chmemcore.h ****  * @addtogroup oslib_memcore
+  25:./lib/chibios/os/oslib/include/chmemcore.h ****  * @{
+  26:./lib/chibios/os/oslib/include/chmemcore.h ****  */
+  27:./lib/chibios/os/oslib/include/chmemcore.h **** 
+  28:./lib/chibios/os/oslib/include/chmemcore.h **** #ifndef CHMEMCORE_H
+  29:./lib/chibios/os/oslib/include/chmemcore.h **** #define CHMEMCORE_H
+  30:./lib/chibios/os/oslib/include/chmemcore.h **** 
+  31:./lib/chibios/os/oslib/include/chmemcore.h **** #if (CH_CFG_USE_MEMCORE == TRUE) || defined(__DOXYGEN__)
+  32:./lib/chibios/os/oslib/include/chmemcore.h **** 
+  33:./lib/chibios/os/oslib/include/chmemcore.h **** /*===========================================================================*/
+  34:./lib/chibios/os/oslib/include/chmemcore.h **** /* Module constants.                                                         */
+  35:./lib/chibios/os/oslib/include/chmemcore.h **** /*===========================================================================*/
+  36:./lib/chibios/os/oslib/include/chmemcore.h **** 
+  37:./lib/chibios/os/oslib/include/chmemcore.h **** /*===========================================================================*/
+  38:./lib/chibios/os/oslib/include/chmemcore.h **** /* Module pre-compile time settings.                                         */
+  39:./lib/chibios/os/oslib/include/chmemcore.h **** /*===========================================================================*/
+  40:./lib/chibios/os/oslib/include/chmemcore.h **** 
+  41:./lib/chibios/os/oslib/include/chmemcore.h **** /**
+  42:./lib/chibios/os/oslib/include/chmemcore.h ****  * @brief   Managed RAM size.
+  43:./lib/chibios/os/oslib/include/chmemcore.h ****  * @details Size of the RAM area to be managed by the OS. If set to zero
+  44:./lib/chibios/os/oslib/include/chmemcore.h ****  *          then the whole available RAM is used. The core memory is made
+  45:./lib/chibios/os/oslib/include/chmemcore.h ****  *          available to the heap allocator and/or can be used directly through
+  46:./lib/chibios/os/oslib/include/chmemcore.h ****  *          the simplified core memory allocator.
+  47:./lib/chibios/os/oslib/include/chmemcore.h ****  *
+  48:./lib/chibios/os/oslib/include/chmemcore.h ****  * @note    In order to let the OS manage the whole RAM the linker script must
+  49:./lib/chibios/os/oslib/include/chmemcore.h ****  *          provide the @p __heap_base__ and @p __heap_end__ symbols.
+  50:./lib/chibios/os/oslib/include/chmemcore.h ****  * @note    Requires @p CH_CFG_USE_MEMCORE.
+  51:./lib/chibios/os/oslib/include/chmemcore.h ****  */
+  52:./lib/chibios/os/oslib/include/chmemcore.h **** #if !defined(CH_CFG_MEMCORE_SIZE) || defined(__DOXYGEN__)
+  53:./lib/chibios/os/oslib/include/chmemcore.h **** #define CH_CFG_MEMCORE_SIZE                 0
+  54:./lib/chibios/os/oslib/include/chmemcore.h **** #endif
+  55:./lib/chibios/os/oslib/include/chmemcore.h **** 
+  56:./lib/chibios/os/oslib/include/chmemcore.h **** /*===========================================================================*/
+  57:./lib/chibios/os/oslib/include/chmemcore.h **** /* Derived constants and error checks.                                       */
+  58:./lib/chibios/os/oslib/include/chmemcore.h **** /*===========================================================================*/
+  59:./lib/chibios/os/oslib/include/chmemcore.h **** 
+  60:./lib/chibios/os/oslib/include/chmemcore.h **** #if CH_CFG_MEMCORE_SIZE < 0
+  61:./lib/chibios/os/oslib/include/chmemcore.h **** #error "invalid CH_CFG_MEMCORE_SIZE value specified"
+  62:./lib/chibios/os/oslib/include/chmemcore.h **** #endif
+  63:./lib/chibios/os/oslib/include/chmemcore.h **** 
+  64:./lib/chibios/os/oslib/include/chmemcore.h **** /*===========================================================================*/
+  65:./lib/chibios/os/oslib/include/chmemcore.h **** /* Module data structures and types.                                         */
+  66:./lib/chibios/os/oslib/include/chmemcore.h **** /*===========================================================================*/
+  67:./lib/chibios/os/oslib/include/chmemcore.h **** 
+  68:./lib/chibios/os/oslib/include/chmemcore.h **** /**
+  69:./lib/chibios/os/oslib/include/chmemcore.h ****  * @brief   Memory get function.
+  70:./lib/chibios/os/oslib/include/chmemcore.h ****  */
+  71:./lib/chibios/os/oslib/include/chmemcore.h **** typedef void *(*memgetfunc_t)(size_t size, unsigned align);
+  72:./lib/chibios/os/oslib/include/chmemcore.h **** 
+  73:./lib/chibios/os/oslib/include/chmemcore.h **** /**
+  74:./lib/chibios/os/oslib/include/chmemcore.h ****  * @brief   Enhanced memory get function.
+  75:./lib/chibios/os/oslib/include/chmemcore.h ****  */
+  76:./lib/chibios/os/oslib/include/chmemcore.h **** typedef void *(*memgetfunc2_t)(size_t size, unsigned align, size_t offset);
+  77:./lib/chibios/os/oslib/include/chmemcore.h **** 
+  78:./lib/chibios/os/oslib/include/chmemcore.h **** /**
+  79:./lib/chibios/os/oslib/include/chmemcore.h ****  * @brief   Type of memory core object.
+  80:./lib/chibios/os/oslib/include/chmemcore.h ****  */
+  81:./lib/chibios/os/oslib/include/chmemcore.h **** typedef struct {
+  82:./lib/chibios/os/oslib/include/chmemcore.h ****   /**
+  83:./lib/chibios/os/oslib/include/chmemcore.h ****    * @brief   Next free address.
+  84:./lib/chibios/os/oslib/include/chmemcore.h ****    */
+  85:./lib/chibios/os/oslib/include/chmemcore.h ****   uint8_t *nextmem;
+  86:./lib/chibios/os/oslib/include/chmemcore.h ****   /**
+  87:./lib/chibios/os/oslib/include/chmemcore.h ****    * @brief   Final address.
+  88:./lib/chibios/os/oslib/include/chmemcore.h ****    */
+  89:./lib/chibios/os/oslib/include/chmemcore.h ****   uint8_t *endmem;
+  90:./lib/chibios/os/oslib/include/chmemcore.h **** } memcore_t;
+  91:./lib/chibios/os/oslib/include/chmemcore.h **** 
+  92:./lib/chibios/os/oslib/include/chmemcore.h **** /*===========================================================================*/
+  93:./lib/chibios/os/oslib/include/chmemcore.h **** /* Module macros.                                                            */
+  94:./lib/chibios/os/oslib/include/chmemcore.h **** /*===========================================================================*/
+  95:./lib/chibios/os/oslib/include/chmemcore.h **** 
+  96:./lib/chibios/os/oslib/include/chmemcore.h **** /*===========================================================================*/
+  97:./lib/chibios/os/oslib/include/chmemcore.h **** /* External declarations.                                                    */
+  98:./lib/chibios/os/oslib/include/chmemcore.h **** /*===========================================================================*/
+  99:./lib/chibios/os/oslib/include/chmemcore.h **** 
+ 100:./lib/chibios/os/oslib/include/chmemcore.h **** #if !defined(__DOXYGEN__)
+ 101:./lib/chibios/os/oslib/include/chmemcore.h **** extern memcore_t ch_memcore;
+ 102:./lib/chibios/os/oslib/include/chmemcore.h **** #endif
+ 103:./lib/chibios/os/oslib/include/chmemcore.h **** 
+ 104:./lib/chibios/os/oslib/include/chmemcore.h **** #ifdef __cplusplus
+ 105:./lib/chibios/os/oslib/include/chmemcore.h **** extern "C" {
+ 106:./lib/chibios/os/oslib/include/chmemcore.h **** #endif
+ 107:./lib/chibios/os/oslib/include/chmemcore.h ****   void _core_init(void);
+ 108:./lib/chibios/os/oslib/include/chmemcore.h ****   void *chCoreAllocAlignedWithOffsetI(size_t size,
+ 109:./lib/chibios/os/oslib/include/chmemcore.h ****                                       unsigned align,
+ 110:./lib/chibios/os/oslib/include/chmemcore.h ****                                       size_t offset);
+ 111:./lib/chibios/os/oslib/include/chmemcore.h ****   void *chCoreAllocAlignedWithOffset(size_t size,
+ 112:./lib/chibios/os/oslib/include/chmemcore.h ****                                      unsigned align,
+ 113:./lib/chibios/os/oslib/include/chmemcore.h ****                                      size_t offset);
+ 114:./lib/chibios/os/oslib/include/chmemcore.h ****   size_t chCoreGetStatusX(void);
+ 115:./lib/chibios/os/oslib/include/chmemcore.h **** #ifdef __cplusplus
+ 116:./lib/chibios/os/oslib/include/chmemcore.h **** }
+ 117:./lib/chibios/os/oslib/include/chmemcore.h **** #endif
+ 118:./lib/chibios/os/oslib/include/chmemcore.h **** 
+ 119:./lib/chibios/os/oslib/include/chmemcore.h **** /*===========================================================================*/
+ 120:./lib/chibios/os/oslib/include/chmemcore.h **** /* Module inline functions.                                                  */
+ 121:./lib/chibios/os/oslib/include/chmemcore.h **** /*===========================================================================*/
+ 122:./lib/chibios/os/oslib/include/chmemcore.h **** 
+ 123:./lib/chibios/os/oslib/include/chmemcore.h **** /**
+ 124:./lib/chibios/os/oslib/include/chmemcore.h ****  * @brief   Allocates a memory block.
+ 125:./lib/chibios/os/oslib/include/chmemcore.h ****  * @details The allocated block is guaranteed to be properly aligned to the
+ 126:./lib/chibios/os/oslib/include/chmemcore.h ****  *          specified alignment.
+ 127:./lib/chibios/os/oslib/include/chmemcore.h ****  *
+ 128:./lib/chibios/os/oslib/include/chmemcore.h ****  * @param[in] size      the size of the block to be allocated.
+ 129:./lib/chibios/os/oslib/include/chmemcore.h ****  * @param[in] align     desired memory alignment
+ 130:./lib/chibios/os/oslib/include/chmemcore.h ****  * @return              A pointer to the allocated memory block.
+ 131:./lib/chibios/os/oslib/include/chmemcore.h ****  * @retval NULL         allocation failed, core memory exhausted.
+ 132:./lib/chibios/os/oslib/include/chmemcore.h ****  *
+ 133:./lib/chibios/os/oslib/include/chmemcore.h ****  * @iclass
+ 134:./lib/chibios/os/oslib/include/chmemcore.h ****  */
+ 135:./lib/chibios/os/oslib/include/chmemcore.h **** static inline void *chCoreAllocAlignedI(size_t size, unsigned align) {
+ 136:./lib/chibios/os/oslib/include/chmemcore.h **** 
+ 137:./lib/chibios/os/oslib/include/chmemcore.h ****   return chCoreAllocAlignedWithOffsetI(size, align, 0U);
+ 138:./lib/chibios/os/oslib/include/chmemcore.h **** }
+ 139:./lib/chibios/os/oslib/include/chmemcore.h **** 
+ 140:./lib/chibios/os/oslib/include/chmemcore.h **** /**
+ 141:./lib/chibios/os/oslib/include/chmemcore.h ****  * @brief   Allocates a memory block.
+ 142:./lib/chibios/os/oslib/include/chmemcore.h ****  * @details The allocated block is guaranteed to be properly aligned to the
+ 143:./lib/chibios/os/oslib/include/chmemcore.h ****  *          specified alignment.
+ 144:./lib/chibios/os/oslib/include/chmemcore.h ****  *
+ 145:./lib/chibios/os/oslib/include/chmemcore.h ****  * @param[in] size      the size of the block to be allocated
+ 146:./lib/chibios/os/oslib/include/chmemcore.h ****  * @param[in] align     desired memory alignment
+ 147:./lib/chibios/os/oslib/include/chmemcore.h ****  * @return              A pointer to the allocated memory block.
+ 148:./lib/chibios/os/oslib/include/chmemcore.h ****  * @retval NULL         allocation failed, core memory exhausted.
+ 149:./lib/chibios/os/oslib/include/chmemcore.h ****  *
+ 150:./lib/chibios/os/oslib/include/chmemcore.h ****  * @api
+ 151:./lib/chibios/os/oslib/include/chmemcore.h ****  */
+ 152:./lib/chibios/os/oslib/include/chmemcore.h **** static inline void *chCoreAllocAligned(size_t size, unsigned align) {
+ 153:./lib/chibios/os/oslib/include/chmemcore.h ****   void *p;
+ 154:./lib/chibios/os/oslib/include/chmemcore.h **** 
+ 155:./lib/chibios/os/oslib/include/chmemcore.h ****   chSysLock();
+ 156:./lib/chibios/os/oslib/include/chmemcore.h ****   p = chCoreAllocAlignedWithOffsetI(size, align, 0U);
+ 157:./lib/chibios/os/oslib/include/chmemcore.h ****   chSysUnlock();
+ 158:./lib/chibios/os/oslib/include/chmemcore.h **** 
+ 159:./lib/chibios/os/oslib/include/chmemcore.h ****   return p;
+ 160:./lib/chibios/os/oslib/include/chmemcore.h **** }
+ 161:./lib/chibios/os/oslib/include/chmemcore.h **** 
+ 162:./lib/chibios/os/oslib/include/chmemcore.h **** /**
+ 163:./lib/chibios/os/oslib/include/chmemcore.h ****  * @brief   Allocates a memory block.
+ 164:./lib/chibios/os/oslib/include/chmemcore.h ****  * @details The allocated block is guaranteed to be properly aligned for a
+ 165:./lib/chibios/os/oslib/include/chmemcore.h ****  *          pointer data type.
+ 166:./lib/chibios/os/oslib/include/chmemcore.h ****  *
+ 167:./lib/chibios/os/oslib/include/chmemcore.h ****  * @param[in] size      the size of the block to be allocated.
+ 168:./lib/chibios/os/oslib/include/chmemcore.h ****  * @return              A pointer to the allocated memory block.
+ 169:./lib/chibios/os/oslib/include/chmemcore.h ****  * @retval NULL         allocation failed, core memory exhausted.
+ 170:./lib/chibios/os/oslib/include/chmemcore.h ****  *
+ 171:./lib/chibios/os/oslib/include/chmemcore.h ****  * @iclass
+ 172:./lib/chibios/os/oslib/include/chmemcore.h ****  */
+ 173:./lib/chibios/os/oslib/include/chmemcore.h **** static inline void *chCoreAllocI(size_t size) {
+ 174:./lib/chibios/os/oslib/include/chmemcore.h **** 
+ 175:./lib/chibios/os/oslib/include/chmemcore.h ****   return chCoreAllocAlignedWithOffsetI(size, PORT_NATURAL_ALIGN, 0U);
+ 176:./lib/chibios/os/oslib/include/chmemcore.h **** }
+ 177:./lib/chibios/os/oslib/include/chmemcore.h **** 
+ 178:./lib/chibios/os/oslib/include/chmemcore.h **** /**
+ 179:./lib/chibios/os/oslib/include/chmemcore.h ****  * @brief   Allocates a memory block.
+ 180:./lib/chibios/os/oslib/include/chmemcore.h ****  * @details The allocated block is guaranteed to be properly aligned for a
+ 181:./lib/chibios/os/oslib/include/chmemcore.h ****  *          pointer data type.
+ 182:./lib/chibios/os/oslib/include/chmemcore.h ****  *
+ 183:./lib/chibios/os/oslib/include/chmemcore.h ****  * @param[in] size      the size of the block to be allocated.
+ 184:./lib/chibios/os/oslib/include/chmemcore.h ****  * @return              A pointer to the allocated memory block.
+ 185:./lib/chibios/os/oslib/include/chmemcore.h ****  * @retval NULL         allocation failed, core memory exhausted.
+ 186:./lib/chibios/os/oslib/include/chmemcore.h ****  *
+ 187:./lib/chibios/os/oslib/include/chmemcore.h ****  * @api
+ 188:./lib/chibios/os/oslib/include/chmemcore.h ****  */
+ 189:./lib/chibios/os/oslib/include/chmemcore.h **** static inline void *chCoreAlloc(size_t size) {
+ 190:./lib/chibios/os/oslib/include/chmemcore.h **** 
+ 191:./lib/chibios/os/oslib/include/chmemcore.h ****   return chCoreAllocAlignedWithOffset(size, PORT_NATURAL_ALIGN, 0U);
+ 168              		.loc 2 191 10 view .LVU38
+ 169 0002 0022     		movs	r2, #0
+ 170              	.LBE5:
+ 171              	.LBE4:
+ 136:lib/chibios/os/various/syscalls.c **** #if CH_CFG_USE_MEMCORE
+ 172              		.loc 1 136 1 view .LVU39
+ 173 0004 0400     		movs	r4, r0
+ 174 0006 0800     		movs	r0, r1
+ 175              	.LVL10:
+ 176              	.LBB7:
+ 177              	.LBI4:
+ 189:./lib/chibios/os/oslib/include/chmemcore.h **** 
+ 178              		.loc 2 189 21 is_stmt 1 view .LVU40
+ 179              	.LBB6:
+ 180              		.loc 2 191 3 view .LVU41
+ 181              		.loc 2 191 10 is_stmt 0 view .LVU42
+ 182 0008 0421     		movs	r1, #4
+ 183              	.LVL11:
+ 184              		.loc 2 191 10 view .LVU43
+ 185 000a FFF7FEFF 		bl	chCoreAllocAlignedWithOffset
+ 186              	.LVL12:
+ 187              		.loc 2 191 10 view .LVU44
+ 188              	.LBE6:
+ 189              	.LBE7:
+ 143:lib/chibios/os/various/syscalls.c ****   if (p == NULL) {
+ 190              		.loc 1 143 3 is_stmt 1 view .LVU45
+ 191              		.loc 1 143 6 is_stmt 0 view .LVU46
+ 192 000e 0028     		cmp	r0, #0
+ 193 0010 02D1     		bne	.L5
+ 144:lib/chibios/os/various/syscalls.c ****     __errno_r(r) = ENOMEM;
+ 194              		.loc 1 144 5 is_stmt 1 view .LVU47
+ 195              		.loc 1 144 18 is_stmt 0 view .LVU48
+ 196 0012 0C23     		movs	r3, #12
+ 145:lib/chibios/os/various/syscalls.c ****     return (caddr_t)-1;
+ 197              		.loc 1 145 12 view .LVU49
+ 198 0014 0138     		subs	r0, r0, #1
+ 199              	.LVL13:
+ 144:lib/chibios/os/various/syscalls.c ****     __errno_r(r) = ENOMEM;
+ 200              		.loc 1 144 18 view .LVU50
+ 201 0016 2360     		str	r3, [r4]
+ 202              		.loc 1 145 5 is_stmt 1 view .LVU51
+ 203              	.LVL14:
+ 204              	.L5:
+ 146:lib/chibios/os/various/syscalls.c ****   }
+ 147:lib/chibios/os/various/syscalls.c ****   return (caddr_t)p;
+ 148:lib/chibios/os/various/syscalls.c **** #else
+ 149:lib/chibios/os/various/syscalls.c ****   (void)incr;
+ 150:lib/chibios/os/various/syscalls.c ****   __errno_r(r) = ENOMEM;
+ 151:lib/chibios/os/various/syscalls.c ****   return (caddr_t)-1;
+ 152:lib/chibios/os/various/syscalls.c **** #endif
+ 153:lib/chibios/os/various/syscalls.c **** }
+ 205              		.loc 1 153 1 is_stmt 0 view .LVU52
+ 206              		@ sp needed
+ 207              	.LVL15:
+ 208              		.loc 1 153 1 view .LVU53
+ 209 0018 10BD     		pop	{r4, pc}
+ 210              		.cfi_endproc
+ 211              	.LFE158:
+ 213              		.section	.text._fstat_r,"ax",%progbits
+ 214              		.align	1
+ 215              		.global	_fstat_r
+ 216              		.syntax unified
+ 217              		.code	16
+ 218              		.thumb_func
+ 219              		.fpu softvfp
+ 221              	_fstat_r:
+ 222              	.LVL16:
+ 223              	.LFB159:
+ 154:lib/chibios/os/various/syscalls.c **** 
+ 155:lib/chibios/os/various/syscalls.c **** /***************************************************************************/
+ 156:lib/chibios/os/various/syscalls.c **** 
+ 157:lib/chibios/os/various/syscalls.c **** __attribute__((used))
+ 158:lib/chibios/os/various/syscalls.c **** int _fstat_r(struct _reent *r, int file, struct stat * st)
+ 159:lib/chibios/os/various/syscalls.c **** {
+ 224              		.loc 1 159 1 is_stmt 1 view -0
+ 225              		.cfi_startproc
+ 226              		@ args = 0, pretend = 0, frame = 0
+ 227              		@ frame_needed = 0, uses_anonymous_args = 0
+ 160:lib/chibios/os/various/syscalls.c ****   (void)r;
+ 228              		.loc 1 160 3 view .LVU55
+ 161:lib/chibios/os/various/syscalls.c ****   (void)file;
+ 229              		.loc 1 161 3 view .LVU56
+ 162:lib/chibios/os/various/syscalls.c **** 
+ 163:lib/chibios/os/various/syscalls.c ****   memset(st, 0, sizeof(*st));
+ 230              		.loc 1 163 3 view .LVU57
+ 159:lib/chibios/os/various/syscalls.c ****   (void)r;
+ 231              		.loc 1 159 1 is_stmt 0 view .LVU58
+ 232 0000 10B5     		push	{r4, lr}
+ 233              		.cfi_def_cfa_offset 8
+ 234              		.cfi_offset 4, -8
+ 235              		.cfi_offset 14, -4
+ 159:lib/chibios/os/various/syscalls.c ****   (void)r;
+ 236              		.loc 1 159 1 view .LVU59
+ 237 0002 1400     		movs	r4, r2
+ 238              		.loc 1 163 3 view .LVU60
+ 239 0004 0021     		movs	r1, #0
+ 240              	.LVL17:
+ 241              		.loc 1 163 3 view .LVU61
+ 242 0006 5822     		movs	r2, #88
+ 243              	.LVL18:
+ 244              		.loc 1 163 3 view .LVU62
+ 245 0008 2000     		movs	r0, r4
+ 246              	.LVL19:
+ 247              		.loc 1 163 3 view .LVU63
+ 248 000a FFF7FEFF 		bl	memset
+ 249              	.LVL20:
+ 164:lib/chibios/os/various/syscalls.c ****   st->st_mode = S_IFCHR;
+ 250              		.loc 1 164 3 is_stmt 1 view .LVU64
+ 251              		.loc 1 164 15 is_stmt 0 view .LVU65
+ 252 000e 8023     		movs	r3, #128
+ 253 0010 9B01     		lsls	r3, r3, #6
+ 165:lib/chibios/os/various/syscalls.c ****   return 0;
+ 166:lib/chibios/os/various/syscalls.c **** }
+ 254              		.loc 1 166 1 view .LVU66
+ 255 0012 0020     		movs	r0, #0
+ 164:lib/chibios/os/various/syscalls.c ****   st->st_mode = S_IFCHR;
+ 256              		.loc 1 164 15 view .LVU67
+ 257 0014 6360     		str	r3, [r4, #4]
+ 165:lib/chibios/os/various/syscalls.c ****   return 0;
+ 258              		.loc 1 165 3 is_stmt 1 view .LVU68
+ 259              		.loc 1 166 1 is_stmt 0 view .LVU69
+ 260              		@ sp needed
+ 261              	.LVL21:
+ 262              		.loc 1 166 1 view .LVU70
+ 263 0016 10BD     		pop	{r4, pc}
+ 264              		.cfi_endproc
+ 265              	.LFE159:
+ 267              		.section	.text._isatty_r,"ax",%progbits
+ 268              		.align	1
+ 269              		.global	_isatty_r
+ 270              		.syntax unified
+ 271              		.code	16
+ 272              		.thumb_func
+ 273              		.fpu softvfp
+ 275              	_isatty_r:
+ 276              	.LVL22:
+ 277              	.LFB160:
+ 167:lib/chibios/os/various/syscalls.c **** 
+ 168:lib/chibios/os/various/syscalls.c **** /***************************************************************************/
+ 169:lib/chibios/os/various/syscalls.c **** 
+ 170:lib/chibios/os/various/syscalls.c **** __attribute__((used))
+ 171:lib/chibios/os/various/syscalls.c **** int _isatty_r(struct _reent *r, int fd)
+ 172:lib/chibios/os/various/syscalls.c **** {
+ 278              		.loc 1 172 1 is_stmt 1 view -0
+ 279              		.cfi_startproc
+ 280              		@ args = 0, pretend = 0, frame = 0
+ 281              		@ frame_needed = 0, uses_anonymous_args = 0
+ 282              		@ link register save eliminated.
+ 173:lib/chibios/os/various/syscalls.c ****   (void)r;
+ 283              		.loc 1 173 3 view .LVU72
+ 174:lib/chibios/os/various/syscalls.c ****   (void)fd;
+ 284              		.loc 1 174 3 view .LVU73
+ 175:lib/chibios/os/various/syscalls.c **** 
+ 176:lib/chibios/os/various/syscalls.c ****   return 1;
+ 285              		.loc 1 176 3 view .LVU74
+ 177:lib/chibios/os/various/syscalls.c **** }
+ 286              		.loc 1 177 1 is_stmt 0 view .LVU75
+ 287 0000 0120     		movs	r0, #1
+ 288              	.LVL23:
+ 289              		.loc 1 177 1 view .LVU76
+ 290              		@ sp needed
+ 291 0002 7047     		bx	lr
+ 292              		.cfi_endproc
+ 293              	.LFE160:
+ 295              		.text
+ 296              	.Letext0:
+ 297              		.file 3 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\lib\\gcc\\arm-none-eabi\\8.3.1\\in
+ 298              		.file 4 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\arm-none-eabi\\include\\machine\\_
+ 299              		.file 5 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\arm-none-eabi\\include\\sys\\_type
+ 300              		.file 6 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\arm-none-eabi\\include\\sys\\reent
+ 301              		.file 7 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\arm-none-eabi\\include\\sys\\lock.
+ 302              		.file 8 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\arm-none-eabi\\include\\stdlib.h"
+ 303              		.file 9 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\arm-none-eabi\\include\\sys\\errno
+ 304              		.file 10 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\arm-none-eabi\\include\\sys\\_std
+ 305              		.file 11 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\arm-none-eabi\\include\\sys\\_tim
+ 306              		.file 12 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\arm-none-eabi\\include\\sys\\type
+ 307              		.file 13 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\arm-none-eabi\\include\\time.h"
+ 308              		.file 14 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\arm-none-eabi\\include\\sys\\stat
+ 309              		.file 15 "./lib/chibios/os/common/ports/ARMCMx/compilers/GCC/chtypes.h"
+ 310              		.file 16 "./lib/chibios/os/rt/include/chsystypes.h"
+ 311              		.file 17 "./lib/chibios/os/rt/include/chschd.h"
+ 312              		.file 18 "./lib/chibios/os/rt/include/chtime.h"
+ 313              		.file 19 "./lib/chibios/os/common/ext/ST/STM32F0xx/system_stm32f0xx.h"
+ 314              		.file 20 "./lib/chibios/os/common/ports/ARMCMx/chcore.h"
+ 315              		.file 21 "./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h"
+ 316              		.file 22 "./lib/chibios/os/rt/include/chsem.h"
+ 317              		.file 23 "./lib/chibios/os/rt/include/chmtx.h"
+ 318              		.file 24 "./lib/chibios/os/rt/include/chsys.h"
+ 319              		.file 25 "./lib/chibios/os/rt/include/chregistry.h"
+ 320              		.file 26 "<built-in>"
+DEFINED SYMBOLS
+                            *ABS*:00000000 syscalls.c
+C:\Users\kyleo\AppData\Local\Temp\ccr1jQH7.s:16     .text._read_r:00000000 $t
+C:\Users\kyleo\AppData\Local\Temp\ccr1jQH7.s:24     .text._read_r:00000000 _read_r
+C:\Users\kyleo\AppData\Local\Temp\ccr1jQH7.s:55     .text._lseek_r:00000000 $t
+C:\Users\kyleo\AppData\Local\Temp\ccr1jQH7.s:62     .text._lseek_r:00000000 _lseek_r
+C:\Users\kyleo\AppData\Local\Temp\ccr1jQH7.s:85     .text._write_r:00000000 $t
+C:\Users\kyleo\AppData\Local\Temp\ccr1jQH7.s:92     .text._write_r:00000000 _write_r
+C:\Users\kyleo\AppData\Local\Temp\ccr1jQH7.s:114    .text._close_r:00000000 $t
+C:\Users\kyleo\AppData\Local\Temp\ccr1jQH7.s:121    .text._close_r:00000000 _close_r
+C:\Users\kyleo\AppData\Local\Temp\ccr1jQH7.s:142    .text._sbrk_r:00000000 $t
+C:\Users\kyleo\AppData\Local\Temp\ccr1jQH7.s:149    .text._sbrk_r:00000000 _sbrk_r
+C:\Users\kyleo\AppData\Local\Temp\ccr1jQH7.s:214    .text._fstat_r:00000000 $t
+C:\Users\kyleo\AppData\Local\Temp\ccr1jQH7.s:221    .text._fstat_r:00000000 _fstat_r
+C:\Users\kyleo\AppData\Local\Temp\ccr1jQH7.s:268    .text._isatty_r:00000000 $t
+C:\Users\kyleo\AppData\Local\Temp\ccr1jQH7.s:275    .text._isatty_r:00000000 _isatty_r
+
+UNDEFINED SYMBOLS
+chCoreAllocAlignedWithOffset
+memset

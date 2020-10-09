@@ -1,0 +1,118 @@
+   1               		.file	"lily58.c"
+   2               	__SP_H__ = 0x3e
+   3               	__SP_L__ = 0x3d
+   4               	__SREG__ = 0x3f
+   5               	__tmp_reg__ = 0
+   6               	__zero_reg__ = 1
+   7               		.text
+   8               	.Ltext0:
+   9               		.cfi_sections	.debug_frame
+  10               		.section	.text.process_record_kb,"ax",@progbits
+  11               	.global	process_record_kb
+  13               	process_record_kb:
+  14               	.LVL0:
+  15               	.LFB23:
+  16               		.file 1 "keyboards/lily58/lily58.c"
+   1:keyboards/lily58/lily58.c **** #include "lily58.h"
+   2:keyboards/lily58/lily58.c **** #include "ssd1306.h"
+   3:keyboards/lily58/lily58.c **** 
+   4:keyboards/lily58/lily58.c **** bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
+  17               		.loc 1 4 63 view -0
+  18               		.cfi_startproc
+  19               		.loc 1 4 63 is_stmt 0 view .LVU1
+  20 0000 0F93      		push r16
+  21               	.LCFI0:
+  22               		.cfi_def_cfa_offset 3
+  23               		.cfi_offset 16, -2
+  24 0002 1F93      		push r17
+  25               	.LCFI1:
+  26               		.cfi_def_cfa_offset 4
+  27               		.cfi_offset 17, -3
+  28 0004 CF93      		push r28
+  29               	.LCFI2:
+  30               		.cfi_def_cfa_offset 5
+  31               		.cfi_offset 28, -4
+  32 0006 DF93      		push r29
+  33               	.LCFI3:
+  34               		.cfi_def_cfa_offset 6
+  35               		.cfi_offset 29, -5
+  36               	/* prologue: function */
+  37               	/* frame size = 0 */
+  38               	/* stack size = 4 */
+  39               	.L__stack_usage = 4
+  40 0008 EC01      		movw r28,r24
+  41 000a 8B01      		movw r16,r22
+   5:keyboards/lily58/lily58.c **** #ifdef SSD1306OLED
+   6:keyboards/lily58/lily58.c ****   return process_record_gfx(keycode,record) && process_record_user(keycode, record);
+  42               		.loc 1 6 3 is_stmt 1 view .LVU2
+  43               		.loc 1 6 10 is_stmt 0 view .LVU3
+  44 000c 0E94 0000 		call process_record_gfx
+  45               	.LVL1:
+  46               		.loc 1 6 45 view .LVU4
+  47 0010 8823      		tst r24
+  48 0012 01F0      		breq .L3
+  49               		.loc 1 6 48 discriminator 1 view .LVU5
+  50 0014 B801      		movw r22,r16
+  51 0016 CE01      		movw r24,r28
+  52 0018 0E94 0000 		call process_record_user
+  53               	.LVL2:
+  54               	.L2:
+   7:keyboards/lily58/lily58.c **** #else
+   8:keyboards/lily58/lily58.c ****   return process_record_user(keycode, record);
+   9:keyboards/lily58/lily58.c **** #endif
+  10:keyboards/lily58/lily58.c **** }...
+  55               		.loc 1 10 1 discriminator 6 view .LVU6
+  56 001c 8170      		andi r24,lo8(1)
+  57               	/* epilogue start */
+  58 001e DF91      		pop r29
+  59 0020 CF91      		pop r28
+  60               	.LVL3:
+  61               		.loc 1 10 1 discriminator 6 view .LVU7
+  62 0022 1F91      		pop r17
+  63 0024 0F91      		pop r16
+  64               	.LVL4:
+  65               		.loc 1 10 1 discriminator 6 view .LVU8
+  66 0026 0895      		ret
+  67               	.LVL5:
+  68               	.L3:
+   6:keyboards/lily58/lily58.c ****   return process_record_gfx(keycode,record) && process_record_user(keycode, record);
+  69               		.loc 1 6 45 view .LVU9
+  70 0028 80E0      		ldi r24,0
+  71 002a 00C0      		rjmp .L2
+  72               		.cfi_endproc
+  73               	.LFE23:
+  75               		.comm	display,87,1
+  76               		.text
+  77               	.Letext0:
+  78               		.file 2 "c:\\msys64\\home\\kyleo\\qmk_utils\\avr8-gnu-toolchain\\avr\\include\\stdint.h"
+  79               		.file 3 "c:\\msys64\\home\\kyleo\\qmk_utils\\avr8-gnu-toolchain\\lib\\gcc\\avr\\8.3.0\\include\\st
+  80               		.file 4 "tmk_core/common/keyboard.h"
+  81               		.file 5 "tmk_core/common/action.h"
+  82               		.file 6 "tmk_core/common/report.h"
+  83               		.file 7 "tmk_core/common/host.h"
+  84               		.file 8 "tmk_core/common/debug.h"
+  85               		.file 9 "quantum/keycode_config.h"
+  86               		.file 10 "quantum/keymap.h"
+  87               		.file 11 "./quantum/color.h"
+  88               		.file 12 "quantum/rgblight.h"
+  89               		.file 13 "tmk_core/common/action_layer.h"
+  90               		.file 14 "tmk_core/common/timer.h"
+  91               		.file 15 "tmk_core/common/action_util.h"
+  92               		.file 16 "c:\\msys64\\home\\kyleo\\qmk_utils\\avr8-gnu-toolchain\\avr\\include\\stdlib.h"
+  93               		.file 17 "quantum/quantum.h"
+  94               		.file 18 "c:\\msys64\\home\\kyleo\\qmk_utils\\avr8-gnu-toolchain\\avr\\include\\stdio.h"
+  95               		.file 19 "keyboards/lily58/ssd1306.h"
+DEFINED SYMBOLS
+                            *ABS*:00000000 lily58.c
+C:\Users\kyleo\AppData\Local\Temp\ccvECs3U.s:2      *ABS*:0000003e __SP_H__
+C:\Users\kyleo\AppData\Local\Temp\ccvECs3U.s:3      *ABS*:0000003d __SP_L__
+C:\Users\kyleo\AppData\Local\Temp\ccvECs3U.s:4      *ABS*:0000003f __SREG__
+C:\Users\kyleo\AppData\Local\Temp\ccvECs3U.s:5      *ABS*:00000000 __tmp_reg__
+C:\Users\kyleo\AppData\Local\Temp\ccvECs3U.s:6      *ABS*:00000001 __zero_reg__
+C:\Users\kyleo\AppData\Local\Temp\ccvECs3U.s:13     .text.process_record_kb:00000000 process_record_kb
+                            *COM*:00000057 display
+
+UNDEFINED SYMBOLS
+process_record_gfx
+process_record_user
+__do_clear_bss

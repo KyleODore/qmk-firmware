@@ -1,0 +1,1191 @@
+   1              		.cpu cortex-m0
+   2              		.eabi_attribute 20, 1
+   3              		.eabi_attribute 21, 1
+   4              		.eabi_attribute 23, 3
+   5              		.eabi_attribute 24, 1
+   6              		.eabi_attribute 25, 1
+   7              		.eabi_attribute 26, 1
+   8              		.eabi_attribute 30, 4
+   9              		.eabi_attribute 34, 0
+  10              		.eabi_attribute 18, 2
+  11              		.file	"keyboard.c"
+  12              		.text
+  13              	.Ltext0:
+  14              		.cfi_sections	.debug_frame
+  15              		.section	.text.disable_jtag,"ax",%progbits
+  16              		.align	1
+  17              		.global	disable_jtag
+  18              		.arch armv6s-m
+  19              		.syntax unified
+  20              		.code	16
+  21              		.thumb_func
+  22              		.fpu softvfp
+  24              	disable_jtag:
+  25              	.LFB191:
+  26              		.file 1 "tmk_core/common/keyboard.c"
+   1:tmk_core/common/keyboard.c **** /*
+   2:tmk_core/common/keyboard.c **** Copyright 2011, 2012, 2013 Jun Wako <wakojun@gmail.com>
+   3:tmk_core/common/keyboard.c **** 
+   4:tmk_core/common/keyboard.c **** This program is free software: you can redistribute it and/or modify
+   5:tmk_core/common/keyboard.c **** it under the terms of the GNU General Public License as published by
+   6:tmk_core/common/keyboard.c **** the Free Software Foundation, either version 2 of the License, or
+   7:tmk_core/common/keyboard.c **** (at your option) any later version.
+   8:tmk_core/common/keyboard.c **** 
+   9:tmk_core/common/keyboard.c **** This program is distributed in the hope that it will be useful,
+  10:tmk_core/common/keyboard.c **** but WITHOUT ANY WARRANTY; without even the implied warranty of
+  11:tmk_core/common/keyboard.c **** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  12:tmk_core/common/keyboard.c **** GNU General Public License for more details.
+  13:tmk_core/common/keyboard.c **** 
+  14:tmk_core/common/keyboard.c **** You should have received a copy of the GNU General Public License
+  15:tmk_core/common/keyboard.c **** along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  16:tmk_core/common/keyboard.c **** */
+  17:tmk_core/common/keyboard.c **** 
+  18:tmk_core/common/keyboard.c **** #include <stdint.h>
+  19:tmk_core/common/keyboard.c **** #include "keyboard.h"
+  20:tmk_core/common/keyboard.c **** #include "matrix.h"
+  21:tmk_core/common/keyboard.c **** #include "keymap.h"
+  22:tmk_core/common/keyboard.c **** #include "host.h"
+  23:tmk_core/common/keyboard.c **** #include "led.h"
+  24:tmk_core/common/keyboard.c **** #include "keycode.h"
+  25:tmk_core/common/keyboard.c **** #include "timer.h"
+  26:tmk_core/common/keyboard.c **** #include "print.h"
+  27:tmk_core/common/keyboard.c **** #include "debug.h"
+  28:tmk_core/common/keyboard.c **** #include "command.h"
+  29:tmk_core/common/keyboard.c **** #include "util.h"
+  30:tmk_core/common/keyboard.c **** #include "sendchar.h"
+  31:tmk_core/common/keyboard.c **** #include "eeconfig.h"
+  32:tmk_core/common/keyboard.c **** #include "action_layer.h"
+  33:tmk_core/common/keyboard.c **** #ifdef BACKLIGHT_ENABLE
+  34:tmk_core/common/keyboard.c **** #    include "backlight.h"
+  35:tmk_core/common/keyboard.c **** #endif
+  36:tmk_core/common/keyboard.c **** #ifdef BOOTMAGIC_ENABLE
+  37:tmk_core/common/keyboard.c **** #    include "bootmagic.h"
+  38:tmk_core/common/keyboard.c **** #else
+  39:tmk_core/common/keyboard.c **** #    include "magic.h"
+  40:tmk_core/common/keyboard.c **** #endif
+  41:tmk_core/common/keyboard.c **** #ifdef MOUSEKEY_ENABLE
+  42:tmk_core/common/keyboard.c **** #    include "mousekey.h"
+  43:tmk_core/common/keyboard.c **** #endif
+  44:tmk_core/common/keyboard.c **** #ifdef PS2_MOUSE_ENABLE
+  45:tmk_core/common/keyboard.c **** #    include "ps2_mouse.h"
+  46:tmk_core/common/keyboard.c **** #endif
+  47:tmk_core/common/keyboard.c **** #ifdef SERIAL_MOUSE_ENABLE
+  48:tmk_core/common/keyboard.c **** #    include "serial_mouse.h"
+  49:tmk_core/common/keyboard.c **** #endif
+  50:tmk_core/common/keyboard.c **** #ifdef ADB_MOUSE_ENABLE
+  51:tmk_core/common/keyboard.c **** #    include "adb.h"
+  52:tmk_core/common/keyboard.c **** #endif
+  53:tmk_core/common/keyboard.c **** #ifdef RGBLIGHT_ENABLE
+  54:tmk_core/common/keyboard.c **** #    include "rgblight.h"
+  55:tmk_core/common/keyboard.c **** #endif
+  56:tmk_core/common/keyboard.c **** #ifdef STENO_ENABLE
+  57:tmk_core/common/keyboard.c **** #    include "process_steno.h"
+  58:tmk_core/common/keyboard.c **** #endif
+  59:tmk_core/common/keyboard.c **** #ifdef FAUXCLICKY_ENABLE
+  60:tmk_core/common/keyboard.c **** #    include "fauxclicky.h"
+  61:tmk_core/common/keyboard.c **** #endif
+  62:tmk_core/common/keyboard.c **** #ifdef SERIAL_LINK_ENABLE
+  63:tmk_core/common/keyboard.c **** #    include "serial_link/system/serial_link.h"
+  64:tmk_core/common/keyboard.c **** #endif
+  65:tmk_core/common/keyboard.c **** #ifdef VISUALIZER_ENABLE
+  66:tmk_core/common/keyboard.c **** #    include "visualizer/visualizer.h"
+  67:tmk_core/common/keyboard.c **** #endif
+  68:tmk_core/common/keyboard.c **** #ifdef POINTING_DEVICE_ENABLE
+  69:tmk_core/common/keyboard.c **** #    include "pointing_device.h"
+  70:tmk_core/common/keyboard.c **** #endif
+  71:tmk_core/common/keyboard.c **** #ifdef MIDI_ENABLE
+  72:tmk_core/common/keyboard.c **** #    include "process_midi.h"
+  73:tmk_core/common/keyboard.c **** #endif
+  74:tmk_core/common/keyboard.c **** #ifdef HD44780_ENABLE
+  75:tmk_core/common/keyboard.c **** #    include "hd44780.h"
+  76:tmk_core/common/keyboard.c **** #endif
+  77:tmk_core/common/keyboard.c **** #ifdef QWIIC_ENABLE
+  78:tmk_core/common/keyboard.c **** #    include "qwiic.h"
+  79:tmk_core/common/keyboard.c **** #endif
+  80:tmk_core/common/keyboard.c **** #ifdef OLED_DRIVER_ENABLE
+  81:tmk_core/common/keyboard.c **** #    include "oled_driver.h"
+  82:tmk_core/common/keyboard.c **** #endif
+  83:tmk_core/common/keyboard.c **** #ifdef VELOCIKEY_ENABLE
+  84:tmk_core/common/keyboard.c **** #    include "velocikey.h"
+  85:tmk_core/common/keyboard.c **** #endif
+  86:tmk_core/common/keyboard.c **** #ifdef VIA_ENABLE
+  87:tmk_core/common/keyboard.c **** #    include "via.h"
+  88:tmk_core/common/keyboard.c **** #endif
+  89:tmk_core/common/keyboard.c **** 
+  90:tmk_core/common/keyboard.c **** // Only enable this if console is enabled to print to
+  91:tmk_core/common/keyboard.c **** #if defined(DEBUG_MATRIX_SCAN_RATE) && defined(CONSOLE_ENABLE)
+  92:tmk_core/common/keyboard.c **** static uint32_t matrix_timer      = 0;
+  93:tmk_core/common/keyboard.c **** static uint32_t matrix_scan_count = 0;
+  94:tmk_core/common/keyboard.c **** 
+  95:tmk_core/common/keyboard.c **** void matrix_scan_perf_task(void) {
+  96:tmk_core/common/keyboard.c ****     matrix_scan_count++;
+  97:tmk_core/common/keyboard.c **** 
+  98:tmk_core/common/keyboard.c ****     uint32_t timer_now = timer_read32();
+  99:tmk_core/common/keyboard.c ****     if (TIMER_DIFF_32(timer_now, matrix_timer) > 1000) {
+ 100:tmk_core/common/keyboard.c ****         dprintf("matrix scan frequency: %d\n", matrix_scan_count);
+ 101:tmk_core/common/keyboard.c **** 
+ 102:tmk_core/common/keyboard.c ****         matrix_timer      = timer_now;
+ 103:tmk_core/common/keyboard.c ****         matrix_scan_count = 0;
+ 104:tmk_core/common/keyboard.c ****     }
+ 105:tmk_core/common/keyboard.c **** }
+ 106:tmk_core/common/keyboard.c **** #else
+ 107:tmk_core/common/keyboard.c **** #    define matrix_scan_perf_task()
+ 108:tmk_core/common/keyboard.c **** #endif
+ 109:tmk_core/common/keyboard.c **** 
+ 110:tmk_core/common/keyboard.c **** #ifdef MATRIX_HAS_GHOST
+ 111:tmk_core/common/keyboard.c **** extern const uint16_t keymaps[][MATRIX_ROWS][MATRIX_COLS];
+ 112:tmk_core/common/keyboard.c **** static matrix_row_t   get_real_keys(uint8_t row, matrix_row_t rowdata) {
+ 113:tmk_core/common/keyboard.c ****     matrix_row_t out = 0;
+ 114:tmk_core/common/keyboard.c ****     for (uint8_t col = 0; col < MATRIX_COLS; col++) {
+ 115:tmk_core/common/keyboard.c ****         // read each key in the row data and check if the keymap defines it as a real key
+ 116:tmk_core/common/keyboard.c ****         if (pgm_read_byte(&keymaps[0][row][col]) && (rowdata & (1 << col))) {
+ 117:tmk_core/common/keyboard.c ****             // this creates new row data, if a key is defined in the keymap, it will be set here
+ 118:tmk_core/common/keyboard.c ****             out |= 1 << col;
+ 119:tmk_core/common/keyboard.c ****         }
+ 120:tmk_core/common/keyboard.c ****     }
+ 121:tmk_core/common/keyboard.c ****     return out;
+ 122:tmk_core/common/keyboard.c **** }
+ 123:tmk_core/common/keyboard.c **** 
+ 124:tmk_core/common/keyboard.c **** static inline bool popcount_more_than_one(matrix_row_t rowdata) {
+ 125:tmk_core/common/keyboard.c ****     rowdata &= rowdata - 1;  // if there are less than two bits (keys) set, rowdata will become zer
+ 126:tmk_core/common/keyboard.c ****     return rowdata;
+ 127:tmk_core/common/keyboard.c **** }
+ 128:tmk_core/common/keyboard.c **** 
+ 129:tmk_core/common/keyboard.c **** static inline bool has_ghost_in_row(uint8_t row, matrix_row_t rowdata) {
+ 130:tmk_core/common/keyboard.c ****     /* No ghost exists when less than 2 keys are down on the row.
+ 131:tmk_core/common/keyboard.c ****     If there are "active" blanks in the matrix, the key can't be pressed by the user,
+ 132:tmk_core/common/keyboard.c ****     there is no doubt as to which keys are really being pressed.
+ 133:tmk_core/common/keyboard.c ****     The ghosts will be ignored, they are KC_NO.   */
+ 134:tmk_core/common/keyboard.c ****     rowdata = get_real_keys(row, rowdata);
+ 135:tmk_core/common/keyboard.c ****     if ((popcount_more_than_one(rowdata)) == 0) {
+ 136:tmk_core/common/keyboard.c ****         return false;
+ 137:tmk_core/common/keyboard.c ****     }
+ 138:tmk_core/common/keyboard.c ****     /* Ghost occurs when the row shares a column line with other row,
+ 139:tmk_core/common/keyboard.c ****     and two columns are read on each row. Blanks in the matrix don't matter,
+ 140:tmk_core/common/keyboard.c ****     so they are filtered out.
+ 141:tmk_core/common/keyboard.c ****     If there are two or more real keys pressed and they match columns with
+ 142:tmk_core/common/keyboard.c ****     at least two of another row's real keys, the row will be ignored. Keep in mind,
+ 143:tmk_core/common/keyboard.c ****     we are checking one row at a time, not all of them at once.
+ 144:tmk_core/common/keyboard.c ****     */
+ 145:tmk_core/common/keyboard.c ****     for (uint8_t i = 0; i < MATRIX_ROWS; i++) {
+ 146:tmk_core/common/keyboard.c ****         if (i != row && popcount_more_than_one(get_real_keys(i, matrix_get_row(i)) & rowdata)) {
+ 147:tmk_core/common/keyboard.c ****             return true;
+ 148:tmk_core/common/keyboard.c ****         }
+ 149:tmk_core/common/keyboard.c ****     }
+ 150:tmk_core/common/keyboard.c ****     return false;
+ 151:tmk_core/common/keyboard.c **** }
+ 152:tmk_core/common/keyboard.c **** 
+ 153:tmk_core/common/keyboard.c **** #endif
+ 154:tmk_core/common/keyboard.c **** 
+ 155:tmk_core/common/keyboard.c **** void disable_jtag(void) {
+  27              		.loc 1 155 25 view -0
+  28              		.cfi_startproc
+  29              		@ args = 0, pretend = 0, frame = 0
+  30              		@ frame_needed = 0, uses_anonymous_args = 0
+  31              		@ link register save eliminated.
+ 156:tmk_core/common/keyboard.c **** // To use PF4-7 (PC2-5 on ATmega32A), disable JTAG by writing JTD bit twice within four cycles.
+ 157:tmk_core/common/keyboard.c **** #if (defined(__AVR_AT90USB646__) || defined(__AVR_AT90USB647__) || defined(__AVR_AT90USB1286__) || 
+ 158:tmk_core/common/keyboard.c ****     MCUCR |= _BV(JTD);
+ 159:tmk_core/common/keyboard.c ****     MCUCR |= _BV(JTD);
+ 160:tmk_core/common/keyboard.c **** #elif defined(__AVR_ATmega32A__)
+ 161:tmk_core/common/keyboard.c ****     MCUCSR |= _BV(JTD);
+ 162:tmk_core/common/keyboard.c ****     MCUCSR |= _BV(JTD);
+ 163:tmk_core/common/keyboard.c **** #endif
+ 164:tmk_core/common/keyboard.c **** }
+  32              		.loc 1 164 1 view .LVU1
+  33              		@ sp needed
+  34 0000 7047     		bx	lr
+  35              		.cfi_endproc
+  36              	.LFE191:
+  38              		.section	.text.matrix_setup,"ax",%progbits
+  39              		.align	1
+  40              		.weak	matrix_setup
+  41              		.syntax unified
+  42              		.code	16
+  43              		.thumb_func
+  44              		.fpu softvfp
+  46              	matrix_setup:
+  47              	.LFB205:
+  48              		.cfi_startproc
+  49              		@ args = 0, pretend = 0, frame = 0
+  50              		@ frame_needed = 0, uses_anonymous_args = 0
+  51              		@ link register save eliminated.
+  52              		@ sp needed
+  53 0000 7047     		bx	lr
+  54              		.cfi_endproc
+  55              	.LFE205:
+  57              		.section	.text.keyboard_pre_init_user,"ax",%progbits
+  58              		.align	1
+  59              		.weak	keyboard_pre_init_user
+  60              		.syntax unified
+  61              		.code	16
+  62              		.thumb_func
+  63              		.fpu softvfp
+  65              	keyboard_pre_init_user:
+  66              	.LFB193:
+ 165:tmk_core/common/keyboard.c **** 
+ 166:tmk_core/common/keyboard.c **** /** \brief matrix_setup
+ 167:tmk_core/common/keyboard.c ****  *
+ 168:tmk_core/common/keyboard.c ****  * FIXME: needs doc
+ 169:tmk_core/common/keyboard.c ****  */
+ 170:tmk_core/common/keyboard.c **** __attribute__((weak)) void matrix_setup(void) {}
+ 171:tmk_core/common/keyboard.c **** 
+ 172:tmk_core/common/keyboard.c **** /** \brief keyboard_pre_init_user
+ 173:tmk_core/common/keyboard.c ****  *
+ 174:tmk_core/common/keyboard.c ****  * FIXME: needs doc
+ 175:tmk_core/common/keyboard.c ****  */
+ 176:tmk_core/common/keyboard.c **** __attribute__((weak)) void keyboard_pre_init_user(void) {}
+  67              		.loc 1 176 57 view -0
+  68              		.cfi_startproc
+  69              		@ args = 0, pretend = 0, frame = 0
+  70              		@ frame_needed = 0, uses_anonymous_args = 0
+  71              		@ link register save eliminated.
+  72              		.loc 1 176 58 view .LVU3
+  73              		.loc 1 176 1 is_stmt 0 view .LVU4
+  74              		@ sp needed
+  75 0000 7047     		bx	lr
+  76              		.cfi_endproc
+  77              	.LFE193:
+  79              		.section	.text.keyboard_pre_init_kb,"ax",%progbits
+  80              		.align	1
+  81              		.weak	keyboard_pre_init_kb
+  82              		.syntax unified
+  83              		.code	16
+  84              		.thumb_func
+  85              		.fpu softvfp
+  87              	keyboard_pre_init_kb:
+  88              	.LFB194:
+ 177:tmk_core/common/keyboard.c **** 
+ 178:tmk_core/common/keyboard.c **** /** \brief keyboard_pre_init_kb
+ 179:tmk_core/common/keyboard.c ****  *
+ 180:tmk_core/common/keyboard.c ****  * FIXME: needs doc
+ 181:tmk_core/common/keyboard.c ****  */
+ 182:tmk_core/common/keyboard.c **** __attribute__((weak)) void keyboard_pre_init_kb(void) { keyboard_pre_init_user(); }
+  89              		.loc 1 182 55 is_stmt 1 view -0
+  90              		.cfi_startproc
+  91              		@ args = 0, pretend = 0, frame = 0
+  92              		@ frame_needed = 0, uses_anonymous_args = 0
+  93              		.loc 1 182 57 view .LVU6
+  94              		.loc 1 182 55 is_stmt 0 view .LVU7
+  95 0000 10B5     		push	{r4, lr}
+  96              		.cfi_def_cfa_offset 8
+  97              		.cfi_offset 4, -8
+  98              		.cfi_offset 14, -4
+  99              		.loc 1 182 57 view .LVU8
+ 100 0002 FFF7FEFF 		bl	keyboard_pre_init_user
+ 101              	.LVL0:
+ 102              		.loc 1 182 1 view .LVU9
+ 103              		@ sp needed
+ 104 0006 10BD     		pop	{r4, pc}
+ 105              		.cfi_endproc
+ 106              	.LFE194:
+ 108              		.section	.text.keyboard_post_init_user,"ax",%progbits
+ 109              		.align	1
+ 110              		.weak	keyboard_post_init_user
+ 111              		.syntax unified
+ 112              		.code	16
+ 113              		.thumb_func
+ 114              		.fpu softvfp
+ 116              	keyboard_post_init_user:
+ 117              	.LFB203:
+ 118              		.cfi_startproc
+ 119              		@ args = 0, pretend = 0, frame = 0
+ 120              		@ frame_needed = 0, uses_anonymous_args = 0
+ 121              		@ link register save eliminated.
+ 122              		@ sp needed
+ 123 0000 7047     		bx	lr
+ 124              		.cfi_endproc
+ 125              	.LFE203:
+ 127              		.section	.text.keyboard_post_init_kb,"ax",%progbits
+ 128              		.align	1
+ 129              		.weak	keyboard_post_init_kb
+ 130              		.syntax unified
+ 131              		.code	16
+ 132              		.thumb_func
+ 133              		.fpu softvfp
+ 135              	keyboard_post_init_kb:
+ 136              	.LFB196:
+ 183:tmk_core/common/keyboard.c **** 
+ 184:tmk_core/common/keyboard.c **** /** \brief keyboard_post_init_user
+ 185:tmk_core/common/keyboard.c ****  *
+ 186:tmk_core/common/keyboard.c ****  * FIXME: needs doc
+ 187:tmk_core/common/keyboard.c ****  */
+ 188:tmk_core/common/keyboard.c **** 
+ 189:tmk_core/common/keyboard.c **** __attribute__((weak)) void keyboard_post_init_user() {}
+ 190:tmk_core/common/keyboard.c **** 
+ 191:tmk_core/common/keyboard.c **** /** \brief keyboard_post_init_kb
+ 192:tmk_core/common/keyboard.c ****  *
+ 193:tmk_core/common/keyboard.c ****  * FIXME: needs doc
+ 194:tmk_core/common/keyboard.c ****  */
+ 195:tmk_core/common/keyboard.c **** 
+ 196:tmk_core/common/keyboard.c **** __attribute__((weak)) void keyboard_post_init_kb(void) { keyboard_post_init_user(); }
+ 137              		.loc 1 196 56 is_stmt 1 view -0
+ 138              		.cfi_startproc
+ 139              		@ args = 0, pretend = 0, frame = 0
+ 140              		@ frame_needed = 0, uses_anonymous_args = 0
+ 141              		.loc 1 196 58 view .LVU11
+ 142              		.loc 1 196 56 is_stmt 0 view .LVU12
+ 143 0000 10B5     		push	{r4, lr}
+ 144              		.cfi_def_cfa_offset 8
+ 145              		.cfi_offset 4, -8
+ 146              		.cfi_offset 14, -4
+ 147              		.loc 1 196 58 view .LVU13
+ 148 0002 FFF7FEFF 		bl	keyboard_post_init_user
+ 149              	.LVL1:
+ 150              		.loc 1 196 1 view .LVU14
+ 151              		@ sp needed
+ 152 0006 10BD     		pop	{r4, pc}
+ 153              		.cfi_endproc
+ 154              	.LFE196:
+ 156              		.section	.text.keyboard_setup,"ax",%progbits
+ 157              		.align	1
+ 158              		.global	keyboard_setup
+ 159              		.syntax unified
+ 160              		.code	16
+ 161              		.thumb_func
+ 162              		.fpu softvfp
+ 164              	keyboard_setup:
+ 165              	.LFB197:
+ 197:tmk_core/common/keyboard.c **** 
+ 198:tmk_core/common/keyboard.c **** /** \brief keyboard_setup
+ 199:tmk_core/common/keyboard.c ****  *
+ 200:tmk_core/common/keyboard.c ****  * FIXME: needs doc
+ 201:tmk_core/common/keyboard.c ****  */
+ 202:tmk_core/common/keyboard.c **** void keyboard_setup(void) {
+ 166              		.loc 1 202 27 is_stmt 1 view -0
+ 167              		.cfi_startproc
+ 168              		@ args = 0, pretend = 0, frame = 0
+ 169              		@ frame_needed = 0, uses_anonymous_args = 0
+ 203:tmk_core/common/keyboard.c **** #ifndef NO_JTAG_DISABLE
+ 204:tmk_core/common/keyboard.c ****     disable_jtag();
+ 170              		.loc 1 204 5 view .LVU16
+ 164:tmk_core/common/keyboard.c **** 
+ 171              		.loc 1 164 1 view .LVU17
+ 205:tmk_core/common/keyboard.c **** #endif
+ 206:tmk_core/common/keyboard.c ****     matrix_setup();
+ 172              		.loc 1 206 5 view .LVU18
+ 202:tmk_core/common/keyboard.c **** #ifndef NO_JTAG_DISABLE
+ 173              		.loc 1 202 27 is_stmt 0 view .LVU19
+ 174 0000 10B5     		push	{r4, lr}
+ 175              		.cfi_def_cfa_offset 8
+ 176              		.cfi_offset 4, -8
+ 177              		.cfi_offset 14, -4
+ 178              		.loc 1 206 5 view .LVU20
+ 179 0002 FFF7FEFF 		bl	matrix_setup
+ 180              	.LVL2:
+ 207:tmk_core/common/keyboard.c ****     keyboard_pre_init_kb();
+ 181              		.loc 1 207 5 is_stmt 1 view .LVU21
+ 208:tmk_core/common/keyboard.c **** }
+ 182              		.loc 1 208 1 is_stmt 0 view .LVU22
+ 183              		@ sp needed
+ 207:tmk_core/common/keyboard.c ****     keyboard_pre_init_kb();
+ 184              		.loc 1 207 5 view .LVU23
+ 185 0006 FFF7FEFF 		bl	keyboard_pre_init_kb
+ 186              	.LVL3:
+ 187              		.loc 1 208 1 view .LVU24
+ 188 000a 10BD     		pop	{r4, pc}
+ 189              		.cfi_endproc
+ 190              	.LFE197:
+ 192              		.section	.text.is_keyboard_master,"ax",%progbits
+ 193              		.align	1
+ 194              		.weak	is_keyboard_master
+ 195              		.syntax unified
+ 196              		.code	16
+ 197              		.thumb_func
+ 198              		.fpu softvfp
+ 200              	is_keyboard_master:
+ 201              	.LFB198:
+ 209:tmk_core/common/keyboard.c **** 
+ 210:tmk_core/common/keyboard.c **** /** \brief is_keyboard_master
+ 211:tmk_core/common/keyboard.c ****  *
+ 212:tmk_core/common/keyboard.c ****  * FIXME: needs doc
+ 213:tmk_core/common/keyboard.c ****  */
+ 214:tmk_core/common/keyboard.c **** __attribute__((weak)) bool is_keyboard_master(void) { return true; }
+ 202              		.loc 1 214 53 is_stmt 1 view -0
+ 203              		.cfi_startproc
+ 204              		@ args = 0, pretend = 0, frame = 0
+ 205              		@ frame_needed = 0, uses_anonymous_args = 0
+ 206              		@ link register save eliminated.
+ 207              		.loc 1 214 55 view .LVU26
+ 208              		.loc 1 214 1 is_stmt 0 view .LVU27
+ 209 0000 0120     		movs	r0, #1
+ 210              		@ sp needed
+ 211 0002 7047     		bx	lr
+ 212              		.cfi_endproc
+ 213              	.LFE198:
+ 215              		.section	.text.keyboard_init,"ax",%progbits
+ 216              		.align	1
+ 217              		.global	keyboard_init
+ 218              		.syntax unified
+ 219              		.code	16
+ 220              		.thumb_func
+ 221              		.fpu softvfp
+ 223              	keyboard_init:
+ 224              	.LFB199:
+ 215:tmk_core/common/keyboard.c **** 
+ 216:tmk_core/common/keyboard.c **** /** \brief keyboard_init
+ 217:tmk_core/common/keyboard.c ****  *
+ 218:tmk_core/common/keyboard.c ****  * FIXME: needs doc
+ 219:tmk_core/common/keyboard.c ****  */
+ 220:tmk_core/common/keyboard.c **** void keyboard_init(void) {
+ 225              		.loc 1 220 26 is_stmt 1 view -0
+ 226              		.cfi_startproc
+ 227              		@ args = 0, pretend = 0, frame = 0
+ 228              		@ frame_needed = 0, uses_anonymous_args = 0
+ 221:tmk_core/common/keyboard.c ****     timer_init();
+ 229              		.loc 1 221 5 view .LVU29
+ 220:tmk_core/common/keyboard.c ****     timer_init();
+ 230              		.loc 1 220 26 is_stmt 0 view .LVU30
+ 231 0000 10B5     		push	{r4, lr}
+ 232              		.cfi_def_cfa_offset 8
+ 233              		.cfi_offset 4, -8
+ 234              		.cfi_offset 14, -4
+ 235              		.loc 1 221 5 view .LVU31
+ 236 0002 FFF7FEFF 		bl	timer_init
+ 237              	.LVL4:
+ 222:tmk_core/common/keyboard.c ****     matrix_init();
+ 238              		.loc 1 222 5 is_stmt 1 view .LVU32
+ 223:tmk_core/common/keyboard.c **** #ifdef VIA_ENABLE
+ 224:tmk_core/common/keyboard.c ****     via_init();
+ 225:tmk_core/common/keyboard.c **** #endif
+ 226:tmk_core/common/keyboard.c **** #ifdef QWIIC_ENABLE
+ 227:tmk_core/common/keyboard.c ****     qwiic_init();
+ 228:tmk_core/common/keyboard.c **** #endif
+ 229:tmk_core/common/keyboard.c **** #ifdef OLED_DRIVER_ENABLE
+ 230:tmk_core/common/keyboard.c ****     oled_init(OLED_ROTATION_0);
+ 231:tmk_core/common/keyboard.c **** #endif
+ 232:tmk_core/common/keyboard.c **** #ifdef PS2_MOUSE_ENABLE
+ 233:tmk_core/common/keyboard.c ****     ps2_mouse_init();
+ 234:tmk_core/common/keyboard.c **** #endif
+ 235:tmk_core/common/keyboard.c **** #ifdef SERIAL_MOUSE_ENABLE
+ 236:tmk_core/common/keyboard.c ****     serial_mouse_init();
+ 237:tmk_core/common/keyboard.c **** #endif
+ 238:tmk_core/common/keyboard.c **** #ifdef ADB_MOUSE_ENABLE
+ 239:tmk_core/common/keyboard.c ****     adb_mouse_init();
+ 240:tmk_core/common/keyboard.c **** #endif
+ 241:tmk_core/common/keyboard.c **** #ifdef BOOTMAGIC_ENABLE
+ 242:tmk_core/common/keyboard.c ****     bootmagic();
+ 243:tmk_core/common/keyboard.c **** #else
+ 244:tmk_core/common/keyboard.c ****     magic();
+ 245:tmk_core/common/keyboard.c **** #endif
+ 246:tmk_core/common/keyboard.c **** #ifdef BACKLIGHT_ENABLE
+ 247:tmk_core/common/keyboard.c ****     backlight_init();
+ 248:tmk_core/common/keyboard.c **** #endif
+ 249:tmk_core/common/keyboard.c **** #ifdef RGBLIGHT_ENABLE
+ 250:tmk_core/common/keyboard.c ****     rgblight_init();
+ 251:tmk_core/common/keyboard.c **** #endif
+ 252:tmk_core/common/keyboard.c **** #ifdef STENO_ENABLE
+ 253:tmk_core/common/keyboard.c ****     steno_init();
+ 254:tmk_core/common/keyboard.c **** #endif
+ 255:tmk_core/common/keyboard.c **** #ifdef FAUXCLICKY_ENABLE
+ 256:tmk_core/common/keyboard.c ****     fauxclicky_init();
+ 257:tmk_core/common/keyboard.c **** #endif
+ 258:tmk_core/common/keyboard.c **** #ifdef POINTING_DEVICE_ENABLE
+ 259:tmk_core/common/keyboard.c ****     pointing_device_init();
+ 260:tmk_core/common/keyboard.c **** #endif
+ 261:tmk_core/common/keyboard.c **** #if defined(NKRO_ENABLE) && defined(FORCE_NKRO)
+ 262:tmk_core/common/keyboard.c ****     keymap_config.nkro = 1;
+ 263:tmk_core/common/keyboard.c ****     eeconfig_update_keymap(keymap_config.raw);
+ 264:tmk_core/common/keyboard.c **** #endif
+ 265:tmk_core/common/keyboard.c ****     keyboard_post_init_kb(); /* Always keep this last */
+ 266:tmk_core/common/keyboard.c **** }
+ 239              		.loc 1 266 1 is_stmt 0 view .LVU33
+ 240              		@ sp needed
+ 222:tmk_core/common/keyboard.c ****     matrix_init();
+ 241              		.loc 1 222 5 view .LVU34
+ 242 0006 FFF7FEFF 		bl	matrix_init
+ 243              	.LVL5:
+ 244:tmk_core/common/keyboard.c **** #endif
+ 244              		.loc 1 244 5 is_stmt 1 view .LVU35
+ 245 000a FFF7FEFF 		bl	magic
+ 246              	.LVL6:
+ 247:tmk_core/common/keyboard.c **** #endif
+ 247              		.loc 1 247 5 view .LVU36
+ 248 000e FFF7FEFF 		bl	backlight_init
+ 249              	.LVL7:
+ 250:tmk_core/common/keyboard.c **** #endif
+ 250              		.loc 1 250 5 view .LVU37
+ 251 0012 FFF7FEFF 		bl	rgblight_init
+ 252              	.LVL8:
+ 265:tmk_core/common/keyboard.c **** }
+ 253              		.loc 1 265 5 view .LVU38
+ 254 0016 FFF7FEFF 		bl	keyboard_post_init_kb
+ 255              	.LVL9:
+ 256              		.loc 1 266 1 is_stmt 0 view .LVU39
+ 257 001a 10BD     		pop	{r4, pc}
+ 258              		.cfi_endproc
+ 259              	.LFE199:
+ 261              		.section	.text.keyboard_set_leds,"ax",%progbits
+ 262              		.align	1
+ 263              		.global	keyboard_set_leds
+ 264              		.syntax unified
+ 265              		.code	16
+ 266              		.thumb_func
+ 267              		.fpu softvfp
+ 269              	keyboard_set_leds:
+ 270              	.LVL10:
+ 271              	.LFB201:
+ 267:tmk_core/common/keyboard.c **** 
+ 268:tmk_core/common/keyboard.c **** /** \brief Keyboard task: Do keyboard routine jobs
+ 269:tmk_core/common/keyboard.c ****  *
+ 270:tmk_core/common/keyboard.c ****  * Do routine keyboard jobs:
+ 271:tmk_core/common/keyboard.c ****  *
+ 272:tmk_core/common/keyboard.c ****  * * scan matrix
+ 273:tmk_core/common/keyboard.c ****  * * handle mouse movements
+ 274:tmk_core/common/keyboard.c ****  * * run visualizer code
+ 275:tmk_core/common/keyboard.c ****  * * handle midi commands
+ 276:tmk_core/common/keyboard.c ****  * * light LEDs
+ 277:tmk_core/common/keyboard.c ****  *
+ 278:tmk_core/common/keyboard.c ****  * This is repeatedly called as fast as possible.
+ 279:tmk_core/common/keyboard.c ****  */
+ 280:tmk_core/common/keyboard.c **** void keyboard_task(void) {
+ 281:tmk_core/common/keyboard.c ****     static matrix_row_t matrix_prev[MATRIX_ROWS];
+ 282:tmk_core/common/keyboard.c ****     static uint8_t      led_status    = 0;
+ 283:tmk_core/common/keyboard.c ****     matrix_row_t        matrix_row    = 0;
+ 284:tmk_core/common/keyboard.c ****     matrix_row_t        matrix_change = 0;
+ 285:tmk_core/common/keyboard.c **** #ifdef QMK_KEYS_PER_SCAN
+ 286:tmk_core/common/keyboard.c ****     uint8_t keys_processed = 0;
+ 287:tmk_core/common/keyboard.c **** #endif
+ 288:tmk_core/common/keyboard.c **** 
+ 289:tmk_core/common/keyboard.c **** #if defined(OLED_DRIVER_ENABLE) && !defined(OLED_DISABLE_TIMEOUT)
+ 290:tmk_core/common/keyboard.c ****     uint8_t ret = matrix_scan();
+ 291:tmk_core/common/keyboard.c **** #else
+ 292:tmk_core/common/keyboard.c ****     matrix_scan();
+ 293:tmk_core/common/keyboard.c **** #endif
+ 294:tmk_core/common/keyboard.c **** 
+ 295:tmk_core/common/keyboard.c ****     if (is_keyboard_master()) {
+ 296:tmk_core/common/keyboard.c ****         for (uint8_t r = 0; r < MATRIX_ROWS; r++) {
+ 297:tmk_core/common/keyboard.c ****             matrix_row    = matrix_get_row(r);
+ 298:tmk_core/common/keyboard.c ****             matrix_change = matrix_row ^ matrix_prev[r];
+ 299:tmk_core/common/keyboard.c ****             if (matrix_change) {
+ 300:tmk_core/common/keyboard.c **** #ifdef MATRIX_HAS_GHOST
+ 301:tmk_core/common/keyboard.c ****                 if (has_ghost_in_row(r, matrix_row)) {
+ 302:tmk_core/common/keyboard.c ****                     continue;
+ 303:tmk_core/common/keyboard.c ****                 }
+ 304:tmk_core/common/keyboard.c **** #endif
+ 305:tmk_core/common/keyboard.c ****                 if (debug_matrix) matrix_print();
+ 306:tmk_core/common/keyboard.c ****                 matrix_row_t col_mask = 1;
+ 307:tmk_core/common/keyboard.c ****                 for (uint8_t c = 0; c < MATRIX_COLS; c++, col_mask <<= 1) {
+ 308:tmk_core/common/keyboard.c ****                     if (matrix_change & col_mask) {
+ 309:tmk_core/common/keyboard.c ****                         action_exec((keyevent_t){
+ 310:tmk_core/common/keyboard.c ****                             .key = (keypos_t){.row = r, .col = c}, .pressed = (matrix_row & col_mas
+ 311:tmk_core/common/keyboard.c ****                         });
+ 312:tmk_core/common/keyboard.c ****                         // record a processed key
+ 313:tmk_core/common/keyboard.c ****                         matrix_prev[r] ^= col_mask;
+ 314:tmk_core/common/keyboard.c **** #ifdef QMK_KEYS_PER_SCAN
+ 315:tmk_core/common/keyboard.c ****                         // only jump out if we have processed "enough" keys.
+ 316:tmk_core/common/keyboard.c ****                         if (++keys_processed >= QMK_KEYS_PER_SCAN)
+ 317:tmk_core/common/keyboard.c **** #endif
+ 318:tmk_core/common/keyboard.c ****                             // process a key per task call
+ 319:tmk_core/common/keyboard.c ****                             goto MATRIX_LOOP_END;
+ 320:tmk_core/common/keyboard.c ****                     }
+ 321:tmk_core/common/keyboard.c ****                 }
+ 322:tmk_core/common/keyboard.c ****             }
+ 323:tmk_core/common/keyboard.c ****         }
+ 324:tmk_core/common/keyboard.c ****     }
+ 325:tmk_core/common/keyboard.c ****     // call with pseudo tick event when no real key event.
+ 326:tmk_core/common/keyboard.c **** #ifdef QMK_KEYS_PER_SCAN
+ 327:tmk_core/common/keyboard.c ****     // we can get here with some keys processed now.
+ 328:tmk_core/common/keyboard.c ****     if (!keys_processed)
+ 329:tmk_core/common/keyboard.c **** #endif
+ 330:tmk_core/common/keyboard.c ****         action_exec(TICK);
+ 331:tmk_core/common/keyboard.c **** 
+ 332:tmk_core/common/keyboard.c **** MATRIX_LOOP_END:
+ 333:tmk_core/common/keyboard.c **** 
+ 334:tmk_core/common/keyboard.c **** #ifdef DEBUG_MATRIX_SCAN_RATE
+ 335:tmk_core/common/keyboard.c ****     matrix_scan_perf_task();
+ 336:tmk_core/common/keyboard.c **** #endif
+ 337:tmk_core/common/keyboard.c **** 
+ 338:tmk_core/common/keyboard.c **** #if defined(RGBLIGHT_ENABLE)
+ 339:tmk_core/common/keyboard.c ****     rgblight_task();
+ 340:tmk_core/common/keyboard.c **** #endif
+ 341:tmk_core/common/keyboard.c **** 
+ 342:tmk_core/common/keyboard.c **** #if defined(BACKLIGHT_ENABLE)
+ 343:tmk_core/common/keyboard.c **** #    if defined(BACKLIGHT_PIN) || defined(BACKLIGHT_PINS)
+ 344:tmk_core/common/keyboard.c ****     backlight_task();
+ 345:tmk_core/common/keyboard.c **** #    endif
+ 346:tmk_core/common/keyboard.c **** #endif
+ 347:tmk_core/common/keyboard.c **** 
+ 348:tmk_core/common/keyboard.c **** #ifdef QWIIC_ENABLE
+ 349:tmk_core/common/keyboard.c ****     qwiic_task();
+ 350:tmk_core/common/keyboard.c **** #endif
+ 351:tmk_core/common/keyboard.c **** 
+ 352:tmk_core/common/keyboard.c **** #ifdef OLED_DRIVER_ENABLE
+ 353:tmk_core/common/keyboard.c ****     oled_task();
+ 354:tmk_core/common/keyboard.c **** #    ifndef OLED_DISABLE_TIMEOUT
+ 355:tmk_core/common/keyboard.c ****     // Wake up oled if user is using those fabulous keys!
+ 356:tmk_core/common/keyboard.c ****     if (ret) oled_on();
+ 357:tmk_core/common/keyboard.c **** #    endif
+ 358:tmk_core/common/keyboard.c **** #endif
+ 359:tmk_core/common/keyboard.c **** 
+ 360:tmk_core/common/keyboard.c **** #ifdef MOUSEKEY_ENABLE
+ 361:tmk_core/common/keyboard.c ****     // mousekey repeat & acceleration
+ 362:tmk_core/common/keyboard.c ****     mousekey_task();
+ 363:tmk_core/common/keyboard.c **** #endif
+ 364:tmk_core/common/keyboard.c **** 
+ 365:tmk_core/common/keyboard.c **** #ifdef PS2_MOUSE_ENABLE
+ 366:tmk_core/common/keyboard.c ****     ps2_mouse_task();
+ 367:tmk_core/common/keyboard.c **** #endif
+ 368:tmk_core/common/keyboard.c **** 
+ 369:tmk_core/common/keyboard.c **** #ifdef SERIAL_MOUSE_ENABLE
+ 370:tmk_core/common/keyboard.c ****     serial_mouse_task();
+ 371:tmk_core/common/keyboard.c **** #endif
+ 372:tmk_core/common/keyboard.c **** 
+ 373:tmk_core/common/keyboard.c **** #ifdef ADB_MOUSE_ENABLE
+ 374:tmk_core/common/keyboard.c ****     adb_mouse_task();
+ 375:tmk_core/common/keyboard.c **** #endif
+ 376:tmk_core/common/keyboard.c **** 
+ 377:tmk_core/common/keyboard.c **** #ifdef SERIAL_LINK_ENABLE
+ 378:tmk_core/common/keyboard.c ****     serial_link_update();
+ 379:tmk_core/common/keyboard.c **** #endif
+ 380:tmk_core/common/keyboard.c **** 
+ 381:tmk_core/common/keyboard.c **** #ifdef VISUALIZER_ENABLE
+ 382:tmk_core/common/keyboard.c ****     visualizer_update(default_layer_state, layer_state, visualizer_get_mods(), host_keyboard_leds()
+ 383:tmk_core/common/keyboard.c **** #endif
+ 384:tmk_core/common/keyboard.c **** 
+ 385:tmk_core/common/keyboard.c **** #ifdef POINTING_DEVICE_ENABLE
+ 386:tmk_core/common/keyboard.c ****     pointing_device_task();
+ 387:tmk_core/common/keyboard.c **** #endif
+ 388:tmk_core/common/keyboard.c **** 
+ 389:tmk_core/common/keyboard.c **** #ifdef MIDI_ENABLE
+ 390:tmk_core/common/keyboard.c ****     midi_task();
+ 391:tmk_core/common/keyboard.c **** #endif
+ 392:tmk_core/common/keyboard.c **** 
+ 393:tmk_core/common/keyboard.c **** #ifdef VELOCIKEY_ENABLE
+ 394:tmk_core/common/keyboard.c ****     if (velocikey_enabled()) {
+ 395:tmk_core/common/keyboard.c ****         velocikey_decelerate();
+ 396:tmk_core/common/keyboard.c ****     }
+ 397:tmk_core/common/keyboard.c **** #endif
+ 398:tmk_core/common/keyboard.c **** 
+ 399:tmk_core/common/keyboard.c ****     // update LED
+ 400:tmk_core/common/keyboard.c ****     if (led_status != host_keyboard_leds()) {
+ 401:tmk_core/common/keyboard.c ****         led_status = host_keyboard_leds();
+ 402:tmk_core/common/keyboard.c ****         keyboard_set_leds(led_status);
+ 403:tmk_core/common/keyboard.c ****     }
+ 404:tmk_core/common/keyboard.c **** }
+ 405:tmk_core/common/keyboard.c **** 
+ 406:tmk_core/common/keyboard.c **** /** \brief keyboard set leds
+ 407:tmk_core/common/keyboard.c ****  *
+ 408:tmk_core/common/keyboard.c ****  * FIXME: needs doc
+ 409:tmk_core/common/keyboard.c ****  */
+ 410:tmk_core/common/keyboard.c **** void keyboard_set_leds(uint8_t leds) {
+ 272              		.loc 1 410 38 is_stmt 1 view -0
+ 273              		.cfi_startproc
+ 274              		@ args = 0, pretend = 0, frame = 0
+ 275              		@ frame_needed = 0, uses_anonymous_args = 0
+ 411:tmk_core/common/keyboard.c ****     if (debug_keyboard) {
+ 276              		.loc 1 411 5 view .LVU41
+ 410:tmk_core/common/keyboard.c ****     if (debug_keyboard) {
+ 277              		.loc 1 410 38 is_stmt 0 view .LVU42
+ 278 0000 70B5     		push	{r4, r5, r6, lr}
+ 279              		.cfi_def_cfa_offset 16
+ 280              		.cfi_offset 4, -16
+ 281              		.cfi_offset 5, -12
+ 282              		.cfi_offset 6, -8
+ 283              		.cfi_offset 14, -4
+ 284              		.loc 1 411 9 view .LVU43
+ 285 0002 0E4D     		ldr	r5, .L26
+ 410:tmk_core/common/keyboard.c ****     if (debug_keyboard) {
+ 286              		.loc 1 410 38 view .LVU44
+ 287 0004 0600     		movs	r6, r0
+ 288              		.loc 1 411 9 view .LVU45
+ 289 0006 2B78     		ldrb	r3, [r5]
+ 290              		.loc 1 411 8 view .LVU46
+ 291 0008 5A07     		lsls	r2, r3, #29
+ 292 000a 12D5     		bpl	.L13
+ 412:tmk_core/common/keyboard.c ****         debug("keyboard_set_led: ");
+ 293              		.loc 1 412 9 is_stmt 1 view .LVU47
+ 294              		.loc 1 412 9 view .LVU48
+ 295 000c 0124     		movs	r4, #1
+ 296 000e 2342     		tst	r3, r4
+ 297 0010 0FD0     		beq	.L13
+ 298              		.loc 1 412 9 discriminator 1 view .LVU49
+ 299 0012 0B48     		ldr	r0, .L26+4
+ 300              	.LVL11:
+ 301              		.loc 1 412 9 is_stmt 0 discriminator 1 view .LVU50
+ 302 0014 FFF7FEFF 		bl	tfp_printf
+ 303              	.LVL12:
+ 413:tmk_core/common/keyboard.c ****         debug_hex8(leds);
+ 304              		.loc 1 413 9 is_stmt 1 discriminator 1 view .LVU51
+ 305              		.loc 1 413 9 discriminator 1 view .LVU52
+ 306 0018 2B78     		ldrb	r3, [r5]
+ 307 001a 2342     		tst	r3, r4
+ 308 001c 09D0     		beq	.L13
+ 309              		.loc 1 413 9 discriminator 1 view .LVU53
+ 310 001e 3100     		movs	r1, r6
+ 311 0020 0848     		ldr	r0, .L26+8
+ 312 0022 FFF7FEFF 		bl	tfp_printf
+ 313              	.LVL13:
+ 414:tmk_core/common/keyboard.c ****         debug("\n");
+ 314              		.loc 1 414 9 discriminator 1 view .LVU54
+ 315              		.loc 1 414 9 discriminator 1 view .LVU55
+ 316 0026 2B78     		ldrb	r3, [r5]
+ 317 0028 2342     		tst	r3, r4
+ 318 002a 02D0     		beq	.L13
+ 319              		.loc 1 414 9 discriminator 1 view .LVU56
+ 320 002c 0648     		ldr	r0, .L26+12
+ 321 002e FFF7FEFF 		bl	tfp_printf
+ 322              	.LVL14:
+ 323              	.L13:
+ 415:tmk_core/common/keyboard.c ****     }
+ 416:tmk_core/common/keyboard.c ****     led_set(leds);
+ 324              		.loc 1 416 5 view .LVU57
+ 325 0032 3000     		movs	r0, r6
+ 326 0034 FFF7FEFF 		bl	led_set
+ 327              	.LVL15:
+ 417:tmk_core/common/keyboard.c **** }
+ 328              		.loc 1 417 1 is_stmt 0 view .LVU58
+ 329              		@ sp needed
+ 330 0038 70BD     		pop	{r4, r5, r6, pc}
+ 331              	.L27:
+ 332 003a C046     		.align	2
+ 333              	.L26:
+ 334 003c 00000000 		.word	debug_config
+ 335 0040 00000000 		.word	.LC1
+ 336 0044 13000000 		.word	.LC3
+ 337 0048 18000000 		.word	.LC5
+ 338              		.cfi_endproc
+ 339              	.LFE201:
+ 341              		.section	.text.keyboard_task,"ax",%progbits
+ 342              		.align	1
+ 343              		.global	keyboard_task
+ 344              		.syntax unified
+ 345              		.code	16
+ 346              		.thumb_func
+ 347              		.fpu softvfp
+ 349              	keyboard_task:
+ 350              	.LFB200:
+ 280:tmk_core/common/keyboard.c ****     static matrix_row_t matrix_prev[MATRIX_ROWS];
+ 351              		.loc 1 280 26 is_stmt 1 view -0
+ 352              		.cfi_startproc
+ 353              		@ args = 0, pretend = 0, frame = 24
+ 354              		@ frame_needed = 0, uses_anonymous_args = 0
+ 281:tmk_core/common/keyboard.c ****     static uint8_t      led_status    = 0;
+ 355              		.loc 1 281 5 view .LVU60
+ 282:tmk_core/common/keyboard.c ****     matrix_row_t        matrix_row    = 0;
+ 356              		.loc 1 282 5 view .LVU61
+ 283:tmk_core/common/keyboard.c ****     matrix_row_t        matrix_change = 0;
+ 357              		.loc 1 283 5 view .LVU62
+ 358              	.LVL16:
+ 284:tmk_core/common/keyboard.c **** #ifdef QMK_KEYS_PER_SCAN
+ 359              		.loc 1 284 5 view .LVU63
+ 292:tmk_core/common/keyboard.c **** #endif
+ 360              		.loc 1 292 5 view .LVU64
+ 280:tmk_core/common/keyboard.c ****     static matrix_row_t matrix_prev[MATRIX_ROWS];
+ 361              		.loc 1 280 26 is_stmt 0 view .LVU65
+ 362 0000 F0B5     		push	{r4, r5, r6, r7, lr}
+ 363              		.cfi_def_cfa_offset 20
+ 364              		.cfi_offset 4, -20
+ 365              		.cfi_offset 5, -16
+ 366              		.cfi_offset 6, -12
+ 367              		.cfi_offset 7, -8
+ 368              		.cfi_offset 14, -4
+ 369 0002 87B0     		sub	sp, sp, #28
+ 370              		.cfi_def_cfa_offset 48
+ 292:tmk_core/common/keyboard.c **** #endif
+ 371              		.loc 1 292 5 view .LVU66
+ 372 0004 FFF7FEFF 		bl	matrix_scan
+ 373              	.LVL17:
+ 295:tmk_core/common/keyboard.c ****         for (uint8_t r = 0; r < MATRIX_ROWS; r++) {
+ 374              		.loc 1 295 5 is_stmt 1 view .LVU67
+ 295:tmk_core/common/keyboard.c ****         for (uint8_t r = 0; r < MATRIX_ROWS; r++) {
+ 375              		.loc 1 295 9 is_stmt 0 view .LVU68
+ 376 0008 FFF7FEFF 		bl	is_keyboard_master
+ 377              	.LVL18:
+ 295:tmk_core/common/keyboard.c ****         for (uint8_t r = 0; r < MATRIX_ROWS; r++) {
+ 378              		.loc 1 295 8 view .LVU69
+ 379 000c 0028     		cmp	r0, #0
+ 380 000e 4ED0     		beq	.L29
+ 381 0010 0025     		movs	r5, #0
+ 382              	.LVL19:
+ 383              	.L35:
+ 295:tmk_core/common/keyboard.c ****         for (uint8_t r = 0; r < MATRIX_ROWS; r++) {
+ 384              		.loc 1 295 8 view .LVU70
+ 385 0012 EBB2     		uxtb	r3, r5
+ 386              	.LBB4:
+ 297:tmk_core/common/keyboard.c ****             matrix_change = matrix_row ^ matrix_prev[r];
+ 387              		.loc 1 297 29 view .LVU71
+ 388 0014 E8B2     		uxtb	r0, r5
+ 389 0016 0193     		str	r3, [sp, #4]
+ 390              	.LVL20:
+ 297:tmk_core/common/keyboard.c ****             matrix_change = matrix_row ^ matrix_prev[r];
+ 391              		.loc 1 297 13 is_stmt 1 view .LVU72
+ 297:tmk_core/common/keyboard.c ****             matrix_change = matrix_row ^ matrix_prev[r];
+ 392              		.loc 1 297 29 is_stmt 0 view .LVU73
+ 393 0018 FFF7FEFF 		bl	matrix_get_row
+ 394              	.LVL21:
+ 298:tmk_core/common/keyboard.c ****             if (matrix_change) {
+ 395              		.loc 1 298 53 view .LVU74
+ 396 001c 2C4B     		ldr	r3, .L45
+ 397 001e 6F00     		lsls	r7, r5, #1
+ 398 0020 FE5A     		ldrh	r6, [r7, r3]
+ 297:tmk_core/common/keyboard.c ****             matrix_change = matrix_row ^ matrix_prev[r];
+ 399              		.loc 1 297 29 view .LVU75
+ 400 0022 0090     		str	r0, [sp]
+ 401              	.LVL22:
+ 298:tmk_core/common/keyboard.c ****             if (matrix_change) {
+ 402              		.loc 1 298 13 is_stmt 1 view .LVU76
+ 299:tmk_core/common/keyboard.c **** #ifdef MATRIX_HAS_GHOST
+ 403              		.loc 1 299 13 view .LVU77
+ 299:tmk_core/common/keyboard.c **** #ifdef MATRIX_HAS_GHOST
+ 404              		.loc 1 299 16 is_stmt 0 view .LVU78
+ 405 0024 8642     		cmp	r6, r0
+ 406 0026 3FD0     		beq	.L30
+ 407              	.LBB5:
+ 305:tmk_core/common/keyboard.c ****                 matrix_row_t col_mask = 1;
+ 408              		.loc 1 305 17 is_stmt 1 view .LVU79
+ 305:tmk_core/common/keyboard.c ****                 matrix_row_t col_mask = 1;
+ 409              		.loc 1 305 20 is_stmt 0 view .LVU80
+ 410 0028 0222     		movs	r2, #2
+ 305:tmk_core/common/keyboard.c ****                 matrix_row_t col_mask = 1;
+ 411              		.loc 1 305 21 view .LVU81
+ 412 002a 2A4B     		ldr	r3, .L45+4
+ 413 002c 1B78     		ldrb	r3, [r3]
+ 305:tmk_core/common/keyboard.c ****                 matrix_row_t col_mask = 1;
+ 414              		.loc 1 305 20 view .LVU82
+ 415 002e 1342     		tst	r3, r2
+ 416 0030 01D0     		beq	.L31
+ 305:tmk_core/common/keyboard.c ****                 matrix_row_t col_mask = 1;
+ 417              		.loc 1 305 35 is_stmt 1 discriminator 1 view .LVU83
+ 418 0032 FFF7FEFF 		bl	matrix_print
+ 419              	.LVL23:
+ 420              	.L31:
+ 306:tmk_core/common/keyboard.c ****                 for (uint8_t c = 0; c < MATRIX_COLS; c++, col_mask <<= 1) {
+ 421              		.loc 1 306 17 view .LVU84
+ 307:tmk_core/common/keyboard.c ****                     if (matrix_change & col_mask) {
+ 422              		.loc 1 307 17 view .LVU85
+ 423              	.LBB6:
+ 307:tmk_core/common/keyboard.c ****                     if (matrix_change & col_mask) {
+ 424              		.loc 1 307 22 view .LVU86
+ 307:tmk_core/common/keyboard.c ****                     if (matrix_change & col_mask) {
+ 425              		.loc 1 307 30 is_stmt 0 view .LVU87
+ 426 0036 0023     		movs	r3, #0
+ 427              	.LBE6:
+ 306:tmk_core/common/keyboard.c ****                 for (uint8_t c = 0; c < MATRIX_COLS; c++, col_mask <<= 1) {
+ 428              		.loc 1 306 30 view .LVU88
+ 429 0038 0124     		movs	r4, #1
+ 430              	.LBE5:
+ 298:tmk_core/common/keyboard.c ****             if (matrix_change) {
+ 431              		.loc 1 298 27 view .LVU89
+ 432 003a 009A     		ldr	r2, [sp]
+ 433 003c 5640     		eors	r6, r2
+ 434              	.LVL24:
+ 435              	.L34:
+ 436              	.LBB9:
+ 437              	.LBB7:
+ 308:tmk_core/common/keyboard.c ****                         action_exec((keyevent_t){
+ 438              		.loc 1 308 21 is_stmt 1 view .LVU90
+ 308:tmk_core/common/keyboard.c ****                         action_exec((keyevent_t){
+ 439              		.loc 1 308 24 is_stmt 0 view .LVU91
+ 440 003e 2642     		tst	r6, r4
+ 441 0040 2CD0     		beq	.L32
+ 309:tmk_core/common/keyboard.c ****                             .key = (keypos_t){.row = r, .col = c}, .pressed = (matrix_row & col_mas
+ 442              		.loc 1 309 25 is_stmt 1 view .LVU92
+ 309:tmk_core/common/keyboard.c ****                             .key = (keypos_t){.row = r, .col = c}, .pressed = (matrix_row & col_mas
+ 443              		.loc 1 309 49 is_stmt 0 view .LVU93
+ 444 0042 02AA     		add	r2, sp, #8
+ 445 0044 1370     		strb	r3, [r2]
+ 446 0046 1300     		movs	r3, r2
+ 447              	.LVL25:
+ 309:tmk_core/common/keyboard.c ****                             .key = (keypos_t){.row = r, .col = c}, .pressed = (matrix_row & col_mas
+ 448              		.loc 1 309 49 view .LVU94
+ 449 0048 019A     		ldr	r2, [sp, #4]
+ 450              	.LVL26:
+ 309:tmk_core/common/keyboard.c ****                             .key = (keypos_t){.row = r, .col = c}, .pressed = (matrix_row & col_mas
+ 451              		.loc 1 309 49 view .LVU95
+ 452 004a 5A70     		strb	r2, [r3, #1]
+ 310:tmk_core/common/keyboard.c ****                         });
+ 453              		.loc 1 310 91 view .LVU96
+ 454 004c 009B     		ldr	r3, [sp]
+ 455              	.LVL27:
+ 310:tmk_core/common/keyboard.c ****                         });
+ 456              		.loc 1 310 91 view .LVU97
+ 457 004e 2340     		ands	r3, r4
+ 458 0050 5A1E     		subs	r2, r3, #1
+ 459 0052 9341     		sbcs	r3, r3, r2
+ 309:tmk_core/common/keyboard.c ****                             .key = (keypos_t){.row = r, .col = c}, .pressed = (matrix_row & col_mas
+ 460              		.loc 1 309 49 view .LVU98
+ 461 0054 02AA     		add	r2, sp, #8
+ 462              	.LVL28:
+ 309:tmk_core/common/keyboard.c ****                             .key = (keypos_t){.row = r, .col = c}, .pressed = (matrix_row & col_mas
+ 463              		.loc 1 309 49 view .LVU99
+ 464 0056 9370     		strb	r3, [r2, #2]
+ 310:tmk_core/common/keyboard.c ****                         });
+ 465              		.loc 1 310 113 view .LVU100
+ 466 0058 FFF7FEFF 		bl	timer_read
+ 467              	.LVL29:
+ 309:tmk_core/common/keyboard.c ****                             .key = (keypos_t){.row = r, .col = c}, .pressed = (matrix_row & col_mas
+ 468              		.loc 1 309 49 view .LVU101
+ 469 005c 0123     		movs	r3, #1
+ 470 005e 02AA     		add	r2, sp, #8
+ 471              	.LVL30:
+ 309:tmk_core/common/keyboard.c ****                             .key = (keypos_t){.row = r, .col = c}, .pressed = (matrix_row & col_mas
+ 472              		.loc 1 309 49 view .LVU102
+ 473 0060 0343     		orrs	r3, r0
+ 474 0062 9380     		strh	r3, [r2, #4]
+ 309:tmk_core/common/keyboard.c ****                             .key = (keypos_t){.row = r, .col = c}, .pressed = (matrix_row & col_mas
+ 475              		.loc 1 309 25 view .LVU103
+ 476 0064 0298     		ldr	r0, [sp, #8]
+ 477 0066 0399     		ldr	r1, [sp, #12]
+ 478 0068 FFF7FEFF 		bl	action_exec
+ 479              	.LVL31:
+ 313:tmk_core/common/keyboard.c **** #ifdef QMK_KEYS_PER_SCAN
+ 480              		.loc 1 313 25 is_stmt 1 view .LVU104
+ 313:tmk_core/common/keyboard.c **** #ifdef QMK_KEYS_PER_SCAN
+ 481              		.loc 1 313 40 is_stmt 0 view .LVU105
+ 482 006c 184B     		ldr	r3, .L45
+ 483 006e DB5B     		ldrh	r3, [r3, r7]
+ 484 0070 5C40     		eors	r4, r3
+ 485              	.LVL32:
+ 313:tmk_core/common/keyboard.c **** #ifdef QMK_KEYS_PER_SCAN
+ 486              		.loc 1 313 40 view .LVU106
+ 487 0072 174B     		ldr	r3, .L45
+ 488 0074 DC53     		strh	r4, [r3, r7]
+ 319:tmk_core/common/keyboard.c ****                     }
+ 489              		.loc 1 319 29 is_stmt 1 view .LVU107
+ 490              	.LVL33:
+ 491              	.L33:
+ 319:tmk_core/common/keyboard.c ****                     }
+ 492              		.loc 1 319 29 is_stmt 0 view .LVU108
+ 493              	.LBE7:
+ 494              	.LBE9:
+ 495              	.LBE4:
+ 339:tmk_core/common/keyboard.c **** #endif
+ 496              		.loc 1 339 5 is_stmt 1 view .LVU109
+ 497 0076 FFF7FEFF 		bl	rgblight_task
+ 498              	.LVL34:
+ 344:tmk_core/common/keyboard.c **** #    endif
+ 499              		.loc 1 344 5 view .LVU110
+ 500 007a FFF7FEFF 		bl	backlight_task
+ 501              	.LVL35:
+ 362:tmk_core/common/keyboard.c **** #endif
+ 502              		.loc 1 362 5 view .LVU111
+ 503 007e FFF7FEFF 		bl	mousekey_task
+ 504              	.LVL36:
+ 400:tmk_core/common/keyboard.c ****         led_status = host_keyboard_leds();
+ 505              		.loc 1 400 5 view .LVU112
+ 400:tmk_core/common/keyboard.c ****         led_status = host_keyboard_leds();
+ 506              		.loc 1 400 23 is_stmt 0 view .LVU113
+ 507 0082 FFF7FEFF 		bl	host_keyboard_leds
+ 508              	.LVL37:
+ 400:tmk_core/common/keyboard.c ****         led_status = host_keyboard_leds();
+ 509              		.loc 1 400 20 view .LVU114
+ 510 0086 144C     		ldr	r4, .L45+8
+ 400:tmk_core/common/keyboard.c ****         led_status = host_keyboard_leds();
+ 511              		.loc 1 400 8 view .LVU115
+ 512 0088 2378     		ldrb	r3, [r4]
+ 513 008a 8342     		cmp	r3, r0
+ 514 008c 04D0     		beq	.L28
+ 401:tmk_core/common/keyboard.c ****         keyboard_set_leds(led_status);
+ 515              		.loc 1 401 9 is_stmt 1 view .LVU116
+ 401:tmk_core/common/keyboard.c ****         keyboard_set_leds(led_status);
+ 516              		.loc 1 401 22 is_stmt 0 view .LVU117
+ 517 008e FFF7FEFF 		bl	host_keyboard_leds
+ 518              	.LVL38:
+ 401:tmk_core/common/keyboard.c ****         keyboard_set_leds(led_status);
+ 519              		.loc 1 401 20 view .LVU118
+ 520 0092 2070     		strb	r0, [r4]
+ 402:tmk_core/common/keyboard.c ****     }
+ 521              		.loc 1 402 9 is_stmt 1 view .LVU119
+ 522 0094 FFF7FEFF 		bl	keyboard_set_leds
+ 523              	.LVL39:
+ 524              	.L28:
+ 404:tmk_core/common/keyboard.c **** 
+ 525              		.loc 1 404 1 is_stmt 0 view .LVU120
+ 526 0098 07B0     		add	sp, sp, #28
+ 527              		@ sp needed
+ 528 009a F0BD     		pop	{r4, r5, r6, r7, pc}
+ 529              	.LVL40:
+ 530              	.L32:
+ 531              	.LBB11:
+ 532              	.LBB10:
+ 533              	.LBB8:
+ 307:tmk_core/common/keyboard.c ****                     if (matrix_change & col_mask) {
+ 534              		.loc 1 307 55 discriminator 2 view .LVU121
+ 535 009c 0133     		adds	r3, r3, #1
+ 536              	.LVL41:
+ 307:tmk_core/common/keyboard.c ****                     if (matrix_change & col_mask) {
+ 537              		.loc 1 307 68 discriminator 2 view .LVU122
+ 538 009e 6400     		lsls	r4, r4, #1
+ 539              	.LVL42:
+ 307:tmk_core/common/keyboard.c ****                     if (matrix_change & col_mask) {
+ 540              		.loc 1 307 55 discriminator 2 view .LVU123
+ 541 00a0 DBB2     		uxtb	r3, r3
+ 542              	.LVL43:
+ 307:tmk_core/common/keyboard.c ****                     if (matrix_change & col_mask) {
+ 543              		.loc 1 307 68 discriminator 2 view .LVU124
+ 544 00a2 A4B2     		uxth	r4, r4
+ 545              	.LVL44:
+ 307:tmk_core/common/keyboard.c ****                     if (matrix_change & col_mask) {
+ 546              		.loc 1 307 17 discriminator 2 view .LVU125
+ 547 00a4 102B     		cmp	r3, #16
+ 548 00a6 CAD1     		bne	.L34
+ 549              	.LVL45:
+ 550              	.L30:
+ 307:tmk_core/common/keyboard.c ****                     if (matrix_change & col_mask) {
+ 551              		.loc 1 307 17 discriminator 2 view .LVU126
+ 552 00a8 0135     		adds	r5, r5, #1
+ 553              	.LVL46:
+ 307:tmk_core/common/keyboard.c ****                     if (matrix_change & col_mask) {
+ 554              		.loc 1 307 17 discriminator 2 view .LVU127
+ 555              	.LBE8:
+ 556              	.LBE10:
+ 296:tmk_core/common/keyboard.c ****             matrix_row    = matrix_get_row(r);
+ 557              		.loc 1 296 9 view .LVU128
+ 558 00aa 052D     		cmp	r5, #5
+ 559 00ac B1D1     		bne	.L35
+ 560              	.LVL47:
+ 561              	.L29:
+ 296:tmk_core/common/keyboard.c ****             matrix_row    = matrix_get_row(r);
+ 562              		.loc 1 296 9 view .LVU129
+ 563              	.LBE11:
+ 330:tmk_core/common/keyboard.c **** 
+ 564              		.loc 1 330 9 is_stmt 1 view .LVU130
+ 330:tmk_core/common/keyboard.c **** 
+ 565              		.loc 1 330 21 is_stmt 0 view .LVU131
+ 566 00ae 0123     		movs	r3, #1
+ 567 00b0 04AC     		add	r4, sp, #16
+ 568 00b2 5B42     		rsbs	r3, r3, #0
+ 569 00b4 2380     		strh	r3, [r4]
+ 570 00b6 0023     		movs	r3, #0
+ 571 00b8 A370     		strb	r3, [r4, #2]
+ 572 00ba FFF7FEFF 		bl	timer_read
+ 573              	.LVL48:
+ 574 00be 0123     		movs	r3, #1
+ 575 00c0 0343     		orrs	r3, r0
+ 576 00c2 A380     		strh	r3, [r4, #4]
+ 330:tmk_core/common/keyboard.c **** 
+ 577              		.loc 1 330 9 view .LVU132
+ 578 00c4 0498     		ldr	r0, [sp, #16]
+ 579 00c6 6168     		ldr	r1, [r4, #4]
+ 580 00c8 FFF7FEFF 		bl	action_exec
+ 581              	.LVL49:
+ 582 00cc D3E7     		b	.L33
+ 583              	.L46:
+ 584 00ce C046     		.align	2
+ 585              	.L45:
+ 586 00d0 00000000 		.word	.LANCHOR0
+ 587 00d4 00000000 		.word	debug_config
+ 588 00d8 00000000 		.word	.LANCHOR1
+ 589              		.cfi_endproc
+ 590              	.LFE200:
+ 592              		.section	.bss.led_status.9231,"aw",%nobits
+ 593              		.set	.LANCHOR1,. + 0
+ 596              	led_status.9231:
+ 597 0000 00       		.space	1
+ 598              		.section	.bss.matrix_prev.9230,"aw",%nobits
+ 599              		.align	1
+ 600              		.set	.LANCHOR0,. + 0
+ 603              	matrix_prev.9230:
+ 604 0000 00000000 		.space	10
+ 604      00000000 
+ 604      0000
+ 605              		.section	.rodata.keyboard_set_leds.str1.1,"aMS",%progbits,1
+ 606              	.LC1:
+ 607 0000 6B657962 		.ascii	"keyboard_set_led: \000"
+ 607      6F617264 
+ 607      5F736574 
+ 607      5F6C6564 
+ 607      3A2000
+ 608              	.LC3:
+ 609 0013 25303258 		.ascii	"%02X\000"
+ 609      00
+ 610              	.LC5:
+ 611 0018 0A00     		.ascii	"\012\000"
+ 612              		.text
+ 613              	.Letext0:
+ 614              		.file 2 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\arm-none-eabi\\include\\machine\\_
+ 615              		.file 3 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\arm-none-eabi\\include\\sys\\_stdi
+ 616              		.file 4 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\arm-none-eabi\\include\\stdint.h"
+ 617              		.file 5 "tmk_core/common/keyboard.h"
+ 618              		.file 6 "tmk_core/common/matrix.h"
+ 619              		.file 7 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\lib\\gcc\\arm-none-eabi\\8.3.1\\in
+ 620              		.file 8 "./lib/chibios/os/common/ports/ARMCMx/compilers/GCC/chtypes.h"
+ 621              		.file 9 "./lib/chibios/os/rt/include/chsystypes.h"
+ 622              		.file 10 "./lib/chibios/os/rt/include/chschd.h"
+ 623              		.file 11 "./lib/chibios/os/rt/include/chtime.h"
+ 624              		.file 12 "tmk_core/common/action.h"
+ 625              		.file 13 "./lib/chibios/os/common/ext/ST/STM32F0xx/system_stm32f0xx.h"
+ 626              		.file 14 "./lib/chibios/os/common/ext/ST/STM32F0xx/stm32f072xb.h"
+ 627              		.file 15 "./lib/chibios/os/common/ports/ARMCMx/chcore.h"
+ 628              		.file 16 "./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h"
+ 629              		.file 17 "./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/stm32_tim.h"
+ 630              		.file 18 "./lib/chibios/os/rt/include/chsem.h"
+ 631              		.file 19 "./lib/chibios/os/rt/include/chmtx.h"
+ 632              		.file 20 "./lib/chibios/os/rt/include/chsys.h"
+ 633              		.file 21 "./lib/chibios/os/rt/include/chregistry.h"
+ 634              		.file 22 "./lib/chibios/os/oslib/include/chmemcore.h"
+ 635              		.file 23 "./lib/chibios/os/hal/ports/STM32/LLD/DMAv1/stm32_dma.h"
+ 636              		.file 24 "./lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/stm32_gpio.h"
+ 637              		.file 25 "./lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.h"
+ 638              		.file 26 "./lib/chibios/os/hal/include/hal_i2c.h"
+ 639              		.file 27 "./lib/chibios/os/hal/ports/STM32/LLD/I2Cv2/hal_i2c_lld.h"
+ 640              		.file 28 "./lib/chibios/os/hal/include/hal_pwm.h"
+ 641              		.file 29 "./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_pwm_lld.h"
+ 642              		.file 30 "./lib/chibios/os/hal/include/hal_spi.h"
+ 643              		.file 31 "./lib/chibios/os/hal/ports/STM32/LLD/SPIv2/hal_spi_lld.h"
+ 644              		.file 32 "./lib/chibios/os/hal/include/hal_usb.h"
+ 645              		.file 33 "./lib/chibios/os/hal/ports/STM32/LLD/USBv1/hal_usb_lld.h"
+ 646              		.file 34 "tmk_core/common/host.h"
+ 647              		.file 35 "tmk_core/common/debug.h"
+ 648              		.file 36 "quantum/keycode_config.h"
+ 649              		.file 37 "quantum/keymap.h"
+ 650              		.file 38 "tmk_core/common/timer.h"
+ 651              		.file 39 "tmk_core/common/command.h"
+ 652              		.file 40 "tmk_core/common/action_layer.h"
+ 653              		.file 41 "tmk_core/common/mousekey.h"
+ 654              		.file 42 "./quantum/color.h"
+ 655              		.file 43 "quantum/rgblight.h"
+ 656              		.file 44 "tmk_core/common/chibios/printf.h"
+ 657              		.file 45 "tmk_core/common/led.h"
+ 658              		.file 46 "quantum/backlight/backlight.h"
+ 659              		.file 47 "tmk_core/common/magic.h"
+DEFINED SYMBOLS
+                            *ABS*:00000000 keyboard.c
+C:\Users\kyleo\AppData\Local\Temp\cc4w7YSr.s:16     .text.disable_jtag:00000000 $t
+C:\Users\kyleo\AppData\Local\Temp\cc4w7YSr.s:24     .text.disable_jtag:00000000 disable_jtag
+C:\Users\kyleo\AppData\Local\Temp\cc4w7YSr.s:39     .text.matrix_setup:00000000 $t
+C:\Users\kyleo\AppData\Local\Temp\cc4w7YSr.s:46     .text.matrix_setup:00000000 matrix_setup
+C:\Users\kyleo\AppData\Local\Temp\cc4w7YSr.s:58     .text.keyboard_pre_init_user:00000000 $t
+C:\Users\kyleo\AppData\Local\Temp\cc4w7YSr.s:65     .text.keyboard_pre_init_user:00000000 keyboard_pre_init_user
+C:\Users\kyleo\AppData\Local\Temp\cc4w7YSr.s:80     .text.keyboard_pre_init_kb:00000000 $t
+C:\Users\kyleo\AppData\Local\Temp\cc4w7YSr.s:87     .text.keyboard_pre_init_kb:00000000 keyboard_pre_init_kb
+C:\Users\kyleo\AppData\Local\Temp\cc4w7YSr.s:109    .text.keyboard_post_init_user:00000000 $t
+C:\Users\kyleo\AppData\Local\Temp\cc4w7YSr.s:116    .text.keyboard_post_init_user:00000000 keyboard_post_init_user
+C:\Users\kyleo\AppData\Local\Temp\cc4w7YSr.s:128    .text.keyboard_post_init_kb:00000000 $t
+C:\Users\kyleo\AppData\Local\Temp\cc4w7YSr.s:135    .text.keyboard_post_init_kb:00000000 keyboard_post_init_kb
+C:\Users\kyleo\AppData\Local\Temp\cc4w7YSr.s:157    .text.keyboard_setup:00000000 $t
+C:\Users\kyleo\AppData\Local\Temp\cc4w7YSr.s:164    .text.keyboard_setup:00000000 keyboard_setup
+C:\Users\kyleo\AppData\Local\Temp\cc4w7YSr.s:193    .text.is_keyboard_master:00000000 $t
+C:\Users\kyleo\AppData\Local\Temp\cc4w7YSr.s:200    .text.is_keyboard_master:00000000 is_keyboard_master
+C:\Users\kyleo\AppData\Local\Temp\cc4w7YSr.s:216    .text.keyboard_init:00000000 $t
+C:\Users\kyleo\AppData\Local\Temp\cc4w7YSr.s:223    .text.keyboard_init:00000000 keyboard_init
+C:\Users\kyleo\AppData\Local\Temp\cc4w7YSr.s:262    .text.keyboard_set_leds:00000000 $t
+C:\Users\kyleo\AppData\Local\Temp\cc4w7YSr.s:269    .text.keyboard_set_leds:00000000 keyboard_set_leds
+C:\Users\kyleo\AppData\Local\Temp\cc4w7YSr.s:334    .text.keyboard_set_leds:0000003c $d
+C:\Users\kyleo\AppData\Local\Temp\cc4w7YSr.s:342    .text.keyboard_task:00000000 $t
+C:\Users\kyleo\AppData\Local\Temp\cc4w7YSr.s:349    .text.keyboard_task:00000000 keyboard_task
+C:\Users\kyleo\AppData\Local\Temp\cc4w7YSr.s:586    .text.keyboard_task:000000d0 $d
+C:\Users\kyleo\AppData\Local\Temp\cc4w7YSr.s:596    .bss.led_status.9231:00000000 led_status.9231
+C:\Users\kyleo\AppData\Local\Temp\cc4w7YSr.s:597    .bss.led_status.9231:00000000 $d
+C:\Users\kyleo\AppData\Local\Temp\cc4w7YSr.s:599    .bss.matrix_prev.9230:00000000 $d
+C:\Users\kyleo\AppData\Local\Temp\cc4w7YSr.s:603    .bss.matrix_prev.9230:00000000 matrix_prev.9230
+
+UNDEFINED SYMBOLS
+timer_init
+matrix_init
+magic
+backlight_init
+rgblight_init
+tfp_printf
+led_set
+debug_config
+matrix_scan
+matrix_get_row
+matrix_print
+timer_read
+action_exec
+rgblight_task
+backlight_task
+mousekey_task
+host_keyboard_leds

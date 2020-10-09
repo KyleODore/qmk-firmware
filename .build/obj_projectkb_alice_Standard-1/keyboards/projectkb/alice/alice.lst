@@ -1,0 +1,218 @@
+   1              		.cpu cortex-m0
+   2              		.eabi_attribute 20, 1
+   3              		.eabi_attribute 21, 1
+   4              		.eabi_attribute 23, 3
+   5              		.eabi_attribute 24, 1
+   6              		.eabi_attribute 25, 1
+   7              		.eabi_attribute 26, 1
+   8              		.eabi_attribute 30, 4
+   9              		.eabi_attribute 34, 0
+  10              		.eabi_attribute 18, 2
+  11              		.file	"alice.c"
+  12              		.text
+  13              	.Ltext0:
+  14              		.cfi_sections	.debug_frame
+  15              		.section	.text.matrix_init_board,"ax",%progbits
+  16              		.align	1
+  17              		.global	matrix_init_board
+  18              		.arch armv6s-m
+  19              		.syntax unified
+  20              		.code	16
+  21              		.thumb_func
+  22              		.fpu softvfp
+  24              	matrix_init_board:
+  25              	.LFB194:
+  26              		.file 1 "keyboards/projectkb/alice/alice.c"
+   1:keyboards/projectkb/alice/alice.c **** #include "alice.h"
+   2:keyboards/projectkb/alice/alice.c **** 
+   3:keyboards/projectkb/alice/alice.c **** void matrix_init_board(void){
+  27              		.loc 1 3 29 view -0
+  28              		.cfi_startproc
+  29              		@ args = 0, pretend = 0, frame = 0
+  30              		@ frame_needed = 0, uses_anonymous_args = 0
+   4:keyboards/projectkb/alice/alice.c ****     setPinOutput(A0);
+  31              		.loc 1 4 5 view .LVU1
+   3:keyboards/projectkb/alice/alice.c ****     setPinOutput(A1);
+  32              		.loc 1 3 29 is_stmt 0 view .LVU2
+  33 0000 10B5     		push	{r4, lr}
+  34              		.cfi_def_cfa_offset 8
+  35              		.cfi_offset 4, -8
+  36              		.cfi_offset 14, -4
+  37              		.loc 1 4 5 view .LVU3
+  38 0002 9024     		movs	r4, #144
+  39 0004 0122     		movs	r2, #1
+  40 0006 E405     		lsls	r4, r4, #23
+  41 0008 1100     		movs	r1, r2
+  42 000a 2000     		movs	r0, r4
+  43 000c FFF7FEFF 		bl	_pal_lld_setgroupmode
+  44              	.LVL0:
+   5:keyboards/projectkb/alice/alice.c ****     setPinOutput(A1);
+  45              		.loc 1 5 5 is_stmt 1 view .LVU4
+  46 0010 2000     		movs	r0, r4
+  47 0012 0122     		movs	r2, #1
+  48 0014 0221     		movs	r1, #2
+  49 0016 FFF7FEFF 		bl	_pal_lld_setgroupmode
+  50              	.LVL1:
+   6:keyboards/projectkb/alice/alice.c ****     setPinOutput(A2);
+  51              		.loc 1 6 5 view .LVU5
+  52 001a 0122     		movs	r2, #1
+  53 001c 0421     		movs	r1, #4
+  54 001e 2000     		movs	r0, r4
+  55 0020 FFF7FEFF 		bl	_pal_lld_setgroupmode
+  56              	.LVL2:
+   7:keyboards/projectkb/alice/alice.c **** }
+  57              		.loc 1 7 1 is_stmt 0 view .LVU6
+  58              		@ sp needed
+  59 0024 10BD     		pop	{r4, pc}
+  60              		.cfi_endproc
+  61              	.LFE194:
+  63              		.section	.text.led_update_kb,"ax",%progbits
+  64              		.align	1
+  65              		.global	led_update_kb
+  66              		.syntax unified
+  67              		.code	16
+  68              		.thumb_func
+  69              		.fpu softvfp
+  71              	led_update_kb:
+  72              	.LVL3:
+  73              	.LFB195:
+   8:keyboards/projectkb/alice/alice.c **** 
+   9:keyboards/projectkb/alice/alice.c **** bool led_update_kb(led_t led_state) {
+  74              		.loc 1 9 37 is_stmt 1 view -0
+  75              		.cfi_startproc
+  76              		@ args = 0, pretend = 0, frame = 0
+  77              		@ frame_needed = 0, uses_anonymous_args = 0
+  10:keyboards/projectkb/alice/alice.c ****     bool runDefault = led_update_user(led_state);
+  78              		.loc 1 10 5 view .LVU8
+   9:keyboards/projectkb/alice/alice.c ****     bool runDefault = led_update_user(led_state);
+  79              		.loc 1 9 37 is_stmt 0 view .LVU9
+  80 0000 10B5     		push	{r4, lr}
+  81              		.cfi_def_cfa_offset 8
+  82              		.cfi_offset 4, -8
+  83              		.cfi_offset 14, -4
+   9:keyboards/projectkb/alice/alice.c ****     bool runDefault = led_update_user(led_state);
+  84              		.loc 1 9 37 view .LVU10
+  85 0002 041C     		adds	r4, r0, #0
+  86              		.loc 1 10 23 view .LVU11
+  87 0004 FFF7FEFF 		bl	led_update_user
+  88              	.LVL4:
+  11:keyboards/projectkb/alice/alice.c ****     if (runDefault) {
+  89              		.loc 1 11 5 is_stmt 1 view .LVU12
+  90              		.loc 1 11 8 is_stmt 0 view .LVU13
+  91 0008 0028     		cmp	r0, #0
+  92 000a 0FD0     		beq	.L3
+  12:keyboards/projectkb/alice/alice.c ****       writePin(A0, !led_state.num_lock);
+  93              		.loc 1 12 7 is_stmt 1 view .LVU14
+  94 000c 9023     		movs	r3, #144
+  95 000e 0122     		movs	r2, #1
+  96 0010 DB05     		lsls	r3, r3, #23
+  97              	.LVL5:
+  98              		.loc 1 12 7 is_stmt 0 view .LVU15
+  99 0012 E107     		lsls	r1, r4, #31
+ 100 0014 0BD4     		bmi	.L4
+ 101              		.loc 1 12 7 discriminator 1 view .LVU16
+ 102 0016 1A83     		strh	r2, [r3, #24]
+ 103              	.L5:
+  13:keyboards/projectkb/alice/alice.c ****       writePin(A1, !led_state.caps_lock);
+ 104              		.loc 1 13 7 is_stmt 1 view .LVU17
+ 105 0018 0222     		movs	r2, #2
+ 106 001a A107     		lsls	r1, r4, #30
+ 107 001c 09D4     		bmi	.L6
+ 108              		.loc 1 13 7 is_stmt 0 discriminator 1 view .LVU18
+ 109 001e 1A83     		strh	r2, [r3, #24]
+ 110              	.L7:
+  14:keyboards/projectkb/alice/alice.c ****       writePin(A2, !led_state.scroll_lock);
+ 111              		.loc 1 14 7 is_stmt 1 view .LVU19
+ 112 0020 9023     		movs	r3, #144
+ 113 0022 0422     		movs	r2, #4
+ 114 0024 DB05     		lsls	r3, r3, #23
+ 115 0026 6107     		lsls	r1, r4, #29
+ 116 0028 05D4     		bmi	.L8
+ 117              		.loc 1 14 7 is_stmt 0 discriminator 1 view .LVU20
+ 118 002a 1A83     		strh	r2, [r3, #24]
+ 119              	.L3:
+  15:keyboards/projectkb/alice/alice.c ****     }
+  16:keyboards/projectkb/alice/alice.c ****     return runDefault;
+ 120              		.loc 1 16 5 is_stmt 1 view .LVU21
+  17:keyboards/projectkb/alice/alice.c **** }
+ 121              		.loc 1 17 1 is_stmt 0 view .LVU22
+ 122              		@ sp needed
+ 123              	.LVL6:
+ 124              		.loc 1 17 1 view .LVU23
+ 125 002c 10BD     		pop	{r4, pc}
+ 126              	.LVL7:
+ 127              	.L4:
+  12:keyboards/projectkb/alice/alice.c ****       writePin(A1, !led_state.caps_lock);
+ 128              		.loc 1 12 7 discriminator 2 view .LVU24
+ 129 002e 5A83     		strh	r2, [r3, #26]
+ 130 0030 F2E7     		b	.L5
+ 131              	.L6:
+  13:keyboards/projectkb/alice/alice.c ****       writePin(A2, !led_state.scroll_lock);
+ 132              		.loc 1 13 7 discriminator 2 view .LVU25
+ 133 0032 5A83     		strh	r2, [r3, #26]
+ 134 0034 F4E7     		b	.L7
+ 135              	.L8:
+  14:keyboards/projectkb/alice/alice.c ****     }
+ 136              		.loc 1 14 7 discriminator 2 view .LVU26
+ 137 0036 5A83     		strh	r2, [r3, #26]
+ 138 0038 F8E7     		b	.L3
+ 139              		.cfi_endproc
+ 140              	.LFE195:
+ 142              		.text
+ 143              	.Letext0:
+ 144              		.file 2 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\lib\\gcc\\arm-none-eabi\\8.3.1\\in
+ 145              		.file 3 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\arm-none-eabi\\include\\machine\\_
+ 146              		.file 4 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\arm-none-eabi\\include\\sys\\_stdi
+ 147              		.file 5 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\arm-none-eabi\\include\\stdint.h"
+ 148              		.file 6 "./lib/chibios/os/common/ports/ARMCMx/compilers/GCC/chtypes.h"
+ 149              		.file 7 "./lib/chibios/os/rt/include/chsystypes.h"
+ 150              		.file 8 "./lib/chibios/os/rt/include/chschd.h"
+ 151              		.file 9 "./lib/chibios/os/rt/include/chtime.h"
+ 152              		.file 10 "./lib/chibios/os/common/ext/ST/STM32F0xx/system_stm32f0xx.h"
+ 153              		.file 11 "./lib/chibios/os/common/ext/ST/STM32F0xx/stm32f072xb.h"
+ 154              		.file 12 "./lib/chibios/os/common/ports/ARMCMx/chcore.h"
+ 155              		.file 13 "./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h"
+ 156              		.file 14 "./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/stm32_tim.h"
+ 157              		.file 15 "./lib/chibios/os/rt/include/chsem.h"
+ 158              		.file 16 "./lib/chibios/os/rt/include/chmtx.h"
+ 159              		.file 17 "./lib/chibios/os/rt/include/chsys.h"
+ 160              		.file 18 "./lib/chibios/os/rt/include/chregistry.h"
+ 161              		.file 19 "./lib/chibios/os/oslib/include/chmemcore.h"
+ 162              		.file 20 "./lib/chibios/os/hal/ports/STM32/LLD/DMAv1/stm32_dma.h"
+ 163              		.file 21 "./lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/stm32_gpio.h"
+ 164              		.file 22 "./lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.h"
+ 165              		.file 23 "./lib/chibios/os/hal/include/hal_i2c.h"
+ 166              		.file 24 "./lib/chibios/os/hal/ports/STM32/LLD/I2Cv2/hal_i2c_lld.h"
+ 167              		.file 25 "./lib/chibios/os/hal/include/hal_pwm.h"
+ 168              		.file 26 "./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_pwm_lld.h"
+ 169              		.file 27 "./lib/chibios/os/hal/include/hal_spi.h"
+ 170              		.file 28 "./lib/chibios/os/hal/ports/STM32/LLD/SPIv2/hal_spi_lld.h"
+ 171              		.file 29 "./lib/chibios/os/hal/include/hal_usb.h"
+ 172              		.file 30 "./lib/chibios/os/hal/ports/STM32/LLD/USBv1/hal_usb_lld.h"
+ 173              		.file 31 "tmk_core/common/action.h"
+ 174              		.file 32 "tmk_core/common/report.h"
+ 175              		.file 33 "tmk_core/common/led.h"
+ 176              		.file 34 "tmk_core/common/host.h"
+ 177              		.file 35 "tmk_core/common/debug.h"
+ 178              		.file 36 "quantum/keycode_config.h"
+ 179              		.file 37 "quantum/keymap.h"
+ 180              		.file 38 "./quantum/color.h"
+ 181              		.file 39 "quantum/rgblight.h"
+ 182              		.file 40 "tmk_core/common/action_layer.h"
+ 183              		.file 41 "tmk_core/common/timer.h"
+ 184              		.file 42 "tmk_core/common/action_util.h"
+ 185              		.file 43 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\arm-none-eabi\\include\\sys\\_typ
+ 186              		.file 44 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\arm-none-eabi\\include\\sys\\reen
+ 187              		.file 45 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\arm-none-eabi\\include\\sys\\lock
+ 188              		.file 46 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\arm-none-eabi\\include\\stdlib.h"
+ 189              		.file 47 "quantum/quantum.h"
+DEFINED SYMBOLS
+                            *ABS*:00000000 alice.c
+C:\Users\kyleo\AppData\Local\Temp\ccy9nLoa.s:16     .text.matrix_init_board:00000000 $t
+C:\Users\kyleo\AppData\Local\Temp\ccy9nLoa.s:24     .text.matrix_init_board:00000000 matrix_init_board
+C:\Users\kyleo\AppData\Local\Temp\ccy9nLoa.s:64     .text.led_update_kb:00000000 $t
+C:\Users\kyleo\AppData\Local\Temp\ccy9nLoa.s:71     .text.led_update_kb:00000000 led_update_kb
+
+UNDEFINED SYMBOLS
+_pal_lld_setgroupmode
+led_update_user

@@ -1,0 +1,1835 @@
+   1              		.cpu cortex-m0
+   2              		.eabi_attribute 20, 1
+   3              		.eabi_attribute 21, 1
+   4              		.eabi_attribute 23, 3
+   5              		.eabi_attribute 24, 1
+   6              		.eabi_attribute 25, 1
+   7              		.eabi_attribute 26, 1
+   8              		.eabi_attribute 30, 4
+   9              		.eabi_attribute 34, 0
+  10              		.eabi_attribute 18, 2
+  11              		.file	"chvt.c"
+  12              		.text
+  13              	.Ltext0:
+  14              		.cfi_sections	.debug_frame
+  15              		.section	.text._vt_init,"ax",%progbits
+  16              		.align	1
+  17              		.global	_vt_init
+  18              		.arch armv6s-m
+  19              		.syntax unified
+  20              		.code	16
+  21              		.thumb_func
+  22              		.fpu softvfp
+  24              	_vt_init:
+  25              	.LFB154:
+  26              		.file 1 "lib/chibios/os/rt/src/chvt.c"
+   1:lib/chibios/os/rt/src/chvt.c **** /*
+   2:lib/chibios/os/rt/src/chvt.c ****     ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio.
+   3:lib/chibios/os/rt/src/chvt.c **** 
+   4:lib/chibios/os/rt/src/chvt.c ****     This file is part of ChibiOS.
+   5:lib/chibios/os/rt/src/chvt.c **** 
+   6:lib/chibios/os/rt/src/chvt.c ****     ChibiOS is free software; you can redistribute it and/or modify
+   7:lib/chibios/os/rt/src/chvt.c ****     it under the terms of the GNU General Public License as published by
+   8:lib/chibios/os/rt/src/chvt.c ****     the Free Software Foundation; either version 3 of the License, or
+   9:lib/chibios/os/rt/src/chvt.c ****     (at your option) any later version.
+  10:lib/chibios/os/rt/src/chvt.c **** 
+  11:lib/chibios/os/rt/src/chvt.c ****     ChibiOS is distributed in the hope that it will be useful,
+  12:lib/chibios/os/rt/src/chvt.c ****     but WITHOUT ANY WARRANTY; without even the implied warranty of
+  13:lib/chibios/os/rt/src/chvt.c ****     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  14:lib/chibios/os/rt/src/chvt.c ****     GNU General Public License for more details.
+  15:lib/chibios/os/rt/src/chvt.c **** 
+  16:lib/chibios/os/rt/src/chvt.c ****     You should have received a copy of the GNU General Public License
+  17:lib/chibios/os/rt/src/chvt.c ****     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  18:lib/chibios/os/rt/src/chvt.c **** */
+  19:lib/chibios/os/rt/src/chvt.c **** 
+  20:lib/chibios/os/rt/src/chvt.c **** /**
+  21:lib/chibios/os/rt/src/chvt.c ****  * @file    chvt.c
+  22:lib/chibios/os/rt/src/chvt.c ****  * @brief   Time and Virtual Timers module code.
+  23:lib/chibios/os/rt/src/chvt.c ****  *
+  24:lib/chibios/os/rt/src/chvt.c ****  * @addtogroup time
+  25:lib/chibios/os/rt/src/chvt.c ****  * @details Time and Virtual Timers related APIs and services.
+  26:lib/chibios/os/rt/src/chvt.c ****  * @{
+  27:lib/chibios/os/rt/src/chvt.c ****  */
+  28:lib/chibios/os/rt/src/chvt.c **** 
+  29:lib/chibios/os/rt/src/chvt.c **** #include "ch.h"
+  30:lib/chibios/os/rt/src/chvt.c **** 
+  31:lib/chibios/os/rt/src/chvt.c **** /*===========================================================================*/
+  32:lib/chibios/os/rt/src/chvt.c **** /* Module local definitions.                                                 */
+  33:lib/chibios/os/rt/src/chvt.c **** /*===========================================================================*/
+  34:lib/chibios/os/rt/src/chvt.c **** 
+  35:lib/chibios/os/rt/src/chvt.c **** /*===========================================================================*/
+  36:lib/chibios/os/rt/src/chvt.c **** /* Module exported variables.                                                */
+  37:lib/chibios/os/rt/src/chvt.c **** /*===========================================================================*/
+  38:lib/chibios/os/rt/src/chvt.c **** 
+  39:lib/chibios/os/rt/src/chvt.c **** /*===========================================================================*/
+  40:lib/chibios/os/rt/src/chvt.c **** /* Module local types.                                                       */
+  41:lib/chibios/os/rt/src/chvt.c **** /*===========================================================================*/
+  42:lib/chibios/os/rt/src/chvt.c **** 
+  43:lib/chibios/os/rt/src/chvt.c **** /*===========================================================================*/
+  44:lib/chibios/os/rt/src/chvt.c **** /* Module local variables.                                                   */
+  45:lib/chibios/os/rt/src/chvt.c **** /*===========================================================================*/
+  46:lib/chibios/os/rt/src/chvt.c **** 
+  47:lib/chibios/os/rt/src/chvt.c **** /*===========================================================================*/
+  48:lib/chibios/os/rt/src/chvt.c **** /* Module local functions.                                                   */
+  49:lib/chibios/os/rt/src/chvt.c **** /*===========================================================================*/
+  50:lib/chibios/os/rt/src/chvt.c **** 
+  51:lib/chibios/os/rt/src/chvt.c **** /*===========================================================================*/
+  52:lib/chibios/os/rt/src/chvt.c **** /* Module exported functions.                                                */
+  53:lib/chibios/os/rt/src/chvt.c **** /*===========================================================================*/
+  54:lib/chibios/os/rt/src/chvt.c **** 
+  55:lib/chibios/os/rt/src/chvt.c **** /**
+  56:lib/chibios/os/rt/src/chvt.c ****  * @brief   Virtual Timers initialization.
+  57:lib/chibios/os/rt/src/chvt.c ****  * @note    Internal use only.
+  58:lib/chibios/os/rt/src/chvt.c ****  *
+  59:lib/chibios/os/rt/src/chvt.c ****  * @notapi
+  60:lib/chibios/os/rt/src/chvt.c ****  */
+  61:lib/chibios/os/rt/src/chvt.c **** void _vt_init(void) {
+  27              		.loc 1 61 21 view -0
+  28              		.cfi_startproc
+  29              		@ args = 0, pretend = 0, frame = 0
+  30              		@ frame_needed = 0, uses_anonymous_args = 0
+  31              		@ link register save eliminated.
+  62:lib/chibios/os/rt/src/chvt.c **** 
+  63:lib/chibios/os/rt/src/chvt.c ****   ch.vtlist.next = (virtual_timer_t *)&ch.vtlist;
+  32              		.loc 1 63 3 view .LVU1
+  33              		.loc 1 63 18 is_stmt 0 view .LVU2
+  34 0000 044B     		ldr	r3, .L2
+  35 0002 054A     		ldr	r2, .L2+4
+  64:lib/chibios/os/rt/src/chvt.c ****   ch.vtlist.prev = (virtual_timer_t *)&ch.vtlist;
+  65:lib/chibios/os/rt/src/chvt.c ****   ch.vtlist.delta = (sysinterval_t)-1;
+  66:lib/chibios/os/rt/src/chvt.c **** #if CH_CFG_ST_TIMEDELTA == 0
+  67:lib/chibios/os/rt/src/chvt.c ****   ch.vtlist.systime = (systime_t)0;
+  68:lib/chibios/os/rt/src/chvt.c **** #else /* CH_CFG_ST_TIMEDELTA > 0 */
+  69:lib/chibios/os/rt/src/chvt.c ****   ch.vtlist.lasttime = (systime_t)0;
+  70:lib/chibios/os/rt/src/chvt.c **** #endif /* CH_CFG_ST_TIMEDELTA > 0 */
+  71:lib/chibios/os/rt/src/chvt.c **** }
+  36              		.loc 1 71 1 view .LVU3
+  37              		@ sp needed
+  63:lib/chibios/os/rt/src/chvt.c ****   ch.vtlist.prev = (virtual_timer_t *)&ch.vtlist;
+  38              		.loc 1 63 18 view .LVU4
+  39 0004 DA61     		str	r2, [r3, #28]
+  64:lib/chibios/os/rt/src/chvt.c ****   ch.vtlist.prev = (virtual_timer_t *)&ch.vtlist;
+  40              		.loc 1 64 3 is_stmt 1 view .LVU5
+  64:lib/chibios/os/rt/src/chvt.c ****   ch.vtlist.prev = (virtual_timer_t *)&ch.vtlist;
+  41              		.loc 1 64 18 is_stmt 0 view .LVU6
+  42 0006 1A62     		str	r2, [r3, #32]
+  65:lib/chibios/os/rt/src/chvt.c **** #if CH_CFG_ST_TIMEDELTA == 0
+  43              		.loc 1 65 3 is_stmt 1 view .LVU7
+  65:lib/chibios/os/rt/src/chvt.c **** #if CH_CFG_ST_TIMEDELTA == 0
+  44              		.loc 1 65 19 is_stmt 0 view .LVU8
+  45 0008 0122     		movs	r2, #1
+  46 000a 5242     		rsbs	r2, r2, #0
+  47 000c 5A62     		str	r2, [r3, #36]
+  69:lib/chibios/os/rt/src/chvt.c **** #endif /* CH_CFG_ST_TIMEDELTA > 0 */
+  48              		.loc 1 69 3 is_stmt 1 view .LVU9
+  69:lib/chibios/os/rt/src/chvt.c **** #endif /* CH_CFG_ST_TIMEDELTA > 0 */
+  49              		.loc 1 69 22 is_stmt 0 view .LVU10
+  50 000e 0022     		movs	r2, #0
+  51 0010 9A62     		str	r2, [r3, #40]
+  52              		.loc 1 71 1 view .LVU11
+  53 0012 7047     		bx	lr
+  54              	.L3:
+  55              		.align	2
+  56              	.L2:
+  57 0014 00000000 		.word	ch
+  58 0018 1C000000 		.word	ch+28
+  59              		.cfi_endproc
+  60              	.LFE154:
+  62              		.section	.text.chVTDoSetI,"ax",%progbits
+  63              		.align	1
+  64              		.global	chVTDoSetI
+  65              		.syntax unified
+  66              		.code	16
+  67              		.thumb_func
+  68              		.fpu softvfp
+  70              	chVTDoSetI:
+  71              	.LVL0:
+  72              	.LFB155:
+  72:lib/chibios/os/rt/src/chvt.c **** 
+  73:lib/chibios/os/rt/src/chvt.c **** /**
+  74:lib/chibios/os/rt/src/chvt.c ****  * @brief   Enables a virtual timer.
+  75:lib/chibios/os/rt/src/chvt.c ****  * @details The timer is enabled and programmed to trigger after the delay
+  76:lib/chibios/os/rt/src/chvt.c ****  *          specified as parameter.
+  77:lib/chibios/os/rt/src/chvt.c ****  * @pre     The timer must not be already armed before calling this function.
+  78:lib/chibios/os/rt/src/chvt.c ****  * @note    The callback function is invoked from interrupt context.
+  79:lib/chibios/os/rt/src/chvt.c ****  *
+  80:lib/chibios/os/rt/src/chvt.c ****  * @param[out] vtp      the @p virtual_timer_t structure pointer
+  81:lib/chibios/os/rt/src/chvt.c ****  * @param[in] delay     the number of ticks before the operation timeouts, the
+  82:lib/chibios/os/rt/src/chvt.c ****  *                      special values are handled as follow:
+  83:lib/chibios/os/rt/src/chvt.c ****  *                      - @a TIME_INFINITE is allowed but interpreted as a
+  84:lib/chibios/os/rt/src/chvt.c ****  *                        normal time specification.
+  85:lib/chibios/os/rt/src/chvt.c ****  *                      - @a TIME_IMMEDIATE this value is not allowed.
+  86:lib/chibios/os/rt/src/chvt.c ****  *                      .
+  87:lib/chibios/os/rt/src/chvt.c ****  * @param[in] vtfunc    the timer callback function. After invoking the
+  88:lib/chibios/os/rt/src/chvt.c ****  *                      callback the timer is disabled and the structure can
+  89:lib/chibios/os/rt/src/chvt.c ****  *                      be disposed or reused.
+  90:lib/chibios/os/rt/src/chvt.c ****  * @param[in] par       a parameter that will be passed to the callback
+  91:lib/chibios/os/rt/src/chvt.c ****  *                      function
+  92:lib/chibios/os/rt/src/chvt.c ****  *
+  93:lib/chibios/os/rt/src/chvt.c ****  * @iclass
+  94:lib/chibios/os/rt/src/chvt.c ****  */
+  95:lib/chibios/os/rt/src/chvt.c **** void chVTDoSetI(virtual_timer_t *vtp, sysinterval_t delay,
+  96:lib/chibios/os/rt/src/chvt.c ****                 vtfunc_t vtfunc, void *par) {
+  73              		.loc 1 96 45 is_stmt 1 view -0
+  74              		.cfi_startproc
+  75              		@ args = 0, pretend = 0, frame = 0
+  76              		@ frame_needed = 0, uses_anonymous_args = 0
+  97:lib/chibios/os/rt/src/chvt.c ****   virtual_timer_t *p;
+  77              		.loc 1 97 3 view .LVU13
+  98:lib/chibios/os/rt/src/chvt.c ****   sysinterval_t delta;
+  78              		.loc 1 98 3 view .LVU14
+  99:lib/chibios/os/rt/src/chvt.c **** 
+ 100:lib/chibios/os/rt/src/chvt.c ****   chDbgCheckClassI();
+  79              		.loc 1 100 21 view .LVU15
+ 101:lib/chibios/os/rt/src/chvt.c ****   chDbgCheck((vtp != NULL) && (vtfunc != NULL) && (delay != TIME_IMMEDIATE));
+  80              		.loc 1 101 3 view .LVU16
+  81              		.loc 1 101 3 view .LVU17
+ 102:lib/chibios/os/rt/src/chvt.c **** 
+ 103:lib/chibios/os/rt/src/chvt.c ****   vtp->par = par;
+  82              		.loc 1 103 3 view .LVU18
+  96:lib/chibios/os/rt/src/chvt.c ****   virtual_timer_t *p;
+  83              		.loc 1 96 45 is_stmt 0 view .LVU19
+  84 0000 F8B5     		push	{r3, r4, r5, r6, r7, lr}
+  85              		.cfi_def_cfa_offset 24
+  86              		.cfi_offset 3, -24
+  87              		.cfi_offset 4, -20
+  88              		.cfi_offset 5, -16
+  89              		.cfi_offset 6, -12
+  90              		.cfi_offset 7, -8
+  91              		.cfi_offset 14, -4
+  92              		.loc 1 103 12 view .LVU20
+  93 0002 0361     		str	r3, [r0, #16]
+ 104:lib/chibios/os/rt/src/chvt.c ****   vtp->func = vtfunc;
+  94              		.loc 1 104 3 is_stmt 1 view .LVU21
+  95              	.LBB40:
+  96              	.LBB41:
+  97              	.LBB42:
+  98              	.LBB43:
+  99              	.LBB44:
+ 100              		.file 2 "./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h"
+   1:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** /*
+   2:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h ****     ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
+   3:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** 
+   4:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h ****     Licensed under the Apache License, Version 2.0 (the "License");
+   5:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h ****     you may not use this file except in compliance with the License.
+   6:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h ****     You may obtain a copy of the License at
+   7:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** 
+   8:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h ****         http://www.apache.org/licenses/LICENSE-2.0
+   9:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** 
+  10:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h ****     Unless required by applicable law or agreed to in writing, software
+  11:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h ****     distributed under the License is distributed on an "AS IS" BASIS,
+  12:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h ****     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  13:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h ****     See the License for the specific language governing permissions and
+  14:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h ****     limitations under the License.
+  15:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** */
+  16:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** 
+  17:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** /**
+  18:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h ****  * @file    TIMv1/hal_st_lld.h
+  19:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h ****  * @brief   ST Driver subsystem low level driver header.
+  20:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h ****  * @details This header is designed to be include-able without having to
+  21:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h ****  *          include other files from the HAL.
+  22:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h ****  *
+  23:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h ****  * @addtogroup ST
+  24:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h ****  * @{
+  25:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h ****  */
+  26:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** 
+  27:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** #ifndef HAL_ST_LLD_H
+  28:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** #define HAL_ST_LLD_H
+  29:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** 
+  30:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** #include "mcuconf.h"
+  31:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** #include "stm32_registry.h"
+  32:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** #include "stm32_tim.h"
+  33:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** 
+  34:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** /*===========================================================================*/
+  35:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** /* Driver constants.                                                         */
+  36:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** /*===========================================================================*/
+  37:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** 
+  38:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** /*===========================================================================*/
+  39:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** /* Driver pre-compile time settings.                                         */
+  40:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** /*===========================================================================*/
+  41:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** 
+  42:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** /**
+  43:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h ****  * @name    Configuration options
+  44:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h ****  * @{
+  45:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h ****  */
+  46:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** /**
+  47:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h ****  * @brief   SysTick timer IRQ priority.
+  48:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h ****  */
+  49:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** #if !defined(STM32_ST_IRQ_PRIORITY) || defined(__DOXYGEN__)
+  50:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** #define STM32_ST_IRQ_PRIORITY               8
+  51:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** #endif
+  52:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** 
+  53:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** /**
+  54:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h ****  * @brief   TIMx unit (by number) to be used for free running operations.
+  55:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h ****  * @note    You must select a 32 bits timer if a 32 bits @p systick_t type
+  56:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h ****  *          is required.
+  57:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h ****  * @note    Timers 2, 3, 4 and 5 are supported.
+  58:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h ****  */
+  59:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** #if !defined(STM32_ST_USE_TIMER) || defined(__DOXYGEN__)
+  60:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** #define STM32_ST_USE_TIMER                  2
+  61:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** #endif
+  62:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** /** @} */
+  63:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** 
+  64:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** /*===========================================================================*/
+  65:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** /* Derived constants and error checks.                                       */
+  66:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** /*===========================================================================*/
+  67:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** 
+  68:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** #if !defined(STM32_HAS_TIM2)
+  69:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** #define STM32_HAS_TIM2                      FALSE
+  70:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** #endif
+  71:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** 
+  72:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** #if !defined(STM32_HAS_TIM3)
+  73:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** #define STM32_HAS_TIM3                      FALSE
+  74:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** #endif
+  75:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** 
+  76:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** #if !defined(STM32_HAS_TIM4)
+  77:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** #define STM32_HAS_TIM4                      FALSE
+  78:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** #endif
+  79:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** 
+  80:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** #if !defined(STM32_HAS_TIM5)
+  81:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** #define STM32_HAS_TIM5                      FALSE
+  82:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** #endif
+  83:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** 
+  84:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** #if !defined(STM32_HAS_TIM21)
+  85:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** #define STM32_HAS_TIM21                     FALSE
+  86:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** #endif
+  87:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** 
+  88:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** #if !defined(STM32_HAS_TIM22)
+  89:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** #define STM32_HAS_TIM22                     FALSE
+  90:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** #endif
+  91:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** 
+  92:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** #if STM32_ST_USE_TIMER == 2
+  93:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** #define STM32_ST_TIM                        STM32_TIM2
+  94:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** 
+  95:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** #elif STM32_ST_USE_TIMER == 3
+  96:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** #define STM32_ST_TIM                        STM32_TIM3
+  97:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** 
+  98:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** #elif STM32_ST_USE_TIMER == 4
+  99:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** #define STM32_ST_TIM                        STM32_TIM4
+ 100:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** 
+ 101:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** #elif STM32_ST_USE_TIMER == 5
+ 102:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** #define STM32_ST_TIM                        STM32_TIM5
+ 103:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** 
+ 104:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** #elif STM32_ST_USE_TIMER == 21
+ 105:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** #define STM32_ST_TIM                        STM32_TIM21
+ 106:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** 
+ 107:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** #elif STM32_ST_USE_TIMER == 22
+ 108:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** #define STM32_ST_TIM                        STM32_TIM22
+ 109:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** 
+ 110:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** #else
+ 111:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** #error "STM32_ST_USE_TIMER specifies an unsupported timer"
+ 112:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** #endif
+ 113:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** 
+ 114:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** /*===========================================================================*/
+ 115:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** /* Driver data structures and types.                                         */
+ 116:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** /*===========================================================================*/
+ 117:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** 
+ 118:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** /*===========================================================================*/
+ 119:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** /* Driver macros.                                                            */
+ 120:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** /*===========================================================================*/
+ 121:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** 
+ 122:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** /*===========================================================================*/
+ 123:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** /* External declarations.                                                    */
+ 124:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** /*===========================================================================*/
+ 125:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** 
+ 126:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** #ifdef __cplusplus
+ 127:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** extern "C" {
+ 128:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** #endif
+ 129:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h ****   void st_lld_init(void);
+ 130:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** #ifdef __cplusplus
+ 131:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** }
+ 132:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** #endif
+ 133:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** 
+ 134:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** /*===========================================================================*/
+ 135:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** /* Driver inline functions.                                                  */
+ 136:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** /*===========================================================================*/
+ 137:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** 
+ 138:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** /**
+ 139:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h ****  * @brief   Returns the time counter value.
+ 140:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h ****  *
+ 141:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h ****  * @return              The counter value.
+ 142:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h ****  *
+ 143:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h ****  * @notapi
+ 144:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h ****  */
+ 145:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** static inline systime_t st_lld_get_counter(void) {
+ 146:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** 
+ 147:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h ****   return (systime_t)STM32_ST_TIM->CNT;
+ 101              		.loc 2 147 10 is_stmt 0 view .LVU22
+ 102 0004 8023     		movs	r3, #128
+ 103              	.LVL1:
+ 104              		.loc 2 147 10 view .LVU23
+ 105 0006 DB05     		lsls	r3, r3, #23
+ 106              	.LBE44:
+ 107              	.LBE43:
+ 108              	.LBE42:
+ 109              	.LBE41:
+ 110              	.LBE40:
+  96:lib/chibios/os/rt/src/chvt.c ****   virtual_timer_t *p;
+ 111              		.loc 1 96 45 view .LVU24
+ 112 0008 0600     		movs	r6, r0
+ 113              		.loc 1 104 13 view .LVU25
+ 114 000a C260     		str	r2, [r0, #12]
+ 115              	.LBB69:
+ 105:lib/chibios/os/rt/src/chvt.c **** 
+ 106:lib/chibios/os/rt/src/chvt.c **** #if CH_CFG_ST_TIMEDELTA > 0
+ 107:lib/chibios/os/rt/src/chvt.c ****   {
+ 108:lib/chibios/os/rt/src/chvt.c ****     systime_t now = chVTGetSystemTimeX();
+ 116              		.loc 1 108 5 is_stmt 1 view .LVU26
+ 117              	.LBB49:
+ 118              	.LBI41:
+ 119              		.file 3 "./lib/chibios/os/rt/include/chvt.h"
+   1:./lib/chibios/os/rt/include/chvt.h **** /*
+   2:./lib/chibios/os/rt/include/chvt.h ****     ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio.
+   3:./lib/chibios/os/rt/include/chvt.h **** 
+   4:./lib/chibios/os/rt/include/chvt.h ****     This file is part of ChibiOS.
+   5:./lib/chibios/os/rt/include/chvt.h **** 
+   6:./lib/chibios/os/rt/include/chvt.h ****     ChibiOS is free software; you can redistribute it and/or modify
+   7:./lib/chibios/os/rt/include/chvt.h ****     it under the terms of the GNU General Public License as published by
+   8:./lib/chibios/os/rt/include/chvt.h ****     the Free Software Foundation; either version 3 of the License, or
+   9:./lib/chibios/os/rt/include/chvt.h ****     (at your option) any later version.
+  10:./lib/chibios/os/rt/include/chvt.h **** 
+  11:./lib/chibios/os/rt/include/chvt.h ****     ChibiOS is distributed in the hope that it will be useful,
+  12:./lib/chibios/os/rt/include/chvt.h ****     but WITHOUT ANY WARRANTY; without even the implied warranty of
+  13:./lib/chibios/os/rt/include/chvt.h ****     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  14:./lib/chibios/os/rt/include/chvt.h ****     GNU General Public License for more details.
+  15:./lib/chibios/os/rt/include/chvt.h **** 
+  16:./lib/chibios/os/rt/include/chvt.h ****     You should have received a copy of the GNU General Public License
+  17:./lib/chibios/os/rt/include/chvt.h ****     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  18:./lib/chibios/os/rt/include/chvt.h **** */
+  19:./lib/chibios/os/rt/include/chvt.h **** 
+  20:./lib/chibios/os/rt/include/chvt.h **** /**
+  21:./lib/chibios/os/rt/include/chvt.h ****  * @file    chvt.h
+  22:./lib/chibios/os/rt/include/chvt.h ****  * @brief   Time and Virtual Timers module macros and structures.
+  23:./lib/chibios/os/rt/include/chvt.h ****  *
+  24:./lib/chibios/os/rt/include/chvt.h ****  * @addtogroup time
+  25:./lib/chibios/os/rt/include/chvt.h ****  * @{
+  26:./lib/chibios/os/rt/include/chvt.h ****  */
+  27:./lib/chibios/os/rt/include/chvt.h **** 
+  28:./lib/chibios/os/rt/include/chvt.h **** #ifndef CHVT_H
+  29:./lib/chibios/os/rt/include/chvt.h **** #define CHVT_H
+  30:./lib/chibios/os/rt/include/chvt.h **** 
+  31:./lib/chibios/os/rt/include/chvt.h **** /*===========================================================================*/
+  32:./lib/chibios/os/rt/include/chvt.h **** /* Module constants.                                                         */
+  33:./lib/chibios/os/rt/include/chvt.h **** /*===========================================================================*/
+  34:./lib/chibios/os/rt/include/chvt.h **** 
+  35:./lib/chibios/os/rt/include/chvt.h **** /*===========================================================================*/
+  36:./lib/chibios/os/rt/include/chvt.h **** /* Module pre-compile time settings.                                         */
+  37:./lib/chibios/os/rt/include/chvt.h **** /*===========================================================================*/
+  38:./lib/chibios/os/rt/include/chvt.h **** 
+  39:./lib/chibios/os/rt/include/chvt.h **** /*===========================================================================*/
+  40:./lib/chibios/os/rt/include/chvt.h **** /* Derived constants and error checks.                                       */
+  41:./lib/chibios/os/rt/include/chvt.h **** /*===========================================================================*/
+  42:./lib/chibios/os/rt/include/chvt.h **** 
+  43:./lib/chibios/os/rt/include/chvt.h **** #if (CH_CFG_ST_TIMEDELTA < 0) || (CH_CFG_ST_TIMEDELTA == 1)
+  44:./lib/chibios/os/rt/include/chvt.h **** #error "invalid CH_CFG_ST_TIMEDELTA specified, must "                       \
+  45:./lib/chibios/os/rt/include/chvt.h ****        "be zero or greater than one"
+  46:./lib/chibios/os/rt/include/chvt.h **** #endif
+  47:./lib/chibios/os/rt/include/chvt.h **** 
+  48:./lib/chibios/os/rt/include/chvt.h **** #if (CH_CFG_ST_TIMEDELTA > 0) && (CH_CFG_TIME_QUANTUM > 0)
+  49:./lib/chibios/os/rt/include/chvt.h **** #error "CH_CFG_TIME_QUANTUM not supported in tickless mode"
+  50:./lib/chibios/os/rt/include/chvt.h **** #endif
+  51:./lib/chibios/os/rt/include/chvt.h **** 
+  52:./lib/chibios/os/rt/include/chvt.h **** #if (CH_CFG_ST_TIMEDELTA > 0) && (CH_DBG_THREADS_PROFILING == TRUE)
+  53:./lib/chibios/os/rt/include/chvt.h **** #error "CH_DBG_THREADS_PROFILING not supported in tickless mode"
+  54:./lib/chibios/os/rt/include/chvt.h **** #endif
+  55:./lib/chibios/os/rt/include/chvt.h **** 
+  56:./lib/chibios/os/rt/include/chvt.h **** /*===========================================================================*/
+  57:./lib/chibios/os/rt/include/chvt.h **** /* Module data structures and types.                                         */
+  58:./lib/chibios/os/rt/include/chvt.h **** /*===========================================================================*/
+  59:./lib/chibios/os/rt/include/chvt.h **** 
+  60:./lib/chibios/os/rt/include/chvt.h **** /*===========================================================================*/
+  61:./lib/chibios/os/rt/include/chvt.h **** /* Module macros.                                                            */
+  62:./lib/chibios/os/rt/include/chvt.h **** /*===========================================================================*/
+  63:./lib/chibios/os/rt/include/chvt.h **** 
+  64:./lib/chibios/os/rt/include/chvt.h **** /*===========================================================================*/
+  65:./lib/chibios/os/rt/include/chvt.h **** /* External declarations.                                                    */
+  66:./lib/chibios/os/rt/include/chvt.h **** /*===========================================================================*/
+  67:./lib/chibios/os/rt/include/chvt.h **** 
+  68:./lib/chibios/os/rt/include/chvt.h **** /*
+  69:./lib/chibios/os/rt/include/chvt.h ****  * Virtual Timers APIs.
+  70:./lib/chibios/os/rt/include/chvt.h ****  */
+  71:./lib/chibios/os/rt/include/chvt.h **** #ifdef __cplusplus
+  72:./lib/chibios/os/rt/include/chvt.h **** extern "C" {
+  73:./lib/chibios/os/rt/include/chvt.h **** #endif
+  74:./lib/chibios/os/rt/include/chvt.h ****   void _vt_init(void);
+  75:./lib/chibios/os/rt/include/chvt.h ****   void chVTDoSetI(virtual_timer_t *vtp, sysinterval_t delay,
+  76:./lib/chibios/os/rt/include/chvt.h ****                   vtfunc_t vtfunc, void *par);
+  77:./lib/chibios/os/rt/include/chvt.h ****   void chVTDoResetI(virtual_timer_t *vtp);
+  78:./lib/chibios/os/rt/include/chvt.h **** #ifdef __cplusplus
+  79:./lib/chibios/os/rt/include/chvt.h **** }
+  80:./lib/chibios/os/rt/include/chvt.h **** #endif
+  81:./lib/chibios/os/rt/include/chvt.h **** 
+  82:./lib/chibios/os/rt/include/chvt.h **** /*===========================================================================*/
+  83:./lib/chibios/os/rt/include/chvt.h **** /* Module inline functions.                                                  */
+  84:./lib/chibios/os/rt/include/chvt.h **** /*===========================================================================*/
+  85:./lib/chibios/os/rt/include/chvt.h **** 
+  86:./lib/chibios/os/rt/include/chvt.h **** /**
+  87:./lib/chibios/os/rt/include/chvt.h ****  * @brief   Initializes a @p virtual_timer_t object.
+  88:./lib/chibios/os/rt/include/chvt.h ****  * @note    Initializing a timer object is not strictly required because
+  89:./lib/chibios/os/rt/include/chvt.h ****  *          the function @p chVTSetI() initializes the object too. This
+  90:./lib/chibios/os/rt/include/chvt.h ****  *          function is only useful if you need to perform a @p chVTIsArmed()
+  91:./lib/chibios/os/rt/include/chvt.h ****  *          check before calling @p chVTSetI().
+  92:./lib/chibios/os/rt/include/chvt.h ****  *
+  93:./lib/chibios/os/rt/include/chvt.h ****  * @param[out] vtp      the @p virtual_timer_t structure pointer
+  94:./lib/chibios/os/rt/include/chvt.h ****  *
+  95:./lib/chibios/os/rt/include/chvt.h ****  * @init
+  96:./lib/chibios/os/rt/include/chvt.h ****  */
+  97:./lib/chibios/os/rt/include/chvt.h **** static inline void chVTObjectInit(virtual_timer_t *vtp) {
+  98:./lib/chibios/os/rt/include/chvt.h **** 
+  99:./lib/chibios/os/rt/include/chvt.h ****   vtp->func = NULL;
+ 100:./lib/chibios/os/rt/include/chvt.h **** }
+ 101:./lib/chibios/os/rt/include/chvt.h **** 
+ 102:./lib/chibios/os/rt/include/chvt.h **** /**
+ 103:./lib/chibios/os/rt/include/chvt.h ****  * @brief   Current system time.
+ 104:./lib/chibios/os/rt/include/chvt.h ****  * @details Returns the number of system ticks since the @p chSysInit()
+ 105:./lib/chibios/os/rt/include/chvt.h ****  *          invocation.
+ 106:./lib/chibios/os/rt/include/chvt.h ****  * @note    The counter can reach its maximum and then restart from zero.
+ 107:./lib/chibios/os/rt/include/chvt.h ****  * @note    This function can be called from any context but its atomicity
+ 108:./lib/chibios/os/rt/include/chvt.h ****  *          is not guaranteed on architectures whose word size is less than
+ 109:./lib/chibios/os/rt/include/chvt.h ****  *          @p systime_t size.
+ 110:./lib/chibios/os/rt/include/chvt.h ****  *
+ 111:./lib/chibios/os/rt/include/chvt.h ****  * @return              The system time in ticks.
+ 112:./lib/chibios/os/rt/include/chvt.h ****  *
+ 113:./lib/chibios/os/rt/include/chvt.h ****  * @xclass
+ 114:./lib/chibios/os/rt/include/chvt.h ****  */
+ 115:./lib/chibios/os/rt/include/chvt.h **** static inline systime_t chVTGetSystemTimeX(void) {
+ 120              		.loc 3 115 25 view .LVU27
+ 121              	.LBE49:
+ 122              	.LBE69:
+ 116:./lib/chibios/os/rt/include/chvt.h **** 
+ 117:./lib/chibios/os/rt/include/chvt.h **** #if CH_CFG_ST_TIMEDELTA == 0
+ 118:./lib/chibios/os/rt/include/chvt.h ****   return ch.vtlist.systime;
+ 119:./lib/chibios/os/rt/include/chvt.h **** #else /* CH_CFG_ST_TIMEDELTA > 0 */
+ 120:./lib/chibios/os/rt/include/chvt.h ****   return port_timer_get_time();
+ 123              		.loc 3 120 3 view .LVU28
+ 124              	.LBB70:
+ 125              	.LBB50:
+ 126              	.LBB47:
+ 127              	.LBI42:
+ 128              		.file 4 "./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h"
+   1:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** /*
+   2:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h ****     ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio.
+   3:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** 
+   4:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h ****     This file is part of ChibiOS.
+   5:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** 
+   6:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h ****     ChibiOS is free software; you can redistribute it and/or modify
+   7:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h ****     it under the terms of the GNU General Public License as published by
+   8:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h ****     the Free Software Foundation; either version 3 of the License, or
+   9:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h ****     (at your option) any later version.
+  10:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** 
+  11:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h ****     ChibiOS is distributed in the hope that it will be useful,
+  12:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h ****     but WITHOUT ANY WARRANTY; without even the implied warranty of
+  13:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h ****     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  14:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h ****     GNU General Public License for more details.
+  15:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** 
+  16:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h ****     You should have received a copy of the GNU General Public License
+  17:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h ****     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  18:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** */
+  19:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** 
+  20:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** /**
+  21:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h ****  * @file    chcore_timer.h
+  22:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h ****  * @brief   System timer header file.
+  23:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h ****  *
+  24:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h ****  * @addtogroup ARMCMx_TIMER
+  25:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h ****  * @{
+  26:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h ****  */
+  27:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** 
+  28:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** #ifndef CHCORE_TIMER_H
+  29:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** #define CHCORE_TIMER_H
+  30:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** 
+  31:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** /* This is the only header in the HAL designed to be include-able alone.*/
+  32:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** #include "hal_st.h"
+  33:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** 
+  34:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** /*===========================================================================*/
+  35:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** /* Module constants.                                                         */
+  36:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** /*===========================================================================*/
+  37:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** 
+  38:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** /*===========================================================================*/
+  39:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** /* Module pre-compile time settings.                                         */
+  40:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** /*===========================================================================*/
+  41:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** 
+  42:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** /*===========================================================================*/
+  43:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** /* Derived constants and error checks.                                       */
+  44:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** /*===========================================================================*/
+  45:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** 
+  46:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** /*===========================================================================*/
+  47:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** /* Module data structures and types.                                         */
+  48:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** /*===========================================================================*/
+  49:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** 
+  50:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** /*===========================================================================*/
+  51:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** /* Module macros.                                                            */
+  52:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** /*===========================================================================*/
+  53:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** 
+  54:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** /*===========================================================================*/
+  55:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** /* External declarations.                                                    */
+  56:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** /*===========================================================================*/
+  57:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** 
+  58:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** /*===========================================================================*/
+  59:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** /* Module inline functions.                                                  */
+  60:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** /*===========================================================================*/
+  61:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** 
+  62:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** /**
+  63:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h ****  * @brief   Starts the alarm.
+  64:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h ****  * @note    Makes sure that no spurious alarms are triggered after
+  65:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h ****  *          this call.
+  66:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h ****  *
+  67:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h ****  * @param[in] time      the time to be set for the first alarm
+  68:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h ****  *
+  69:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h ****  * @notapi
+  70:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h ****  */
+  71:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** static inline void port_timer_start_alarm(systime_t time) {
+  72:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** 
+  73:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h ****   stStartAlarm(time);
+  74:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** }
+  75:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** 
+  76:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** /**
+  77:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h ****  * @brief   Stops the alarm interrupt.
+  78:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h ****  *
+  79:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h ****  * @notapi
+  80:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h ****  */
+  81:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** static inline void port_timer_stop_alarm(void) {
+  82:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** 
+  83:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h ****   stStopAlarm();
+  84:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** }
+  85:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** 
+  86:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** /**
+  87:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h ****  * @brief   Sets the alarm time.
+  88:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h ****  *
+  89:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h ****  * @param[in] time      the time to be set for the next alarm
+  90:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h ****  *
+  91:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h ****  * @notapi
+  92:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h ****  */
+  93:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** static inline void port_timer_set_alarm(systime_t time) {
+  94:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** 
+  95:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h ****   stSetAlarm(time);
+  96:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** }
+  97:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** 
+  98:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** /**
+  99:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h ****  * @brief   Returns the system time.
+ 100:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h ****  *
+ 101:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h ****  * @return              The system time.
+ 102:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h ****  *
+ 103:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h ****  * @notapi
+ 104:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h ****  */
+ 105:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** static inline systime_t port_timer_get_time(void) {
+ 129              		.loc 4 105 25 view .LVU29
+ 130              	.LBE47:
+ 131              	.LBE50:
+ 132              	.LBE70:
+ 106:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** 
+ 107:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h ****   return stGetCounter();
+ 133              		.loc 4 107 3 view .LVU30
+ 134              	.LBB71:
+ 135              	.LBB51:
+ 136              	.LBB48:
+ 137              	.LBB46:
+ 138              	.LBI43:
+ 145:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** 
+ 139              		.loc 2 145 25 view .LVU31
+ 140              	.LBB45:
+ 141              		.loc 2 147 3 view .LVU32
+ 142              		.loc 2 147 10 is_stmt 0 view .LVU33
+ 143 000c 5B6A     		ldr	r3, [r3, #36]
+ 144              	.LVL2:
+ 145              		.loc 2 147 10 view .LVU34
+ 146              	.LBE45:
+ 147              	.LBE46:
+ 148              	.LBE48:
+ 149              	.LBE51:
+ 109:lib/chibios/os/rt/src/chvt.c **** 
+ 110:lib/chibios/os/rt/src/chvt.c ****     /* If the requested delay is lower than the minimum safe delta then it
+ 111:lib/chibios/os/rt/src/chvt.c ****        is raised to the minimum safe value.*/
+ 112:lib/chibios/os/rt/src/chvt.c ****     if (delay < (sysinterval_t)CH_CFG_ST_TIMEDELTA) {
+ 150              		.loc 1 112 5 is_stmt 1 view .LVU35
+ 151 000e 0C00     		movs	r4, r1
+ 152 0010 0229     		cmp	r1, #2
+ 153 0012 00D2     		bcs	.L5
+ 154 0014 0224     		movs	r4, #2
+ 155              	.L5:
+ 156              	.LVL3:
+ 113:lib/chibios/os/rt/src/chvt.c ****       delay = (sysinterval_t)CH_CFG_ST_TIMEDELTA;
+ 114:lib/chibios/os/rt/src/chvt.c ****     }
+ 115:lib/chibios/os/rt/src/chvt.c **** 
+ 116:lib/chibios/os/rt/src/chvt.c ****     /* Special case where the timers list is empty.*/
+ 117:lib/chibios/os/rt/src/chvt.c ****     if (&ch.vtlist == (virtual_timers_list_t *)ch.vtlist.next) {
+ 157              		.loc 1 117 5 view .LVU36
+ 158              		.loc 1 117 57 is_stmt 0 view .LVU37
+ 159 0016 164F     		ldr	r7, .L12
+ 160              		.loc 1 117 8 view .LVU38
+ 161 0018 164A     		ldr	r2, .L12+4
+ 162              	.LVL4:
+ 163              		.loc 1 117 57 view .LVU39
+ 164 001a FD69     		ldr	r5, [r7, #28]
+ 165              		.loc 1 117 8 view .LVU40
+ 166 001c 9542     		cmp	r5, r2
+ 167 001e 09D1     		bne	.L6
+ 118:lib/chibios/os/rt/src/chvt.c **** 
+ 119:lib/chibios/os/rt/src/chvt.c ****       /* The delta list is empty, the current time becomes the new
+ 120:lib/chibios/os/rt/src/chvt.c ****          delta list base time, the timer is inserted.*/
+ 121:lib/chibios/os/rt/src/chvt.c ****       ch.vtlist.lasttime = now;
+ 168              		.loc 1 121 7 is_stmt 1 view .LVU41
+ 169              		.loc 1 121 26 is_stmt 0 view .LVU42
+ 170 0020 BB62     		str	r3, [r7, #40]
+ 122:lib/chibios/os/rt/src/chvt.c ****       ch.vtlist.next = vtp;
+ 171              		.loc 1 122 7 is_stmt 1 view .LVU43
+ 172              		.loc 1 122 22 is_stmt 0 view .LVU44
+ 173 0022 FE61     		str	r6, [r7, #28]
+ 123:lib/chibios/os/rt/src/chvt.c ****       ch.vtlist.prev = vtp;
+ 174              		.loc 1 123 7 is_stmt 1 view .LVU45
+ 175              		.loc 1 123 22 is_stmt 0 view .LVU46
+ 176 0024 3E62     		str	r6, [r7, #32]
+ 124:lib/chibios/os/rt/src/chvt.c ****       vtp->next = (virtual_timer_t *)&ch.vtlist;
+ 177              		.loc 1 124 7 is_stmt 1 view .LVU47
+ 178              	.LBB52:
+ 179              	.LBB53:
+ 180              		.file 5 "./lib/chibios/os/rt/include/chtime.h"
+   1:./lib/chibios/os/rt/include/chtime.h **** /*
+   2:./lib/chibios/os/rt/include/chtime.h ****     ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio.
+   3:./lib/chibios/os/rt/include/chtime.h **** 
+   4:./lib/chibios/os/rt/include/chtime.h ****     This file is part of ChibiOS.
+   5:./lib/chibios/os/rt/include/chtime.h **** 
+   6:./lib/chibios/os/rt/include/chtime.h ****     ChibiOS is free software; you can redistribute it and/or modify
+   7:./lib/chibios/os/rt/include/chtime.h ****     it under the terms of the GNU General Public License as published by
+   8:./lib/chibios/os/rt/include/chtime.h ****     the Free Software Foundation; either version 3 of the License, or
+   9:./lib/chibios/os/rt/include/chtime.h ****     (at your option) any later version.
+  10:./lib/chibios/os/rt/include/chtime.h **** 
+  11:./lib/chibios/os/rt/include/chtime.h ****     ChibiOS is distributed in the hope that it will be useful,
+  12:./lib/chibios/os/rt/include/chtime.h ****     but WITHOUT ANY WARRANTY; without even the implied warranty of
+  13:./lib/chibios/os/rt/include/chtime.h ****     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  14:./lib/chibios/os/rt/include/chtime.h ****     GNU General Public License for more details.
+  15:./lib/chibios/os/rt/include/chtime.h **** 
+  16:./lib/chibios/os/rt/include/chtime.h ****     You should have received a copy of the GNU General Public License
+  17:./lib/chibios/os/rt/include/chtime.h ****     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  18:./lib/chibios/os/rt/include/chtime.h **** */
+  19:./lib/chibios/os/rt/include/chtime.h **** 
+  20:./lib/chibios/os/rt/include/chtime.h **** /**
+  21:./lib/chibios/os/rt/include/chtime.h ****  * @file    chtime.h
+  22:./lib/chibios/os/rt/include/chtime.h ****  * @brief   Time and intervals macros and structures.
+  23:./lib/chibios/os/rt/include/chtime.h ****  *
+  24:./lib/chibios/os/rt/include/chtime.h ****  * @addtogroup time_intervals
+  25:./lib/chibios/os/rt/include/chtime.h ****  * @details This module is responsible for handling of system time and time
+  26:./lib/chibios/os/rt/include/chtime.h ****  *          intervals.
+  27:./lib/chibios/os/rt/include/chtime.h ****  * @{
+  28:./lib/chibios/os/rt/include/chtime.h ****  */
+  29:./lib/chibios/os/rt/include/chtime.h **** 
+  30:./lib/chibios/os/rt/include/chtime.h **** #ifndef CHTIME_H
+  31:./lib/chibios/os/rt/include/chtime.h **** #define CHTIME_H
+  32:./lib/chibios/os/rt/include/chtime.h **** 
+  33:./lib/chibios/os/rt/include/chtime.h **** /*===========================================================================*/
+  34:./lib/chibios/os/rt/include/chtime.h **** /* Module constants.                                                         */
+  35:./lib/chibios/os/rt/include/chtime.h **** /*===========================================================================*/
+  36:./lib/chibios/os/rt/include/chtime.h **** 
+  37:./lib/chibios/os/rt/include/chtime.h **** /**
+  38:./lib/chibios/os/rt/include/chtime.h ****  * @name    Special time constants
+  39:./lib/chibios/os/rt/include/chtime.h ****  * @{
+  40:./lib/chibios/os/rt/include/chtime.h ****  */
+  41:./lib/chibios/os/rt/include/chtime.h **** /**
+  42:./lib/chibios/os/rt/include/chtime.h ****  * @brief   Zero interval specification for some functions with a timeout
+  43:./lib/chibios/os/rt/include/chtime.h ****  *          specification.
+  44:./lib/chibios/os/rt/include/chtime.h ****  * @note    Not all functions accept @p TIME_IMMEDIATE as timeout parameter,
+  45:./lib/chibios/os/rt/include/chtime.h ****  *          see the specific function documentation.
+  46:./lib/chibios/os/rt/include/chtime.h ****  */
+  47:./lib/chibios/os/rt/include/chtime.h **** #define TIME_IMMEDIATE      ((sysinterval_t)0)
+  48:./lib/chibios/os/rt/include/chtime.h **** 
+  49:./lib/chibios/os/rt/include/chtime.h **** /**
+  50:./lib/chibios/os/rt/include/chtime.h ****  * @brief   Infinite interval specification for all functions with a timeout
+  51:./lib/chibios/os/rt/include/chtime.h ****  *          specification.
+  52:./lib/chibios/os/rt/include/chtime.h ****  * @note    Not all functions accept @p TIME_INFINITE as timeout parameter,
+  53:./lib/chibios/os/rt/include/chtime.h ****  *          see the specific function documentation.
+  54:./lib/chibios/os/rt/include/chtime.h ****  */
+  55:./lib/chibios/os/rt/include/chtime.h **** #define TIME_INFINITE       ((sysinterval_t)-1)
+  56:./lib/chibios/os/rt/include/chtime.h **** 
+  57:./lib/chibios/os/rt/include/chtime.h **** /**
+  58:./lib/chibios/os/rt/include/chtime.h ****  * @brief   Maximum interval constant usable as timeout.
+  59:./lib/chibios/os/rt/include/chtime.h ****  */
+  60:./lib/chibios/os/rt/include/chtime.h **** #define TIME_MAX_INTERVAL   ((sysinterval_t)-2)
+  61:./lib/chibios/os/rt/include/chtime.h **** 
+  62:./lib/chibios/os/rt/include/chtime.h **** /**
+  63:./lib/chibios/os/rt/include/chtime.h ****  * @brief   Maximum system of system time before it wraps.
+  64:./lib/chibios/os/rt/include/chtime.h ****  */
+  65:./lib/chibios/os/rt/include/chtime.h **** #define TIME_MAX_SYSTIME    ((systime_t)-1)
+  66:./lib/chibios/os/rt/include/chtime.h **** /** @} */
+  67:./lib/chibios/os/rt/include/chtime.h **** 
+  68:./lib/chibios/os/rt/include/chtime.h **** /*===========================================================================*/
+  69:./lib/chibios/os/rt/include/chtime.h **** /* Module pre-compile time settings.                                         */
+  70:./lib/chibios/os/rt/include/chtime.h **** /*===========================================================================*/
+  71:./lib/chibios/os/rt/include/chtime.h **** 
+  72:./lib/chibios/os/rt/include/chtime.h **** /*===========================================================================*/
+  73:./lib/chibios/os/rt/include/chtime.h **** /* Derived constants and error checks.                                       */
+  74:./lib/chibios/os/rt/include/chtime.h **** /*===========================================================================*/
+  75:./lib/chibios/os/rt/include/chtime.h **** 
+  76:./lib/chibios/os/rt/include/chtime.h **** #if (CH_CFG_ST_RESOLUTION != 16) && (CH_CFG_ST_RESOLUTION != 32) &&         \
+  77:./lib/chibios/os/rt/include/chtime.h ****     (CH_CFG_ST_RESOLUTION != 64)
+  78:./lib/chibios/os/rt/include/chtime.h **** #error "invalid CH_CFG_ST_RESOLUTION specified, must be 16, 32 or 64"
+  79:./lib/chibios/os/rt/include/chtime.h **** #endif
+  80:./lib/chibios/os/rt/include/chtime.h **** 
+  81:./lib/chibios/os/rt/include/chtime.h **** #if CH_CFG_ST_FREQUENCY < 10
+  82:./lib/chibios/os/rt/include/chtime.h **** #error "invalid CH_CFG_ST_FREQUENCY specified, must be >= 10"
+  83:./lib/chibios/os/rt/include/chtime.h **** #endif
+  84:./lib/chibios/os/rt/include/chtime.h **** 
+  85:./lib/chibios/os/rt/include/chtime.h **** #if (CH_CFG_INTERVALS_SIZE != 16) && (CH_CFG_INTERVALS_SIZE != 32) &&       \
+  86:./lib/chibios/os/rt/include/chtime.h ****     (CH_CFG_INTERVALS_SIZE != 64)
+  87:./lib/chibios/os/rt/include/chtime.h **** #error "invalid CH_CFG_INTERVALS_SIZE specified, must be 16, 32 or 64"
+  88:./lib/chibios/os/rt/include/chtime.h **** #endif
+  89:./lib/chibios/os/rt/include/chtime.h **** 
+  90:./lib/chibios/os/rt/include/chtime.h **** #if (CH_CFG_TIME_TYPES_SIZE != 16) && (CH_CFG_TIME_TYPES_SIZE != 32)
+  91:./lib/chibios/os/rt/include/chtime.h **** #error "invalid CH_CFG_TIME_TYPES_SIZE specified, must be 16 or 32"
+  92:./lib/chibios/os/rt/include/chtime.h **** #endif
+  93:./lib/chibios/os/rt/include/chtime.h **** 
+  94:./lib/chibios/os/rt/include/chtime.h **** #if CH_CFG_INTERVALS_SIZE < CH_CFG_ST_RESOLUTION
+  95:./lib/chibios/os/rt/include/chtime.h **** #error "CH_CFG_INTERVALS_SIZE must be >= CH_CFG_ST_RESOLUTION"
+  96:./lib/chibios/os/rt/include/chtime.h **** #endif
+  97:./lib/chibios/os/rt/include/chtime.h **** 
+  98:./lib/chibios/os/rt/include/chtime.h **** /*===========================================================================*/
+  99:./lib/chibios/os/rt/include/chtime.h **** /* Module data structures and types.                                         */
+ 100:./lib/chibios/os/rt/include/chtime.h **** /*===========================================================================*/
+ 101:./lib/chibios/os/rt/include/chtime.h **** 
+ 102:./lib/chibios/os/rt/include/chtime.h **** /**
+ 103:./lib/chibios/os/rt/include/chtime.h ****  * @brief   Type of system time.
+ 104:./lib/chibios/os/rt/include/chtime.h ****  * @note    It is selectable in configuration between 16, 32 or 64 bits.
+ 105:./lib/chibios/os/rt/include/chtime.h ****  */
+ 106:./lib/chibios/os/rt/include/chtime.h **** #if (CH_CFG_ST_RESOLUTION == 64) || defined(__DOXYGEN__)
+ 107:./lib/chibios/os/rt/include/chtime.h **** typedef uint64_t systime_t;
+ 108:./lib/chibios/os/rt/include/chtime.h **** #elif CH_CFG_ST_RESOLUTION == 32
+ 109:./lib/chibios/os/rt/include/chtime.h **** typedef uint32_t systime_t;
+ 110:./lib/chibios/os/rt/include/chtime.h **** #elif CH_CFG_ST_RESOLUTION == 16
+ 111:./lib/chibios/os/rt/include/chtime.h **** typedef uint16_t systime_t;
+ 112:./lib/chibios/os/rt/include/chtime.h **** #endif
+ 113:./lib/chibios/os/rt/include/chtime.h **** 
+ 114:./lib/chibios/os/rt/include/chtime.h **** /**
+ 115:./lib/chibios/os/rt/include/chtime.h ****  * @brief   Type of time interval.
+ 116:./lib/chibios/os/rt/include/chtime.h ****  * @note    It is selectable in configuration between 16, 32 or 64 bits.
+ 117:./lib/chibios/os/rt/include/chtime.h ****  */
+ 118:./lib/chibios/os/rt/include/chtime.h **** #if (CH_CFG_INTERVALS_SIZE == 64) || defined(__DOXYGEN__)
+ 119:./lib/chibios/os/rt/include/chtime.h **** typedef uint64_t sysinterval_t;
+ 120:./lib/chibios/os/rt/include/chtime.h **** #elif CH_CFG_INTERVALS_SIZE == 32
+ 121:./lib/chibios/os/rt/include/chtime.h **** typedef uint32_t sysinterval_t;
+ 122:./lib/chibios/os/rt/include/chtime.h **** #elif CH_CFG_INTERVALS_SIZE == 16
+ 123:./lib/chibios/os/rt/include/chtime.h **** typedef uint16_t sysinterval_t;
+ 124:./lib/chibios/os/rt/include/chtime.h **** #endif
+ 125:./lib/chibios/os/rt/include/chtime.h **** 
+ 126:./lib/chibios/os/rt/include/chtime.h **** #if (CH_CFG_TIME_TYPES_SIZE == 32) || defined(__DOXYGEN__)
+ 127:./lib/chibios/os/rt/include/chtime.h **** /**
+ 128:./lib/chibios/os/rt/include/chtime.h ****  * @brief   Type of seconds.
+ 129:./lib/chibios/os/rt/include/chtime.h ****  * @note    It is selectable in configuration between 16 or 32 bits.
+ 130:./lib/chibios/os/rt/include/chtime.h ****  */
+ 131:./lib/chibios/os/rt/include/chtime.h **** typedef uint32_t time_secs_t;
+ 132:./lib/chibios/os/rt/include/chtime.h **** 
+ 133:./lib/chibios/os/rt/include/chtime.h **** /**
+ 134:./lib/chibios/os/rt/include/chtime.h ****  * @brief   Type of milliseconds.
+ 135:./lib/chibios/os/rt/include/chtime.h ****  * @note    It is selectable in configuration between 16 or 32 bits.
+ 136:./lib/chibios/os/rt/include/chtime.h ****  */
+ 137:./lib/chibios/os/rt/include/chtime.h **** typedef uint32_t time_msecs_t;
+ 138:./lib/chibios/os/rt/include/chtime.h **** 
+ 139:./lib/chibios/os/rt/include/chtime.h **** /**
+ 140:./lib/chibios/os/rt/include/chtime.h ****  * @brief   Type of microseconds.
+ 141:./lib/chibios/os/rt/include/chtime.h ****  * @note    It is selectable in configuration between 16 or 32 bits.
+ 142:./lib/chibios/os/rt/include/chtime.h ****  */
+ 143:./lib/chibios/os/rt/include/chtime.h **** typedef uint32_t time_usecs_t;
+ 144:./lib/chibios/os/rt/include/chtime.h **** 
+ 145:./lib/chibios/os/rt/include/chtime.h **** /**
+ 146:./lib/chibios/os/rt/include/chtime.h ****  * @brief   Type of time conversion variable.
+ 147:./lib/chibios/os/rt/include/chtime.h ****  * @note    This type must have double width than other time types, it is
+ 148:./lib/chibios/os/rt/include/chtime.h ****  *          only used internally for conversions.
+ 149:./lib/chibios/os/rt/include/chtime.h ****  */
+ 150:./lib/chibios/os/rt/include/chtime.h **** typedef uint64_t time_conv_t;
+ 151:./lib/chibios/os/rt/include/chtime.h **** 
+ 152:./lib/chibios/os/rt/include/chtime.h **** #else
+ 153:./lib/chibios/os/rt/include/chtime.h **** typedef uint16_t time_secs_t;
+ 154:./lib/chibios/os/rt/include/chtime.h **** typedef uint16_t time_msecs_t;
+ 155:./lib/chibios/os/rt/include/chtime.h **** typedef uint16_t time_usecs_t;
+ 156:./lib/chibios/os/rt/include/chtime.h **** typedef uint32_t time_conv_t;
+ 157:./lib/chibios/os/rt/include/chtime.h **** #endif
+ 158:./lib/chibios/os/rt/include/chtime.h **** 
+ 159:./lib/chibios/os/rt/include/chtime.h **** /*===========================================================================*/
+ 160:./lib/chibios/os/rt/include/chtime.h **** /* Module macros.                                                            */
+ 161:./lib/chibios/os/rt/include/chtime.h **** /*===========================================================================*/
+ 162:./lib/chibios/os/rt/include/chtime.h **** 
+ 163:./lib/chibios/os/rt/include/chtime.h **** /**
+ 164:./lib/chibios/os/rt/include/chtime.h ****  * @name    Fast time conversion utilities
+ 165:./lib/chibios/os/rt/include/chtime.h ****  * @{
+ 166:./lib/chibios/os/rt/include/chtime.h ****  */
+ 167:./lib/chibios/os/rt/include/chtime.h **** /**
+ 168:./lib/chibios/os/rt/include/chtime.h ****  * @brief   Seconds to time interval.
+ 169:./lib/chibios/os/rt/include/chtime.h ****  * @details Converts from seconds to system ticks number.
+ 170:./lib/chibios/os/rt/include/chtime.h ****  * @note    The result is rounded upward to the next tick boundary.
+ 171:./lib/chibios/os/rt/include/chtime.h ****  * @note    Use of this macro for large values is not secure because
+ 172:./lib/chibios/os/rt/include/chtime.h ****  *          integer overflows, make sure your value can be correctly
+ 173:./lib/chibios/os/rt/include/chtime.h ****  *          converted.
+ 174:./lib/chibios/os/rt/include/chtime.h ****  *
+ 175:./lib/chibios/os/rt/include/chtime.h ****  * @param[in] secs      number of seconds
+ 176:./lib/chibios/os/rt/include/chtime.h ****  * @return              The number of ticks.
+ 177:./lib/chibios/os/rt/include/chtime.h ****  *
+ 178:./lib/chibios/os/rt/include/chtime.h ****  * @api
+ 179:./lib/chibios/os/rt/include/chtime.h ****  */
+ 180:./lib/chibios/os/rt/include/chtime.h **** #define TIME_S2I(secs)                                                      \
+ 181:./lib/chibios/os/rt/include/chtime.h ****   ((sysinterval_t)((time_conv_t)(secs) * (time_conv_t)CH_CFG_ST_FREQUENCY))
+ 182:./lib/chibios/os/rt/include/chtime.h **** 
+ 183:./lib/chibios/os/rt/include/chtime.h **** /**
+ 184:./lib/chibios/os/rt/include/chtime.h ****  * @brief   Milliseconds to time interval.
+ 185:./lib/chibios/os/rt/include/chtime.h ****  * @details Converts from milliseconds to system ticks number.
+ 186:./lib/chibios/os/rt/include/chtime.h ****  * @note    The result is rounded upward to the next tick boundary.
+ 187:./lib/chibios/os/rt/include/chtime.h ****  * @note    Use of this macro for large values is not secure because
+ 188:./lib/chibios/os/rt/include/chtime.h ****  *          integer overflows, make sure your value can be correctly
+ 189:./lib/chibios/os/rt/include/chtime.h ****  *          converted.
+ 190:./lib/chibios/os/rt/include/chtime.h ****  *
+ 191:./lib/chibios/os/rt/include/chtime.h ****  * @param[in] msecs     number of milliseconds
+ 192:./lib/chibios/os/rt/include/chtime.h ****  * @return              The number of ticks.
+ 193:./lib/chibios/os/rt/include/chtime.h ****  *
+ 194:./lib/chibios/os/rt/include/chtime.h ****  * @api
+ 195:./lib/chibios/os/rt/include/chtime.h ****  */
+ 196:./lib/chibios/os/rt/include/chtime.h **** #define TIME_MS2I(msecs)                                                    \
+ 197:./lib/chibios/os/rt/include/chtime.h ****   ((sysinterval_t)((((time_conv_t)(msecs) *                                 \
+ 198:./lib/chibios/os/rt/include/chtime.h ****                      (time_conv_t)CH_CFG_ST_FREQUENCY) +                    \
+ 199:./lib/chibios/os/rt/include/chtime.h ****                     (time_conv_t)999) / (time_conv_t)1000))
+ 200:./lib/chibios/os/rt/include/chtime.h **** 
+ 201:./lib/chibios/os/rt/include/chtime.h **** /**
+ 202:./lib/chibios/os/rt/include/chtime.h ****  * @brief   Microseconds to time interval.
+ 203:./lib/chibios/os/rt/include/chtime.h ****  * @details Converts from microseconds to system ticks number.
+ 204:./lib/chibios/os/rt/include/chtime.h ****  * @note    The result is rounded upward to the next tick boundary.
+ 205:./lib/chibios/os/rt/include/chtime.h ****  * @note    Use of this macro for large values is not secure because
+ 206:./lib/chibios/os/rt/include/chtime.h ****  *          integer overflows, make sure your value can be correctly
+ 207:./lib/chibios/os/rt/include/chtime.h ****  *          converted.
+ 208:./lib/chibios/os/rt/include/chtime.h ****  *
+ 209:./lib/chibios/os/rt/include/chtime.h ****  * @param[in] usecs     number of microseconds
+ 210:./lib/chibios/os/rt/include/chtime.h ****  * @return              The number of ticks.
+ 211:./lib/chibios/os/rt/include/chtime.h ****  *
+ 212:./lib/chibios/os/rt/include/chtime.h ****  * @api
+ 213:./lib/chibios/os/rt/include/chtime.h ****  */
+ 214:./lib/chibios/os/rt/include/chtime.h **** #define TIME_US2I(usecs)                                                    \
+ 215:./lib/chibios/os/rt/include/chtime.h ****   ((sysinterval_t)((((time_conv_t)(usecs) *                                 \
+ 216:./lib/chibios/os/rt/include/chtime.h ****                      (time_conv_t)CH_CFG_ST_FREQUENCY) +                    \
+ 217:./lib/chibios/os/rt/include/chtime.h ****                     (time_conv_t)999999) / (time_conv_t)1000000))
+ 218:./lib/chibios/os/rt/include/chtime.h **** 
+ 219:./lib/chibios/os/rt/include/chtime.h **** /**
+ 220:./lib/chibios/os/rt/include/chtime.h ****  * @brief   Time interval to seconds.
+ 221:./lib/chibios/os/rt/include/chtime.h ****  * @details Converts from system ticks number to seconds.
+ 222:./lib/chibios/os/rt/include/chtime.h ****  * @note    The result is rounded up to the next second boundary.
+ 223:./lib/chibios/os/rt/include/chtime.h ****  * @note    Use of this macro for large values is not secure because
+ 224:./lib/chibios/os/rt/include/chtime.h ****  *          integer overflows, make sure your value can be correctly
+ 225:./lib/chibios/os/rt/include/chtime.h ****  *          converted.
+ 226:./lib/chibios/os/rt/include/chtime.h ****  *
+ 227:./lib/chibios/os/rt/include/chtime.h ****  * @param[in] interval  interval in ticks
+ 228:./lib/chibios/os/rt/include/chtime.h ****  * @return              The number of seconds.
+ 229:./lib/chibios/os/rt/include/chtime.h ****  *
+ 230:./lib/chibios/os/rt/include/chtime.h ****  * @api
+ 231:./lib/chibios/os/rt/include/chtime.h ****  */
+ 232:./lib/chibios/os/rt/include/chtime.h **** #define TIME_I2S(interval)                                                  \
+ 233:./lib/chibios/os/rt/include/chtime.h ****   (time_secs_t)(((time_conv_t)(interval) +                                  \
+ 234:./lib/chibios/os/rt/include/chtime.h ****                  (time_conv_t)CH_CFG_ST_FREQUENCY -                         \
+ 235:./lib/chibios/os/rt/include/chtime.h ****                  (time_conv_t)1) / (time_conv_t)CH_CFG_ST_FREQUENCY)
+ 236:./lib/chibios/os/rt/include/chtime.h **** 
+ 237:./lib/chibios/os/rt/include/chtime.h **** /**
+ 238:./lib/chibios/os/rt/include/chtime.h ****  * @brief   Time interval to milliseconds.
+ 239:./lib/chibios/os/rt/include/chtime.h ****  * @details Converts from system ticks number to milliseconds.
+ 240:./lib/chibios/os/rt/include/chtime.h ****  * @note    The result is rounded up to the next millisecond boundary.
+ 241:./lib/chibios/os/rt/include/chtime.h ****  * @note    Use of this macro for large values is not secure because
+ 242:./lib/chibios/os/rt/include/chtime.h ****  *          integer overflows, make sure your value can be correctly
+ 243:./lib/chibios/os/rt/include/chtime.h ****  *          converted.
+ 244:./lib/chibios/os/rt/include/chtime.h ****  *
+ 245:./lib/chibios/os/rt/include/chtime.h ****  * @param[in] interval  interval in ticks
+ 246:./lib/chibios/os/rt/include/chtime.h ****  * @return              The number of milliseconds.
+ 247:./lib/chibios/os/rt/include/chtime.h ****  *
+ 248:./lib/chibios/os/rt/include/chtime.h ****  * @api
+ 249:./lib/chibios/os/rt/include/chtime.h ****  */
+ 250:./lib/chibios/os/rt/include/chtime.h **** #define TIME_I2MS(interval)                                                 \
+ 251:./lib/chibios/os/rt/include/chtime.h ****   (time_msecs_t)((((time_conv_t)(interval) * (time_conv_t)1000) +           \
+ 252:./lib/chibios/os/rt/include/chtime.h ****                   (time_conv_t)CH_CFG_ST_FREQUENCY - (time_conv_t)1) /      \
+ 253:./lib/chibios/os/rt/include/chtime.h ****                  (time_conv_t)CH_CFG_ST_FREQUENCY)
+ 254:./lib/chibios/os/rt/include/chtime.h **** 
+ 255:./lib/chibios/os/rt/include/chtime.h **** /**
+ 256:./lib/chibios/os/rt/include/chtime.h ****  * @brief   Time interval to microseconds.
+ 257:./lib/chibios/os/rt/include/chtime.h ****  * @details Converts from system ticks number to microseconds.
+ 258:./lib/chibios/os/rt/include/chtime.h ****  * @note    The result is rounded up to the next microsecond boundary.
+ 259:./lib/chibios/os/rt/include/chtime.h ****  * @note    Use of this macro for large values is not secure because
+ 260:./lib/chibios/os/rt/include/chtime.h ****  *          integer overflows, make sure your value can be correctly
+ 261:./lib/chibios/os/rt/include/chtime.h ****  *          converted.
+ 262:./lib/chibios/os/rt/include/chtime.h ****  *
+ 263:./lib/chibios/os/rt/include/chtime.h ****  * @param[in] interval  interval in ticks
+ 264:./lib/chibios/os/rt/include/chtime.h ****  * @return              The number of microseconds.
+ 265:./lib/chibios/os/rt/include/chtime.h ****  *
+ 266:./lib/chibios/os/rt/include/chtime.h ****  * @api
+ 267:./lib/chibios/os/rt/include/chtime.h ****  */
+ 268:./lib/chibios/os/rt/include/chtime.h **** #define TIME_I2US(interval)                                                 \
+ 269:./lib/chibios/os/rt/include/chtime.h ****     (time_msecs_t)((((time_conv_t)(interval) * (time_conv_t)1000000) +      \
+ 270:./lib/chibios/os/rt/include/chtime.h ****                     (time_conv_t)CH_CFG_ST_FREQUENCY - (time_conv_t)1) /    \
+ 271:./lib/chibios/os/rt/include/chtime.h ****                    (time_conv_t)CH_CFG_ST_FREQUENCY)
+ 272:./lib/chibios/os/rt/include/chtime.h **** /** @} */
+ 273:./lib/chibios/os/rt/include/chtime.h **** 
+ 274:./lib/chibios/os/rt/include/chtime.h **** /*===========================================================================*/
+ 275:./lib/chibios/os/rt/include/chtime.h **** /* External declarations.                                                    */
+ 276:./lib/chibios/os/rt/include/chtime.h **** /*===========================================================================*/
+ 277:./lib/chibios/os/rt/include/chtime.h **** 
+ 278:./lib/chibios/os/rt/include/chtime.h **** /*
+ 279:./lib/chibios/os/rt/include/chtime.h ****  * Virtual Timers APIs.
+ 280:./lib/chibios/os/rt/include/chtime.h ****  */
+ 281:./lib/chibios/os/rt/include/chtime.h **** #ifdef __cplusplus
+ 282:./lib/chibios/os/rt/include/chtime.h **** extern "C" {
+ 283:./lib/chibios/os/rt/include/chtime.h **** #endif
+ 284:./lib/chibios/os/rt/include/chtime.h **** 
+ 285:./lib/chibios/os/rt/include/chtime.h **** #ifdef __cplusplus
+ 286:./lib/chibios/os/rt/include/chtime.h **** }
+ 287:./lib/chibios/os/rt/include/chtime.h **** #endif
+ 288:./lib/chibios/os/rt/include/chtime.h **** 
+ 289:./lib/chibios/os/rt/include/chtime.h **** /*===========================================================================*/
+ 290:./lib/chibios/os/rt/include/chtime.h **** /* Module inline functions.                                                  */
+ 291:./lib/chibios/os/rt/include/chtime.h **** /*===========================================================================*/
+ 292:./lib/chibios/os/rt/include/chtime.h **** 
+ 293:./lib/chibios/os/rt/include/chtime.h **** /**
+ 294:./lib/chibios/os/rt/include/chtime.h ****  * @name    Secure time conversion utilities
+ 295:./lib/chibios/os/rt/include/chtime.h ****  * @{
+ 296:./lib/chibios/os/rt/include/chtime.h ****  */
+ 297:./lib/chibios/os/rt/include/chtime.h **** /**
+ 298:./lib/chibios/os/rt/include/chtime.h ****  * @brief   Seconds to time interval.
+ 299:./lib/chibios/os/rt/include/chtime.h ****  * @details Converts from seconds to system ticks number.
+ 300:./lib/chibios/os/rt/include/chtime.h ****  * @note    The result is rounded upward to the next tick boundary.
+ 301:./lib/chibios/os/rt/include/chtime.h ****  *
+ 302:./lib/chibios/os/rt/include/chtime.h ****  * @param[in] secs      number of seconds
+ 303:./lib/chibios/os/rt/include/chtime.h ****  * @return              The number of ticks.
+ 304:./lib/chibios/os/rt/include/chtime.h ****  *
+ 305:./lib/chibios/os/rt/include/chtime.h ****  * @special
+ 306:./lib/chibios/os/rt/include/chtime.h ****  */
+ 307:./lib/chibios/os/rt/include/chtime.h **** static inline sysinterval_t chTimeS2I(time_secs_t secs) {
+ 308:./lib/chibios/os/rt/include/chtime.h ****   time_conv_t ticks;
+ 309:./lib/chibios/os/rt/include/chtime.h **** 
+ 310:./lib/chibios/os/rt/include/chtime.h ****   ticks = (time_conv_t)secs * (time_conv_t)CH_CFG_ST_FREQUENCY;
+ 311:./lib/chibios/os/rt/include/chtime.h **** 
+ 312:./lib/chibios/os/rt/include/chtime.h ****   chDbgAssert(ticks <= (time_conv_t)TIME_MAX_INTERVAL,
+ 313:./lib/chibios/os/rt/include/chtime.h ****               "conversion overflow");
+ 314:./lib/chibios/os/rt/include/chtime.h **** 
+ 315:./lib/chibios/os/rt/include/chtime.h ****   return (sysinterval_t)ticks;
+ 316:./lib/chibios/os/rt/include/chtime.h **** }
+ 317:./lib/chibios/os/rt/include/chtime.h **** 
+ 318:./lib/chibios/os/rt/include/chtime.h **** /**
+ 319:./lib/chibios/os/rt/include/chtime.h ****  * @brief   Milliseconds to time interval.
+ 320:./lib/chibios/os/rt/include/chtime.h ****  * @details Converts from milliseconds to system ticks number.
+ 321:./lib/chibios/os/rt/include/chtime.h ****  * @note    The result is rounded upward to the next tick boundary.
+ 322:./lib/chibios/os/rt/include/chtime.h ****  *
+ 323:./lib/chibios/os/rt/include/chtime.h ****  * @param[in] msec      number of milliseconds
+ 324:./lib/chibios/os/rt/include/chtime.h ****  * @return              The number of ticks.
+ 325:./lib/chibios/os/rt/include/chtime.h ****  *
+ 326:./lib/chibios/os/rt/include/chtime.h ****  * @special
+ 327:./lib/chibios/os/rt/include/chtime.h ****  */
+ 328:./lib/chibios/os/rt/include/chtime.h **** static inline sysinterval_t chTimeMS2I(time_msecs_t msec) {
+ 329:./lib/chibios/os/rt/include/chtime.h ****   time_conv_t ticks;
+ 330:./lib/chibios/os/rt/include/chtime.h **** 
+ 331:./lib/chibios/os/rt/include/chtime.h ****   ticks = (((time_conv_t)msec * (time_conv_t)CH_CFG_ST_FREQUENCY) +
+ 332:./lib/chibios/os/rt/include/chtime.h ****            (time_conv_t)999) / (time_conv_t)1000;
+ 333:./lib/chibios/os/rt/include/chtime.h **** 
+ 334:./lib/chibios/os/rt/include/chtime.h ****   chDbgAssert(ticks <= (time_conv_t)TIME_MAX_INTERVAL,
+ 335:./lib/chibios/os/rt/include/chtime.h ****               "conversion overflow");
+ 336:./lib/chibios/os/rt/include/chtime.h **** 
+ 337:./lib/chibios/os/rt/include/chtime.h ****   return (sysinterval_t)ticks;
+ 338:./lib/chibios/os/rt/include/chtime.h **** }
+ 339:./lib/chibios/os/rt/include/chtime.h **** 
+ 340:./lib/chibios/os/rt/include/chtime.h **** /**
+ 341:./lib/chibios/os/rt/include/chtime.h ****  * @brief   Microseconds to time interval.
+ 342:./lib/chibios/os/rt/include/chtime.h ****  * @details Converts from microseconds to system ticks number.
+ 343:./lib/chibios/os/rt/include/chtime.h ****  * @note    The result is rounded upward to the next tick boundary.
+ 344:./lib/chibios/os/rt/include/chtime.h ****  *
+ 345:./lib/chibios/os/rt/include/chtime.h ****  * @param[in] usec      number of microseconds
+ 346:./lib/chibios/os/rt/include/chtime.h ****  * @return              The number of ticks.
+ 347:./lib/chibios/os/rt/include/chtime.h ****  *
+ 348:./lib/chibios/os/rt/include/chtime.h ****  * @special
+ 349:./lib/chibios/os/rt/include/chtime.h ****  */
+ 350:./lib/chibios/os/rt/include/chtime.h **** static inline sysinterval_t chTimeUS2I(time_usecs_t usec) {
+ 351:./lib/chibios/os/rt/include/chtime.h ****   time_conv_t ticks;
+ 352:./lib/chibios/os/rt/include/chtime.h **** 
+ 353:./lib/chibios/os/rt/include/chtime.h ****   ticks = (((time_conv_t)usec * (time_conv_t)CH_CFG_ST_FREQUENCY) +
+ 354:./lib/chibios/os/rt/include/chtime.h ****            (time_conv_t)999999) / (time_conv_t)1000000;
+ 355:./lib/chibios/os/rt/include/chtime.h **** 
+ 356:./lib/chibios/os/rt/include/chtime.h ****   chDbgAssert(ticks <= (time_conv_t)TIME_MAX_INTERVAL,
+ 357:./lib/chibios/os/rt/include/chtime.h ****               "conversion overflow");
+ 358:./lib/chibios/os/rt/include/chtime.h **** 
+ 359:./lib/chibios/os/rt/include/chtime.h ****   return (sysinterval_t)ticks;
+ 360:./lib/chibios/os/rt/include/chtime.h **** }
+ 361:./lib/chibios/os/rt/include/chtime.h **** 
+ 362:./lib/chibios/os/rt/include/chtime.h **** /**
+ 363:./lib/chibios/os/rt/include/chtime.h ****  * @brief   Time interval to seconds.
+ 364:./lib/chibios/os/rt/include/chtime.h ****  * @details Converts from system interval to seconds.
+ 365:./lib/chibios/os/rt/include/chtime.h ****  * @note    The result is rounded up to the next second boundary.
+ 366:./lib/chibios/os/rt/include/chtime.h ****  *
+ 367:./lib/chibios/os/rt/include/chtime.h ****  * @param[in] interval  interval in ticks
+ 368:./lib/chibios/os/rt/include/chtime.h ****  * @return              The number of seconds.
+ 369:./lib/chibios/os/rt/include/chtime.h ****  *
+ 370:./lib/chibios/os/rt/include/chtime.h ****  * @special
+ 371:./lib/chibios/os/rt/include/chtime.h ****  */
+ 372:./lib/chibios/os/rt/include/chtime.h **** static inline time_secs_t chTimeI2S(sysinterval_t interval) {
+ 373:./lib/chibios/os/rt/include/chtime.h ****   time_conv_t secs;
+ 374:./lib/chibios/os/rt/include/chtime.h **** 
+ 375:./lib/chibios/os/rt/include/chtime.h ****   secs = ((time_conv_t)interval +
+ 376:./lib/chibios/os/rt/include/chtime.h ****           (time_conv_t)CH_CFG_ST_FREQUENCY -
+ 377:./lib/chibios/os/rt/include/chtime.h ****           (time_conv_t)1) / (time_conv_t)CH_CFG_ST_FREQUENCY;
+ 378:./lib/chibios/os/rt/include/chtime.h **** 
+ 379:./lib/chibios/os/rt/include/chtime.h ****   chDbgAssert(secs < (time_conv_t)((time_secs_t)-1),
+ 380:./lib/chibios/os/rt/include/chtime.h ****               "conversion overflow");
+ 381:./lib/chibios/os/rt/include/chtime.h **** 
+ 382:./lib/chibios/os/rt/include/chtime.h ****   return (time_secs_t)secs;
+ 383:./lib/chibios/os/rt/include/chtime.h **** }
+ 384:./lib/chibios/os/rt/include/chtime.h **** 
+ 385:./lib/chibios/os/rt/include/chtime.h **** /**
+ 386:./lib/chibios/os/rt/include/chtime.h ****  * @brief   Time interval to milliseconds.
+ 387:./lib/chibios/os/rt/include/chtime.h ****  * @details Converts from system interval to milliseconds.
+ 388:./lib/chibios/os/rt/include/chtime.h ****  * @note    The result is rounded up to the next millisecond boundary.
+ 389:./lib/chibios/os/rt/include/chtime.h ****  *
+ 390:./lib/chibios/os/rt/include/chtime.h ****  * @param[in] interval  interval in ticks
+ 391:./lib/chibios/os/rt/include/chtime.h ****  * @return              The number of milliseconds.
+ 392:./lib/chibios/os/rt/include/chtime.h ****  *
+ 393:./lib/chibios/os/rt/include/chtime.h ****  * @special
+ 394:./lib/chibios/os/rt/include/chtime.h ****  */
+ 395:./lib/chibios/os/rt/include/chtime.h **** static inline time_msecs_t chTimeI2MS(sysinterval_t interval) {
+ 396:./lib/chibios/os/rt/include/chtime.h ****   time_conv_t msecs;
+ 397:./lib/chibios/os/rt/include/chtime.h **** 
+ 398:./lib/chibios/os/rt/include/chtime.h ****   msecs = (((time_conv_t)interval * (time_conv_t)1000) +
+ 399:./lib/chibios/os/rt/include/chtime.h ****            (time_conv_t)CH_CFG_ST_FREQUENCY - (time_conv_t)1) /
+ 400:./lib/chibios/os/rt/include/chtime.h ****           (time_conv_t)CH_CFG_ST_FREQUENCY;
+ 401:./lib/chibios/os/rt/include/chtime.h **** 
+ 402:./lib/chibios/os/rt/include/chtime.h ****   chDbgAssert(msecs < (time_conv_t)((time_msecs_t)-1),
+ 403:./lib/chibios/os/rt/include/chtime.h ****               "conversion overflow");
+ 404:./lib/chibios/os/rt/include/chtime.h **** 
+ 405:./lib/chibios/os/rt/include/chtime.h ****   return (time_msecs_t)msecs;
+ 406:./lib/chibios/os/rt/include/chtime.h **** }
+ 407:./lib/chibios/os/rt/include/chtime.h **** 
+ 408:./lib/chibios/os/rt/include/chtime.h **** /**
+ 409:./lib/chibios/os/rt/include/chtime.h ****  * @brief   Time interval to microseconds.
+ 410:./lib/chibios/os/rt/include/chtime.h ****  * @details Converts from system interval to microseconds.
+ 411:./lib/chibios/os/rt/include/chtime.h ****  * @note    The result is rounded up to the next microsecond boundary.
+ 412:./lib/chibios/os/rt/include/chtime.h ****  *
+ 413:./lib/chibios/os/rt/include/chtime.h ****  * @param[in] interval  interval in ticks
+ 414:./lib/chibios/os/rt/include/chtime.h ****  * @return              The number of microseconds.
+ 415:./lib/chibios/os/rt/include/chtime.h ****  *
+ 416:./lib/chibios/os/rt/include/chtime.h ****  * @special
+ 417:./lib/chibios/os/rt/include/chtime.h ****  */
+ 418:./lib/chibios/os/rt/include/chtime.h **** static inline time_usecs_t chTimeI2US(sysinterval_t interval) {
+ 419:./lib/chibios/os/rt/include/chtime.h ****   time_conv_t usecs;
+ 420:./lib/chibios/os/rt/include/chtime.h **** 
+ 421:./lib/chibios/os/rt/include/chtime.h ****   usecs = (((time_conv_t)interval * (time_conv_t)1000000) +
+ 422:./lib/chibios/os/rt/include/chtime.h ****            (time_conv_t)CH_CFG_ST_FREQUENCY - (time_conv_t)1) /
+ 423:./lib/chibios/os/rt/include/chtime.h ****           (time_conv_t)CH_CFG_ST_FREQUENCY;
+ 424:./lib/chibios/os/rt/include/chtime.h **** 
+ 425:./lib/chibios/os/rt/include/chtime.h ****   chDbgAssert(usecs <= (time_conv_t)((time_usecs_t)-1),
+ 426:./lib/chibios/os/rt/include/chtime.h ****               "conversion overflow");
+ 427:./lib/chibios/os/rt/include/chtime.h **** 
+ 428:./lib/chibios/os/rt/include/chtime.h ****   return (time_usecs_t)usecs;
+ 429:./lib/chibios/os/rt/include/chtime.h **** }
+ 430:./lib/chibios/os/rt/include/chtime.h **** 
+ 431:./lib/chibios/os/rt/include/chtime.h **** /**
+ 432:./lib/chibios/os/rt/include/chtime.h ****  * @brief   Adds an interval to a system time returning a system time.
+ 433:./lib/chibios/os/rt/include/chtime.h ****  *
+ 434:./lib/chibios/os/rt/include/chtime.h ****  * @param[in] systime   base system time
+ 435:./lib/chibios/os/rt/include/chtime.h ****  * @param[in] interval  interval to be added
+ 436:./lib/chibios/os/rt/include/chtime.h ****  * @return              The new system time.
+ 437:./lib/chibios/os/rt/include/chtime.h ****  *
+ 438:./lib/chibios/os/rt/include/chtime.h ****  * @xclass
+ 439:./lib/chibios/os/rt/include/chtime.h ****  */
+ 440:./lib/chibios/os/rt/include/chtime.h **** static inline systime_t chTimeAddX(systime_t systime,
+ 441:./lib/chibios/os/rt/include/chtime.h ****                                    sysinterval_t interval) {
+ 442:./lib/chibios/os/rt/include/chtime.h **** 
+ 443:./lib/chibios/os/rt/include/chtime.h **** #if CH_CFG_ST_RESOLUTION != CH_CFG_INTERVALS_SIZE
+ 444:./lib/chibios/os/rt/include/chtime.h ****   chDbgCheck(interval <= (sysinterval_t)TIME_MAX_SYSTIME);
+ 445:./lib/chibios/os/rt/include/chtime.h **** #endif
+ 446:./lib/chibios/os/rt/include/chtime.h **** 
+ 447:./lib/chibios/os/rt/include/chtime.h ****   return systime + (systime_t)interval;
+ 181              		.loc 5 447 18 is_stmt 0 view .LVU48
+ 182 0026 1819     		adds	r0, r3, r4
+ 183              	.LVL5:
+ 184              		.loc 5 447 18 view .LVU49
+ 185              	.LBE53:
+ 186              	.LBE52:
+ 187              		.loc 1 124 17 view .LVU50
+ 188 0028 3560     		str	r5, [r6]
+ 125:lib/chibios/os/rt/src/chvt.c ****       vtp->prev = (virtual_timer_t *)&ch.vtlist;
+ 189              		.loc 1 125 7 is_stmt 1 view .LVU51
+ 190              		.loc 1 125 17 is_stmt 0 view .LVU52
+ 191 002a 7560     		str	r5, [r6, #4]
+ 126:lib/chibios/os/rt/src/chvt.c ****       vtp->delta = delay;
+ 192              		.loc 1 126 7 is_stmt 1 view .LVU53
+ 193              		.loc 1 126 18 is_stmt 0 view .LVU54
+ 194 002c B460     		str	r4, [r6, #8]
+ 127:lib/chibios/os/rt/src/chvt.c **** 
+ 128:lib/chibios/os/rt/src/chvt.c **** #if CH_CFG_INTERVALS_SIZE > CH_CFG_ST_RESOLUTION
+ 129:lib/chibios/os/rt/src/chvt.c ****       /* The delta could be too large for the physical timer to handle.*/
+ 130:lib/chibios/os/rt/src/chvt.c ****       if (delay > (sysinterval_t)TIME_MAX_SYSTIME) {
+ 131:lib/chibios/os/rt/src/chvt.c ****         delay = (sysinterval_t)TIME_MAX_SYSTIME;
+ 132:lib/chibios/os/rt/src/chvt.c ****       }
+ 133:lib/chibios/os/rt/src/chvt.c **** #endif
+ 134:lib/chibios/os/rt/src/chvt.c **** 
+ 135:lib/chibios/os/rt/src/chvt.c ****       /* Being the first element in the list the alarm timer is started.*/
+ 136:lib/chibios/os/rt/src/chvt.c ****       port_timer_start_alarm(chTimeAddX(ch.vtlist.lasttime, delay));
+ 195              		.loc 1 136 7 is_stmt 1 view .LVU55
+ 196              	.LVL6:
+ 197              	.LBB55:
+ 198              	.LBI52:
+ 440:./lib/chibios/os/rt/include/chtime.h ****                                    sysinterval_t interval) {
+ 199              		.loc 5 440 25 view .LVU56
+ 200              	.LBB54:
+ 201              		.loc 5 447 3 view .LVU57
+ 202              		.loc 5 447 3 is_stmt 0 view .LVU58
+ 203              	.LBE54:
+ 204              	.LBE55:
+ 205              	.LBB56:
+ 206              	.LBI56:
+  71:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** 
+ 207              		.loc 4 71 20 is_stmt 1 view .LVU59
+ 208              	.LBB57:
+  73:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** }
+ 209              		.loc 4 73 3 view .LVU60
+ 210 002e FFF7FEFF 		bl	stStartAlarm
+ 211              	.LVL7:
+  73:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** }
+ 212              		.loc 4 73 3 is_stmt 0 view .LVU61
+ 213              	.LBE57:
+ 214              	.LBE56:
+ 137:lib/chibios/os/rt/src/chvt.c **** 
+ 138:lib/chibios/os/rt/src/chvt.c ****       return;
+ 215              		.loc 1 138 7 is_stmt 1 view .LVU62
+ 216              	.L4:
+ 217              		.loc 1 138 7 is_stmt 0 view .LVU63
+ 218              	.LBE71:
+ 139:lib/chibios/os/rt/src/chvt.c ****     }
+ 140:lib/chibios/os/rt/src/chvt.c **** 
+ 141:lib/chibios/os/rt/src/chvt.c ****     /* Pointer to the first element in the delta list, which is non-empty.*/
+ 142:lib/chibios/os/rt/src/chvt.c ****     p = ch.vtlist.next;
+ 143:lib/chibios/os/rt/src/chvt.c **** 
+ 144:lib/chibios/os/rt/src/chvt.c ****     /* Delay as delta from 'lasttime'. Note, it can overflow and the value
+ 145:lib/chibios/os/rt/src/chvt.c ****        becomes lower than 'now'.*/
+ 146:lib/chibios/os/rt/src/chvt.c ****     delta = chTimeDiffX(ch.vtlist.lasttime, now) + delay;
+ 147:lib/chibios/os/rt/src/chvt.c **** 
+ 148:lib/chibios/os/rt/src/chvt.c ****     if (delta < chTimeDiffX(ch.vtlist.lasttime, now)) {
+ 149:lib/chibios/os/rt/src/chvt.c ****       /* Scenario where a very large delay excedeed the numeric range, it
+ 150:lib/chibios/os/rt/src/chvt.c ****          requires a special handling. We need to skip the first element and
+ 151:lib/chibios/os/rt/src/chvt.c ****          adjust the delta to wrap back in the previous numeric range.*/
+ 152:lib/chibios/os/rt/src/chvt.c ****       delta -= p->delta;
+ 153:lib/chibios/os/rt/src/chvt.c ****       p = p->next;
+ 154:lib/chibios/os/rt/src/chvt.c ****     }
+ 155:lib/chibios/os/rt/src/chvt.c ****     else if (delta < p->delta) {
+ 156:lib/chibios/os/rt/src/chvt.c ****       sysinterval_t deadline_delta;
+ 157:lib/chibios/os/rt/src/chvt.c **** 
+ 158:lib/chibios/os/rt/src/chvt.c ****       /* A small delay that will become the first element in the delta list
+ 159:lib/chibios/os/rt/src/chvt.c ****          and next deadline.*/
+ 160:lib/chibios/os/rt/src/chvt.c ****       deadline_delta = delta;
+ 161:lib/chibios/os/rt/src/chvt.c **** #if CH_CFG_INTERVALS_SIZE > CH_CFG_ST_RESOLUTION
+ 162:lib/chibios/os/rt/src/chvt.c ****       /* The delta could be too large for the physical timer to handle.*/
+ 163:lib/chibios/os/rt/src/chvt.c ****       if (deadline_delta > (sysinterval_t)TIME_MAX_SYSTIME) {
+ 164:lib/chibios/os/rt/src/chvt.c ****         deadline_delta = (sysinterval_t)TIME_MAX_SYSTIME;
+ 165:lib/chibios/os/rt/src/chvt.c ****       }
+ 166:lib/chibios/os/rt/src/chvt.c **** #endif
+ 167:lib/chibios/os/rt/src/chvt.c ****       port_timer_set_alarm(chTimeAddX(ch.vtlist.lasttime, deadline_delta));
+ 168:lib/chibios/os/rt/src/chvt.c ****     }
+ 169:lib/chibios/os/rt/src/chvt.c ****   }
+ 170:lib/chibios/os/rt/src/chvt.c **** #else /* CH_CFG_ST_TIMEDELTA == 0 */
+ 171:lib/chibios/os/rt/src/chvt.c ****   /* Delta is initially equal to the specified delay.*/
+ 172:lib/chibios/os/rt/src/chvt.c ****   delta = delay;
+ 173:lib/chibios/os/rt/src/chvt.c **** 
+ 174:lib/chibios/os/rt/src/chvt.c ****   /* Pointer to the first element in the delta list.*/
+ 175:lib/chibios/os/rt/src/chvt.c ****   p = ch.vtlist.next;
+ 176:lib/chibios/os/rt/src/chvt.c **** #endif /* CH_CFG_ST_TIMEDELTA == 0 */
+ 177:lib/chibios/os/rt/src/chvt.c **** 
+ 178:lib/chibios/os/rt/src/chvt.c ****   /* The delta list is scanned in order to find the correct position for
+ 179:lib/chibios/os/rt/src/chvt.c ****      this timer. */
+ 180:lib/chibios/os/rt/src/chvt.c ****   while (p->delta < delta) {
+ 181:lib/chibios/os/rt/src/chvt.c ****     /* Debug assert if the timer is already in the list.*/
+ 182:lib/chibios/os/rt/src/chvt.c ****     chDbgAssert(p != vtp, "timer already armed");
+ 183:lib/chibios/os/rt/src/chvt.c **** 
+ 184:lib/chibios/os/rt/src/chvt.c ****     delta -= p->delta;
+ 185:lib/chibios/os/rt/src/chvt.c ****     p = p->next;
+ 186:lib/chibios/os/rt/src/chvt.c ****   }
+ 187:lib/chibios/os/rt/src/chvt.c **** 
+ 188:lib/chibios/os/rt/src/chvt.c ****   /* The timer is inserted in the delta list.*/
+ 189:lib/chibios/os/rt/src/chvt.c ****   vtp->next = p;
+ 190:lib/chibios/os/rt/src/chvt.c ****   vtp->prev = vtp->next->prev;
+ 191:lib/chibios/os/rt/src/chvt.c ****   vtp->prev->next = vtp;
+ 192:lib/chibios/os/rt/src/chvt.c ****   p->prev = vtp;
+ 193:lib/chibios/os/rt/src/chvt.c ****   vtp->delta = delta;
+ 194:lib/chibios/os/rt/src/chvt.c **** 
+ 195:lib/chibios/os/rt/src/chvt.c ****   /* Calculate new delta for the following entry.*/
+ 196:lib/chibios/os/rt/src/chvt.c ****   p->delta -= delta;
+ 197:lib/chibios/os/rt/src/chvt.c **** 
+ 198:lib/chibios/os/rt/src/chvt.c ****   /* Special case when the timer is in last position in the list, the
+ 199:lib/chibios/os/rt/src/chvt.c ****      value in the header must be restored.*/
+ 200:lib/chibios/os/rt/src/chvt.c ****   ch.vtlist.delta = (sysinterval_t)-1;
+ 201:lib/chibios/os/rt/src/chvt.c **** }
+ 219              		.loc 1 201 1 view .LVU64
+ 220              		@ sp needed
+ 221              	.LVL8:
+ 222              		.loc 1 201 1 view .LVU65
+ 223 0032 F8BD     		pop	{r3, r4, r5, r6, r7, pc}
+ 224              	.LVL9:
+ 225              	.L6:
+ 226              	.LBB72:
+ 142:lib/chibios/os/rt/src/chvt.c **** 
+ 227              		.loc 1 142 5 is_stmt 1 view .LVU66
+ 146:lib/chibios/os/rt/src/chvt.c **** 
+ 228              		.loc 1 146 5 view .LVU67
+ 146:lib/chibios/os/rt/src/chvt.c **** 
+ 229              		.loc 1 146 13 is_stmt 0 view .LVU68
+ 230 0034 B86A     		ldr	r0, [r7, #40]
+ 231              	.LVL10:
+ 232              	.LBB58:
+ 233              	.LBI58:
+ 448:./lib/chibios/os/rt/include/chtime.h **** }
+ 449:./lib/chibios/os/rt/include/chtime.h **** 
+ 450:./lib/chibios/os/rt/include/chtime.h **** /**
+ 451:./lib/chibios/os/rt/include/chtime.h ****  * @brief   Subtracts two system times returning an interval.
+ 452:./lib/chibios/os/rt/include/chtime.h ****  *
+ 453:./lib/chibios/os/rt/include/chtime.h ****  * @param[in] start     first system time
+ 454:./lib/chibios/os/rt/include/chtime.h ****  * @param[in] end       second system time
+ 455:./lib/chibios/os/rt/include/chtime.h ****  * @return              The interval representing the time difference.
+ 456:./lib/chibios/os/rt/include/chtime.h ****  *
+ 457:./lib/chibios/os/rt/include/chtime.h ****  * @xclass
+ 458:./lib/chibios/os/rt/include/chtime.h ****  */
+ 459:./lib/chibios/os/rt/include/chtime.h **** static inline sysinterval_t chTimeDiffX(systime_t start, systime_t end) {
+ 234              		.loc 5 459 29 is_stmt 1 view .LVU69
+ 235              	.LBB59:
+ 460:./lib/chibios/os/rt/include/chtime.h **** 
+ 461:./lib/chibios/os/rt/include/chtime.h ****   /*lint -save -e9033 [10.8] This cast is required by the operation, it is
+ 462:./lib/chibios/os/rt/include/chtime.h ****     known that the destination type can be wider.*/
+ 463:./lib/chibios/os/rt/include/chtime.h ****   return (sysinterval_t)((systime_t)(end - start));
+ 236              		.loc 5 463 3 view .LVU70
+ 237              		.loc 5 463 10 is_stmt 0 view .LVU71
+ 238 0036 1A1A     		subs	r2, r3, r0
+ 239              	.LVL11:
+ 240              		.loc 5 463 10 view .LVU72
+ 241              	.LBE59:
+ 242              	.LBE58:
+ 146:lib/chibios/os/rt/src/chvt.c **** 
+ 243              		.loc 1 146 11 view .LVU73
+ 244 0038 1419     		adds	r4, r2, r4
+ 245              	.LVL12:
+ 148:lib/chibios/os/rt/src/chvt.c ****       /* Scenario where a very large delay excedeed the numeric range, it
+ 246              		.loc 1 148 5 is_stmt 1 view .LVU74
+ 148:lib/chibios/os/rt/src/chvt.c ****       /* Scenario where a very large delay excedeed the numeric range, it
+ 247              		.loc 1 148 5 is_stmt 0 view .LVU75
+ 248              	.LBE72:
+ 249              		.loc 5 463 3 is_stmt 1 view .LVU76
+ 250              		.loc 5 463 3 is_stmt 0 view .LVU77
+ 251 003a AB68     		ldr	r3, [r5, #8]
+ 252              	.LBB73:
+ 148:lib/chibios/os/rt/src/chvt.c ****       /* Scenario where a very large delay excedeed the numeric range, it
+ 253              		.loc 1 148 8 view .LVU78
+ 254 003c A242     		cmp	r2, r4
+ 255 003e 02D9     		bls	.L8
+ 256              	.LVL13:
+ 257              	.L11:
+ 148:lib/chibios/os/rt/src/chvt.c ****       /* Scenario where a very large delay excedeed the numeric range, it
+ 258              		.loc 1 148 8 view .LVU79
+ 259              	.LBE73:
+ 182:lib/chibios/os/rt/src/chvt.c **** 
+ 260              		.loc 1 182 5 is_stmt 1 view .LVU80
+ 182:lib/chibios/os/rt/src/chvt.c **** 
+ 261              		.loc 1 182 5 view .LVU81
+ 184:lib/chibios/os/rt/src/chvt.c ****     p = p->next;
+ 262              		.loc 1 184 5 view .LVU82
+ 184:lib/chibios/os/rt/src/chvt.c ****     p = p->next;
+ 263              		.loc 1 184 11 is_stmt 0 view .LVU83
+ 264 0040 E41A     		subs	r4, r4, r3
+ 265              	.LVL14:
+ 185:lib/chibios/os/rt/src/chvt.c ****   }
+ 266              		.loc 1 185 5 is_stmt 1 view .LVU84
+ 185:lib/chibios/os/rt/src/chvt.c ****   }
+ 267              		.loc 1 185 7 is_stmt 0 view .LVU85
+ 268 0042 2D68     		ldr	r5, [r5]
+ 269              	.LVL15:
+ 185:lib/chibios/os/rt/src/chvt.c ****   }
+ 270              		.loc 1 185 7 view .LVU86
+ 271 0044 04E0     		b	.L10
+ 272              	.LVL16:
+ 273              	.L8:
+ 274              	.LBB74:
+ 155:lib/chibios/os/rt/src/chvt.c ****       sysinterval_t deadline_delta;
+ 275              		.loc 1 155 10 is_stmt 1 view .LVU87
+ 155:lib/chibios/os/rt/src/chvt.c ****       sysinterval_t deadline_delta;
+ 276              		.loc 1 155 13 is_stmt 0 view .LVU88
+ 277 0046 A342     		cmp	r3, r4
+ 278 0048 02D9     		bls	.L10
+ 279              	.LBB60:
+ 156:lib/chibios/os/rt/src/chvt.c **** 
+ 280              		.loc 1 156 7 is_stmt 1 view .LVU89
+ 160:lib/chibios/os/rt/src/chvt.c **** #if CH_CFG_INTERVALS_SIZE > CH_CFG_ST_RESOLUTION
+ 281              		.loc 1 160 7 view .LVU90
+ 282              	.LVL17:
+ 167:lib/chibios/os/rt/src/chvt.c ****     }
+ 283              		.loc 1 167 7 view .LVU91
+ 284              	.LBB61:
+ 285              	.LBI61:
+ 440:./lib/chibios/os/rt/include/chtime.h ****                                    sysinterval_t interval) {
+ 286              		.loc 5 440 25 view .LVU92
+ 287              	.LBB62:
+ 447:./lib/chibios/os/rt/include/chtime.h **** }
+ 288              		.loc 5 447 3 view .LVU93
+ 447:./lib/chibios/os/rt/include/chtime.h **** }
+ 289              		.loc 5 447 3 is_stmt 0 view .LVU94
+ 290              	.LBE62:
+ 291              	.LBE61:
+ 292              	.LBB64:
+ 293              	.LBI64:
+  93:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** 
+ 294              		.loc 4 93 20 is_stmt 1 view .LVU95
+ 295              	.LBB65:
+  95:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** }
+ 296              		.loc 4 95 3 view .LVU96
+ 297              	.LBE65:
+ 298              	.LBE64:
+ 299              	.LBB67:
+ 300              	.LBB63:
+ 447:./lib/chibios/os/rt/include/chtime.h **** }
+ 301              		.loc 5 447 18 is_stmt 0 view .LVU97
+ 302 004a 0019     		adds	r0, r0, r4
+ 303              	.LVL18:
+ 447:./lib/chibios/os/rt/include/chtime.h **** }
+ 304              		.loc 5 447 18 view .LVU98
+ 305              	.LBE63:
+ 306              	.LBE67:
+ 307              	.LBB68:
+ 308              	.LBB66:
+  95:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** }
+ 309              		.loc 4 95 3 view .LVU99
+ 310 004c FFF7FEFF 		bl	stSetAlarm
+ 311              	.LVL19:
+ 312              	.L10:
+  95:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** }
+ 313              		.loc 4 95 3 view .LVU100
+ 314              	.LBE66:
+ 315              	.LBE68:
+ 316              	.LBE60:
+ 317              	.LBE74:
+ 180:lib/chibios/os/rt/src/chvt.c ****     /* Debug assert if the timer is already in the list.*/
+ 318              		.loc 1 180 11 view .LVU101
+ 319 0050 AB68     		ldr	r3, [r5, #8]
+ 180:lib/chibios/os/rt/src/chvt.c ****     /* Debug assert if the timer is already in the list.*/
+ 320              		.loc 1 180 9 view .LVU102
+ 321 0052 A342     		cmp	r3, r4
+ 322 0054 F4D3     		bcc	.L11
+ 189:lib/chibios/os/rt/src/chvt.c ****   vtp->prev = vtp->next->prev;
+ 323              		.loc 1 189 3 is_stmt 1 view .LVU103
+ 190:lib/chibios/os/rt/src/chvt.c ****   vtp->prev->next = vtp;
+ 324              		.loc 1 190 24 is_stmt 0 view .LVU104
+ 325 0056 6B68     		ldr	r3, [r5, #4]
+ 189:lib/chibios/os/rt/src/chvt.c ****   vtp->prev = vtp->next->prev;
+ 326              		.loc 1 189 13 view .LVU105
+ 327 0058 3560     		str	r5, [r6]
+ 190:lib/chibios/os/rt/src/chvt.c ****   vtp->prev->next = vtp;
+ 328              		.loc 1 190 3 is_stmt 1 view .LVU106
+ 190:lib/chibios/os/rt/src/chvt.c ****   vtp->prev->next = vtp;
+ 329              		.loc 1 190 13 is_stmt 0 view .LVU107
+ 330 005a 7360     		str	r3, [r6, #4]
+ 191:lib/chibios/os/rt/src/chvt.c ****   p->prev = vtp;
+ 331              		.loc 1 191 3 is_stmt 1 view .LVU108
+ 191:lib/chibios/os/rt/src/chvt.c ****   p->prev = vtp;
+ 332              		.loc 1 191 19 is_stmt 0 view .LVU109
+ 333 005c 1E60     		str	r6, [r3]
+ 192:lib/chibios/os/rt/src/chvt.c ****   vtp->delta = delta;
+ 334              		.loc 1 192 3 is_stmt 1 view .LVU110
+ 192:lib/chibios/os/rt/src/chvt.c ****   vtp->delta = delta;
+ 335              		.loc 1 192 11 is_stmt 0 view .LVU111
+ 336 005e 6E60     		str	r6, [r5, #4]
+ 193:lib/chibios/os/rt/src/chvt.c **** 
+ 337              		.loc 1 193 3 is_stmt 1 view .LVU112
+ 193:lib/chibios/os/rt/src/chvt.c **** 
+ 338              		.loc 1 193 14 is_stmt 0 view .LVU113
+ 339 0060 B460     		str	r4, [r6, #8]
+ 196:lib/chibios/os/rt/src/chvt.c **** 
+ 340              		.loc 1 196 3 is_stmt 1 view .LVU114
+ 196:lib/chibios/os/rt/src/chvt.c **** 
+ 341              		.loc 1 196 12 is_stmt 0 view .LVU115
+ 342 0062 AB68     		ldr	r3, [r5, #8]
+ 343 0064 1C1B     		subs	r4, r3, r4
+ 344              	.LVL20:
+ 200:lib/chibios/os/rt/src/chvt.c **** }
+ 345              		.loc 1 200 19 view .LVU116
+ 346 0066 0123     		movs	r3, #1
+ 347 0068 5B42     		rsbs	r3, r3, #0
+ 196:lib/chibios/os/rt/src/chvt.c **** 
+ 348              		.loc 1 196 12 view .LVU117
+ 349 006a AC60     		str	r4, [r5, #8]
+ 350              	.LVL21:
+ 200:lib/chibios/os/rt/src/chvt.c **** }
+ 351              		.loc 1 200 3 is_stmt 1 view .LVU118
+ 200:lib/chibios/os/rt/src/chvt.c **** }
+ 352              		.loc 1 200 19 is_stmt 0 view .LVU119
+ 353 006c 7B62     		str	r3, [r7, #36]
+ 354 006e E0E7     		b	.L4
+ 355              	.L13:
+ 356              		.align	2
+ 357              	.L12:
+ 358 0070 00000000 		.word	ch
+ 359 0074 1C000000 		.word	ch+28
+ 360              		.cfi_endproc
+ 361              	.LFE155:
+ 363              		.section	.text.chVTDoResetI,"ax",%progbits
+ 364              		.align	1
+ 365              		.global	chVTDoResetI
+ 366              		.syntax unified
+ 367              		.code	16
+ 368              		.thumb_func
+ 369              		.fpu softvfp
+ 371              	chVTDoResetI:
+ 372              	.LVL22:
+ 373              	.LFB156:
+ 202:lib/chibios/os/rt/src/chvt.c **** 
+ 203:lib/chibios/os/rt/src/chvt.c **** /**
+ 204:lib/chibios/os/rt/src/chvt.c ****  * @brief   Disables a Virtual Timer.
+ 205:lib/chibios/os/rt/src/chvt.c ****  * @pre     The timer must be in armed state before calling this function.
+ 206:lib/chibios/os/rt/src/chvt.c ****  *
+ 207:lib/chibios/os/rt/src/chvt.c ****  * @param[in] vtp       the @p virtual_timer_t structure pointer
+ 208:lib/chibios/os/rt/src/chvt.c ****  *
+ 209:lib/chibios/os/rt/src/chvt.c ****  * @iclass
+ 210:lib/chibios/os/rt/src/chvt.c ****  */
+ 211:lib/chibios/os/rt/src/chvt.c **** void chVTDoResetI(virtual_timer_t *vtp) {
+ 374              		.loc 1 211 41 is_stmt 1 view -0
+ 375              		.cfi_startproc
+ 376              		@ args = 0, pretend = 0, frame = 0
+ 377              		@ frame_needed = 0, uses_anonymous_args = 0
+ 212:lib/chibios/os/rt/src/chvt.c **** 
+ 213:lib/chibios/os/rt/src/chvt.c ****   chDbgCheckClassI();
+ 378              		.loc 1 213 21 view .LVU121
+ 214:lib/chibios/os/rt/src/chvt.c ****   chDbgCheck(vtp != NULL);
+ 379              		.loc 1 214 3 view .LVU122
+ 380              		.loc 1 214 3 view .LVU123
+ 215:lib/chibios/os/rt/src/chvt.c ****   chDbgAssert(vtp->func != NULL, "timer not set or already triggered");
+ 381              		.loc 1 215 3 view .LVU124
+ 382              		.loc 1 215 3 view .LVU125
+ 216:lib/chibios/os/rt/src/chvt.c **** 
+ 217:lib/chibios/os/rt/src/chvt.c **** #if CH_CFG_ST_TIMEDELTA == 0
+ 218:lib/chibios/os/rt/src/chvt.c **** 
+ 219:lib/chibios/os/rt/src/chvt.c ****   /* The delta of the timer is added to the next timer.*/
+ 220:lib/chibios/os/rt/src/chvt.c ****   vtp->next->delta += vtp->delta;
+ 221:lib/chibios/os/rt/src/chvt.c **** 
+ 222:lib/chibios/os/rt/src/chvt.c ****  /* Removing the element from the delta list.*/
+ 223:lib/chibios/os/rt/src/chvt.c ****   vtp->prev->next = vtp->next;
+ 224:lib/chibios/os/rt/src/chvt.c ****   vtp->next->prev = vtp->prev;
+ 225:lib/chibios/os/rt/src/chvt.c ****   vtp->func = NULL;
+ 226:lib/chibios/os/rt/src/chvt.c **** 
+ 227:lib/chibios/os/rt/src/chvt.c ****   /* The above code changes the value in the header when the removed element
+ 228:lib/chibios/os/rt/src/chvt.c ****      is the last of the list, restoring it.*/
+ 229:lib/chibios/os/rt/src/chvt.c ****   ch.vtlist.delta = (sysinterval_t)-1;
+ 230:lib/chibios/os/rt/src/chvt.c **** #else /* CH_CFG_ST_TIMEDELTA > 0 */
+ 231:lib/chibios/os/rt/src/chvt.c ****   sysinterval_t nowdelta, delta;
+ 383              		.loc 1 231 3 view .LVU126
+ 232:lib/chibios/os/rt/src/chvt.c **** 
+ 233:lib/chibios/os/rt/src/chvt.c ****   /* If the timer is not the first of the list then it is simply unlinked
+ 234:lib/chibios/os/rt/src/chvt.c ****      else the operation is more complex.*/
+ 235:lib/chibios/os/rt/src/chvt.c ****   if (ch.vtlist.next != vtp) {
+ 384              		.loc 1 235 3 view .LVU127
+ 385              		.loc 1 235 16 is_stmt 0 view .LVU128
+ 386 0000 184A     		ldr	r2, .L21
+ 211:lib/chibios/os/rt/src/chvt.c **** 
+ 387              		.loc 1 211 41 view .LVU129
+ 388 0002 10B5     		push	{r4, lr}
+ 389              		.cfi_def_cfa_offset 8
+ 390              		.cfi_offset 4, -8
+ 391              		.cfi_offset 14, -4
+ 392              		.loc 1 235 6 view .LVU130
+ 393 0004 D169     		ldr	r1, [r2, #28]
+ 394 0006 0368     		ldr	r3, [r0]
+ 395 0008 174C     		ldr	r4, .L21+4
+ 396 000a 8142     		cmp	r1, r0
+ 397 000c 0CD0     		beq	.L15
+ 236:lib/chibios/os/rt/src/chvt.c ****     /* Removing the element from the delta list.*/
+ 237:lib/chibios/os/rt/src/chvt.c ****     vtp->prev->next = vtp->next;
+ 398              		.loc 1 237 5 is_stmt 1 view .LVU131
+ 399              		.loc 1 237 8 is_stmt 0 view .LVU132
+ 400 000e 4268     		ldr	r2, [r0, #4]
+ 401              		.loc 1 237 21 view .LVU133
+ 402 0010 1360     		str	r3, [r2]
+ 238:lib/chibios/os/rt/src/chvt.c ****     vtp->next->prev = vtp->prev;
+ 403              		.loc 1 238 5 is_stmt 1 view .LVU134
+ 404              		.loc 1 238 8 is_stmt 0 view .LVU135
+ 405 0012 0368     		ldr	r3, [r0]
+ 406              		.loc 1 238 21 view .LVU136
+ 407 0014 5A60     		str	r2, [r3, #4]
+ 239:lib/chibios/os/rt/src/chvt.c ****     vtp->func = NULL;
+ 408              		.loc 1 239 5 is_stmt 1 view .LVU137
+ 409              		.loc 1 239 15 is_stmt 0 view .LVU138
+ 410 0016 0022     		movs	r2, #0
+ 411 0018 C260     		str	r2, [r0, #12]
+ 240:lib/chibios/os/rt/src/chvt.c **** 
+ 241:lib/chibios/os/rt/src/chvt.c ****     /* Adding delta to the next element, if it is not the last one.*/
+ 242:lib/chibios/os/rt/src/chvt.c ****     if (&ch.vtlist != (virtual_timers_list_t *)vtp->next)
+ 412              		.loc 1 242 5 is_stmt 1 view .LVU139
+ 413              		.loc 1 242 8 is_stmt 0 view .LVU140
+ 414 001a A342     		cmp	r3, r4
+ 415 001c 03D0     		beq	.L14
+ 243:lib/chibios/os/rt/src/chvt.c ****       vtp->next->delta += vtp->delta;
+ 416              		.loc 1 243 7 is_stmt 1 view .LVU141
+ 417              		.loc 1 243 24 is_stmt 0 view .LVU142
+ 418 001e 8268     		ldr	r2, [r0, #8]
+ 419 0020 9968     		ldr	r1, [r3, #8]
+ 420 0022 8A18     		adds	r2, r1, r2
+ 421 0024 9A60     		str	r2, [r3, #8]
+ 422              	.LVL23:
+ 423              	.L14:
+ 244:lib/chibios/os/rt/src/chvt.c **** 
+ 245:lib/chibios/os/rt/src/chvt.c ****     return;
+ 246:lib/chibios/os/rt/src/chvt.c ****   }
+ 247:lib/chibios/os/rt/src/chvt.c **** 
+ 248:lib/chibios/os/rt/src/chvt.c ****   /* Removing the first timer from the list.*/
+ 249:lib/chibios/os/rt/src/chvt.c ****   ch.vtlist.next = vtp->next;
+ 250:lib/chibios/os/rt/src/chvt.c ****   ch.vtlist.next->prev = (virtual_timer_t *)&ch.vtlist;
+ 251:lib/chibios/os/rt/src/chvt.c ****   vtp->func = NULL;
+ 252:lib/chibios/os/rt/src/chvt.c **** 
+ 253:lib/chibios/os/rt/src/chvt.c ****   /* If the list become empty then the alarm timer is stopped and done.*/
+ 254:lib/chibios/os/rt/src/chvt.c ****   if (&ch.vtlist == (virtual_timers_list_t *)ch.vtlist.next) {
+ 255:lib/chibios/os/rt/src/chvt.c ****     port_timer_stop_alarm();
+ 256:lib/chibios/os/rt/src/chvt.c **** 
+ 257:lib/chibios/os/rt/src/chvt.c ****     return;
+ 258:lib/chibios/os/rt/src/chvt.c ****   }
+ 259:lib/chibios/os/rt/src/chvt.c **** 
+ 260:lib/chibios/os/rt/src/chvt.c ****   /* The delta of the removed timer is added to the new first timer.*/
+ 261:lib/chibios/os/rt/src/chvt.c ****   ch.vtlist.next->delta += vtp->delta;
+ 262:lib/chibios/os/rt/src/chvt.c **** 
+ 263:lib/chibios/os/rt/src/chvt.c ****   /* If the new first timer has a delta of zero then the alarm is not
+ 264:lib/chibios/os/rt/src/chvt.c ****      modified, the already programmed alarm will serve it.*/
+ 265:lib/chibios/os/rt/src/chvt.c **** /*  if (ch.vtlist.next->delta == 0) {
+ 266:lib/chibios/os/rt/src/chvt.c ****     return;
+ 267:lib/chibios/os/rt/src/chvt.c ****   }*/
+ 268:lib/chibios/os/rt/src/chvt.c **** 
+ 269:lib/chibios/os/rt/src/chvt.c ****   /* Distance in ticks between the last alarm event and current time.*/
+ 270:lib/chibios/os/rt/src/chvt.c ****   nowdelta = chTimeDiffX(ch.vtlist.lasttime, chVTGetSystemTimeX());
+ 271:lib/chibios/os/rt/src/chvt.c **** 
+ 272:lib/chibios/os/rt/src/chvt.c ****   /* If the current time surpassed the time of the next element in list
+ 273:lib/chibios/os/rt/src/chvt.c ****      then the event interrupt is already pending, just return.*/
+ 274:lib/chibios/os/rt/src/chvt.c ****   if (nowdelta >= ch.vtlist.next->delta) {
+ 275:lib/chibios/os/rt/src/chvt.c ****     return;
+ 276:lib/chibios/os/rt/src/chvt.c ****   }
+ 277:lib/chibios/os/rt/src/chvt.c **** 
+ 278:lib/chibios/os/rt/src/chvt.c ****   /* Distance from the next scheduled event and now.*/
+ 279:lib/chibios/os/rt/src/chvt.c ****   delta = ch.vtlist.next->delta - nowdelta;
+ 280:lib/chibios/os/rt/src/chvt.c **** 
+ 281:lib/chibios/os/rt/src/chvt.c ****   /* Making sure to not schedule an event closer than CH_CFG_ST_TIMEDELTA
+ 282:lib/chibios/os/rt/src/chvt.c ****      ticks from now.*/
+ 283:lib/chibios/os/rt/src/chvt.c ****   if (delta < (sysinterval_t)CH_CFG_ST_TIMEDELTA) {
+ 284:lib/chibios/os/rt/src/chvt.c ****     delta = nowdelta + (sysinterval_t)CH_CFG_ST_TIMEDELTA;
+ 285:lib/chibios/os/rt/src/chvt.c ****   }
+ 286:lib/chibios/os/rt/src/chvt.c ****   else {
+ 287:lib/chibios/os/rt/src/chvt.c ****     delta = nowdelta + delta;
+ 288:lib/chibios/os/rt/src/chvt.c **** #if CH_CFG_INTERVALS_SIZE > CH_CFG_ST_RESOLUTION
+ 289:lib/chibios/os/rt/src/chvt.c ****     /* The delta could be too large for the physical timer to handle.*/
+ 290:lib/chibios/os/rt/src/chvt.c ****     if (delta > (sysinterval_t)TIME_MAX_SYSTIME) {
+ 291:lib/chibios/os/rt/src/chvt.c ****       delta = (sysinterval_t)TIME_MAX_SYSTIME;
+ 292:lib/chibios/os/rt/src/chvt.c ****     }
+ 293:lib/chibios/os/rt/src/chvt.c **** #endif
+ 294:lib/chibios/os/rt/src/chvt.c ****   }
+ 295:lib/chibios/os/rt/src/chvt.c ****   port_timer_set_alarm(chTimeAddX(ch.vtlist.lasttime, delta));
+ 296:lib/chibios/os/rt/src/chvt.c **** #endif /* CH_CFG_ST_TIMEDELTA > 0 */
+ 297:lib/chibios/os/rt/src/chvt.c **** }
+ 424              		.loc 1 297 1 view .LVU143
+ 425              		@ sp needed
+ 426 0026 10BD     		pop	{r4, pc}
+ 427              	.LVL24:
+ 428              	.L15:
+ 249:lib/chibios/os/rt/src/chvt.c ****   ch.vtlist.next->prev = (virtual_timer_t *)&ch.vtlist;
+ 429              		.loc 1 249 3 is_stmt 1 view .LVU144
+ 251:lib/chibios/os/rt/src/chvt.c **** 
+ 430              		.loc 1 251 13 is_stmt 0 view .LVU145
+ 431 0028 0020     		movs	r0, #0
+ 432              	.LVL25:
+ 249:lib/chibios/os/rt/src/chvt.c ****   ch.vtlist.next->prev = (virtual_timer_t *)&ch.vtlist;
+ 433              		.loc 1 249 18 view .LVU146
+ 434 002a D361     		str	r3, [r2, #28]
+ 250:lib/chibios/os/rt/src/chvt.c ****   vtp->func = NULL;
+ 435              		.loc 1 250 3 is_stmt 1 view .LVU147
+ 250:lib/chibios/os/rt/src/chvt.c ****   vtp->func = NULL;
+ 436              		.loc 1 250 24 is_stmt 0 view .LVU148
+ 437 002c 5C60     		str	r4, [r3, #4]
+ 251:lib/chibios/os/rt/src/chvt.c **** 
+ 438              		.loc 1 251 3 is_stmt 1 view .LVU149
+ 251:lib/chibios/os/rt/src/chvt.c **** 
+ 439              		.loc 1 251 13 is_stmt 0 view .LVU150
+ 440 002e C860     		str	r0, [r1, #12]
+ 254:lib/chibios/os/rt/src/chvt.c ****     port_timer_stop_alarm();
+ 441              		.loc 1 254 3 is_stmt 1 view .LVU151
+ 254:lib/chibios/os/rt/src/chvt.c ****     port_timer_stop_alarm();
+ 442              		.loc 1 254 6 is_stmt 0 view .LVU152
+ 443 0030 A342     		cmp	r3, r4
+ 444 0032 02D1     		bne	.L18
+ 255:lib/chibios/os/rt/src/chvt.c **** 
+ 445              		.loc 1 255 5 is_stmt 1 view .LVU153
+ 446              	.LBB75:
+ 447              	.LBI75:
+  81:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** 
+ 448              		.loc 4 81 20 view .LVU154
+ 449              	.LBB76:
+  83:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** }
+ 450              		.loc 4 83 3 view .LVU155
+ 451 0034 FFF7FEFF 		bl	stStopAlarm
+ 452              	.LVL26:
+ 453              	.LBE76:
+ 454              	.LBE75:
+ 257:lib/chibios/os/rt/src/chvt.c ****   }
+ 455              		.loc 1 257 5 view .LVU156
+ 456 0038 F5E7     		b	.L14
+ 457              	.L18:
+ 261:lib/chibios/os/rt/src/chvt.c **** 
+ 458              		.loc 1 261 3 view .LVU157
+ 261:lib/chibios/os/rt/src/chvt.c **** 
+ 459              		.loc 1 261 25 is_stmt 0 view .LVU158
+ 460 003a 8868     		ldr	r0, [r1, #8]
+ 461 003c 9968     		ldr	r1, [r3, #8]
+ 270:lib/chibios/os/rt/src/chvt.c **** 
+ 462              		.loc 1 270 14 view .LVU159
+ 463 003e 926A     		ldr	r2, [r2, #40]
+ 261:lib/chibios/os/rt/src/chvt.c **** 
+ 464              		.loc 1 261 25 view .LVU160
+ 465 0040 0818     		adds	r0, r1, r0
+ 466 0042 9860     		str	r0, [r3, #8]
+ 270:lib/chibios/os/rt/src/chvt.c **** 
+ 467              		.loc 1 270 3 is_stmt 1 view .LVU161
+ 468              	.LBB77:
+ 469              	.LBI77:
+ 115:./lib/chibios/os/rt/include/chvt.h **** 
+ 470              		.loc 3 115 25 view .LVU162
+ 471              	.LBE77:
+ 472              		.loc 3 120 3 view .LVU163
+ 473              	.LBB82:
+ 474              	.LBB78:
+ 475              	.LBI78:
+ 105:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** 
+ 476              		.loc 4 105 25 view .LVU164
+ 477              	.LBE78:
+ 478              	.LBE82:
+ 479              		.loc 4 107 3 view .LVU165
+ 480              	.LBB83:
+ 481              	.LBB81:
+ 482              	.LBB79:
+ 483              	.LBI79:
+ 145:./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_st_lld.h **** 
+ 484              		.loc 2 145 25 view .LVU166
+ 485              	.LBB80:
+ 486              		.loc 2 147 3 view .LVU167
+ 487              		.loc 2 147 10 is_stmt 0 view .LVU168
+ 488 0044 8023     		movs	r3, #128
+ 489 0046 DB05     		lsls	r3, r3, #23
+ 490 0048 5B6A     		ldr	r3, [r3, #36]
+ 491              	.LVL27:
+ 492              		.loc 2 147 10 view .LVU169
+ 493              	.LBE80:
+ 494              	.LBE79:
+ 495              	.LBE81:
+ 496              	.LBE83:
+ 497              	.LBB84:
+ 498              	.LBI84:
+ 459:./lib/chibios/os/rt/include/chtime.h **** 
+ 499              		.loc 5 459 29 is_stmt 1 view .LVU170
+ 500              	.LBB85:
+ 501              		.loc 5 463 3 view .LVU171
+ 502              		.loc 5 463 10 is_stmt 0 view .LVU172
+ 503 004a 991A     		subs	r1, r3, r2
+ 504              	.LVL28:
+ 505              		.loc 5 463 10 view .LVU173
+ 506              	.LBE85:
+ 507              	.LBE84:
+ 274:lib/chibios/os/rt/src/chvt.c ****     return;
+ 508              		.loc 1 274 3 is_stmt 1 view .LVU174
+ 274:lib/chibios/os/rt/src/chvt.c ****     return;
+ 509              		.loc 1 274 6 is_stmt 0 view .LVU175
+ 510 004c 8842     		cmp	r0, r1
+ 511 004e EAD9     		bls	.L14
+ 279:lib/chibios/os/rt/src/chvt.c **** 
+ 512              		.loc 1 279 3 is_stmt 1 view .LVU176
+ 513              	.LVL29:
+ 283:lib/chibios/os/rt/src/chvt.c ****     delta = nowdelta + (sysinterval_t)CH_CFG_ST_TIMEDELTA;
+ 514              		.loc 1 283 3 view .LVU177
+ 279:lib/chibios/os/rt/src/chvt.c **** 
+ 515              		.loc 1 279 9 is_stmt 0 view .LVU178
+ 516 0050 D31A     		subs	r3, r2, r3
+ 517              	.LVL30:
+ 279:lib/chibios/os/rt/src/chvt.c **** 
+ 518              		.loc 1 279 9 view .LVU179
+ 519 0052 1B18     		adds	r3, r3, r0
+ 520              	.LVL31:
+ 283:lib/chibios/os/rt/src/chvt.c ****     delta = nowdelta + (sysinterval_t)CH_CFG_ST_TIMEDELTA;
+ 521              		.loc 1 283 6 view .LVU180
+ 522 0054 012B     		cmp	r3, #1
+ 523 0056 00D8     		bhi	.L20
+ 284:lib/chibios/os/rt/src/chvt.c ****   }
+ 524              		.loc 1 284 5 is_stmt 1 view .LVU181
+ 284:lib/chibios/os/rt/src/chvt.c ****   }
+ 525              		.loc 1 284 11 is_stmt 0 view .LVU182
+ 526 0058 881C     		adds	r0, r1, #2
+ 527              	.LVL32:
+ 528              	.L20:
+ 295:lib/chibios/os/rt/src/chvt.c **** #endif /* CH_CFG_ST_TIMEDELTA > 0 */
+ 529              		.loc 1 295 3 is_stmt 1 view .LVU183
+ 530              	.LBB86:
+ 531              	.LBI86:
+ 440:./lib/chibios/os/rt/include/chtime.h ****                                    sysinterval_t interval) {
+ 532              		.loc 5 440 25 view .LVU184
+ 533              	.LBB87:
+ 447:./lib/chibios/os/rt/include/chtime.h **** }
+ 534              		.loc 5 447 3 view .LVU185
+ 447:./lib/chibios/os/rt/include/chtime.h **** }
+ 535              		.loc 5 447 3 is_stmt 0 view .LVU186
+ 536              	.LBE87:
+ 537              	.LBE86:
+ 538              	.LBB89:
+ 539              	.LBI89:
+  93:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** 
+ 540              		.loc 4 93 20 is_stmt 1 view .LVU187
+ 541              	.LBB90:
+  95:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** }
+ 542              		.loc 4 95 3 view .LVU188
+ 543              	.LBE90:
+ 544              	.LBE89:
+ 545              	.LBB92:
+ 546              	.LBB88:
+ 447:./lib/chibios/os/rt/include/chtime.h **** }
+ 547              		.loc 5 447 18 is_stmt 0 view .LVU189
+ 548 005a 8018     		adds	r0, r0, r2
+ 549              	.LVL33:
+ 447:./lib/chibios/os/rt/include/chtime.h **** }
+ 550              		.loc 5 447 18 view .LVU190
+ 551              	.LBE88:
+ 552              	.LBE92:
+ 553              	.LBB93:
+ 554              	.LBB91:
+  95:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** }
+ 555              		.loc 4 95 3 view .LVU191
+ 556 005c FFF7FEFF 		bl	stSetAlarm
+ 557              	.LVL34:
+  95:./lib/chibios/os/common/ports/ARMCMx/chcore_timer.h **** }
+ 558              		.loc 4 95 3 view .LVU192
+ 559 0060 E1E7     		b	.L14
+ 560              	.L22:
+ 561 0062 C046     		.align	2
+ 562              	.L21:
+ 563 0064 00000000 		.word	ch
+ 564 0068 1C000000 		.word	ch+28
+ 565              	.LBE91:
+ 566              	.LBE93:
+ 567              		.cfi_endproc
+ 568              	.LFE156:
+ 570              		.text
+ 571              	.Letext0:
+ 572              		.file 6 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\arm-none-eabi\\include\\machine\\_
+ 573              		.file 7 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\arm-none-eabi\\include\\sys\\_stdi
+ 574              		.file 8 "./lib/chibios/os/common/ports/ARMCMx/compilers/GCC/chtypes.h"
+ 575              		.file 9 "./lib/chibios/os/rt/include/chsystypes.h"
+ 576              		.file 10 "./lib/chibios/os/rt/include/chschd.h"
+ 577              		.file 11 "./lib/chibios/os/common/ext/ST/STM32F0xx/system_stm32f0xx.h"
+ 578              		.file 12 "./lib/chibios/os/common/ports/ARMCMx/chcore.h"
+ 579              		.file 13 "./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h"
+ 580              		.file 14 "./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/stm32_tim.h"
+ 581              		.file 15 "./lib/chibios/os/rt/include/chsem.h"
+ 582              		.file 16 "./lib/chibios/os/rt/include/chmtx.h"
+ 583              		.file 17 "./lib/chibios/os/rt/include/chsys.h"
+ 584              		.file 18 "./lib/chibios/os/rt/include/chregistry.h"
+ 585              		.file 19 "./lib/chibios/os/oslib/include/chmemcore.h"
+ 586              		.file 20 "./lib/chibios/os/hal/include/hal_st.h"
+DEFINED SYMBOLS
+                            *ABS*:00000000 chvt.c
+C:\Users\kyleo\AppData\Local\Temp\cc0F9zga.s:16     .text._vt_init:00000000 $t
+C:\Users\kyleo\AppData\Local\Temp\cc0F9zga.s:24     .text._vt_init:00000000 _vt_init
+C:\Users\kyleo\AppData\Local\Temp\cc0F9zga.s:57     .text._vt_init:00000014 $d
+C:\Users\kyleo\AppData\Local\Temp\cc0F9zga.s:63     .text.chVTDoSetI:00000000 $t
+C:\Users\kyleo\AppData\Local\Temp\cc0F9zga.s:70     .text.chVTDoSetI:00000000 chVTDoSetI
+C:\Users\kyleo\AppData\Local\Temp\cc0F9zga.s:358    .text.chVTDoSetI:00000070 $d
+C:\Users\kyleo\AppData\Local\Temp\cc0F9zga.s:364    .text.chVTDoResetI:00000000 $t
+C:\Users\kyleo\AppData\Local\Temp\cc0F9zga.s:371    .text.chVTDoResetI:00000000 chVTDoResetI
+C:\Users\kyleo\AppData\Local\Temp\cc0F9zga.s:563    .text.chVTDoResetI:00000064 $d
+
+UNDEFINED SYMBOLS
+ch
+stStartAlarm
+stSetAlarm
+stStopAlarm

@@ -1,0 +1,1 @@
+-Wl,--gc-sections -Wl,-Map=.build/clueboard_66_rev3_default.map,--cref     -lm 

@@ -1,0 +1,1182 @@
+   1               		.file	"backlight.c"
+   2               	__SP_H__ = 0x3e
+   3               	__SP_L__ = 0x3d
+   4               	__SREG__ = 0x3f
+   5               	__tmp_reg__ = 0
+   6               	__zero_reg__ = 1
+   7               		.text
+   8               	.Ltext0:
+   9               		.cfi_sections	.debug_frame
+  10               		.section	.text.is_backlight_enabled,"ax",@progbits
+  11               	.global	is_backlight_enabled
+  13               	is_backlight_enabled:
+  14               	.LFB118:
+  15               		.file 1 "quantum/backlight/backlight.c"
+   1:quantum/backlight/backlight.c **** /*
+   2:quantum/backlight/backlight.c **** Copyright 2013 Mathias Andersson <wraul@dbox.se>
+   3:quantum/backlight/backlight.c **** 
+   4:quantum/backlight/backlight.c **** This program is free software: you can redistribute it and/or modify
+   5:quantum/backlight/backlight.c **** it under the terms of the GNU General Public License as published by
+   6:quantum/backlight/backlight.c **** the Free Software Foundation, either version 2 of the License, or
+   7:quantum/backlight/backlight.c **** (at your option) any later version.
+   8:quantum/backlight/backlight.c **** 
+   9:quantum/backlight/backlight.c **** This program is distributed in the hope that it will be useful,
+  10:quantum/backlight/backlight.c **** but WITHOUT ANY WARRANTY; without even the implied warranty of
+  11:quantum/backlight/backlight.c **** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  12:quantum/backlight/backlight.c **** GNU General Public License for more details.
+  13:quantum/backlight/backlight.c **** 
+  14:quantum/backlight/backlight.c **** You should have received a copy of the GNU General Public License
+  15:quantum/backlight/backlight.c **** along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  16:quantum/backlight/backlight.c **** */
+  17:quantum/backlight/backlight.c **** 
+  18:quantum/backlight/backlight.c **** #include "quantum.h"
+  19:quantum/backlight/backlight.c **** #include "backlight.h"
+  20:quantum/backlight/backlight.c **** #include "eeconfig.h"
+  21:quantum/backlight/backlight.c **** #include "debug.h"
+  22:quantum/backlight/backlight.c **** 
+  23:quantum/backlight/backlight.c **** #if defined(STM32F0XX) || defined(STM32F0xx)
+  24:quantum/backlight/backlight.c **** #    pragma message("Backlight support for STMF072 has had limited testing, YMMV. If unsure, set 'B
+  25:quantum/backlight/backlight.c **** #endif
+  26:quantum/backlight/backlight.c **** 
+  27:quantum/backlight/backlight.c **** backlight_config_t backlight_config;
+  28:quantum/backlight/backlight.c **** 
+  29:quantum/backlight/backlight.c **** #ifdef BACKLIGHT_BREATHING
+  30:quantum/backlight/backlight.c **** // TODO: migrate to backlight_config_t
+  31:quantum/backlight/backlight.c **** static uint8_t breathing_period = BREATHING_PERIOD;
+  32:quantum/backlight/backlight.c **** #endif
+  33:quantum/backlight/backlight.c **** 
+  34:quantum/backlight/backlight.c **** /** \brief Backlight initialization
+  35:quantum/backlight/backlight.c ****  *
+  36:quantum/backlight/backlight.c ****  * FIXME: needs doc
+  37:quantum/backlight/backlight.c ****  */
+  38:quantum/backlight/backlight.c **** void backlight_init(void) {
+  39:quantum/backlight/backlight.c ****     /* check signature */
+  40:quantum/backlight/backlight.c ****     if (!eeconfig_is_enabled()) {
+  41:quantum/backlight/backlight.c ****         eeconfig_init();
+  42:quantum/backlight/backlight.c ****     }
+  43:quantum/backlight/backlight.c ****     backlight_config.raw = eeconfig_read_backlight();
+  44:quantum/backlight/backlight.c ****     if (backlight_config.level > BACKLIGHT_LEVELS) {
+  45:quantum/backlight/backlight.c ****         backlight_config.level = BACKLIGHT_LEVELS;
+  46:quantum/backlight/backlight.c ****     }
+  47:quantum/backlight/backlight.c ****     backlight_set(backlight_config.enable ? backlight_config.level : 0);
+  48:quantum/backlight/backlight.c **** }
+  49:quantum/backlight/backlight.c **** 
+  50:quantum/backlight/backlight.c **** /** \brief Backlight increase
+  51:quantum/backlight/backlight.c ****  *
+  52:quantum/backlight/backlight.c ****  * FIXME: needs doc
+  53:quantum/backlight/backlight.c ****  */
+  54:quantum/backlight/backlight.c **** void backlight_increase(void) {
+  55:quantum/backlight/backlight.c ****     if (backlight_config.level < BACKLIGHT_LEVELS) {
+  56:quantum/backlight/backlight.c ****         backlight_config.level++;
+  57:quantum/backlight/backlight.c ****     }
+  58:quantum/backlight/backlight.c ****     backlight_config.enable = 1;
+  59:quantum/backlight/backlight.c ****     eeconfig_update_backlight(backlight_config.raw);
+  60:quantum/backlight/backlight.c ****     dprintf("backlight increase: %u\n", backlight_config.level);
+  61:quantum/backlight/backlight.c ****     backlight_set(backlight_config.level);
+  62:quantum/backlight/backlight.c **** }
+  63:quantum/backlight/backlight.c **** 
+  64:quantum/backlight/backlight.c **** /** \brief Backlight decrease
+  65:quantum/backlight/backlight.c ****  *
+  66:quantum/backlight/backlight.c ****  * FIXME: needs doc
+  67:quantum/backlight/backlight.c ****  */
+  68:quantum/backlight/backlight.c **** void backlight_decrease(void) {
+  69:quantum/backlight/backlight.c ****     if (backlight_config.level > 0) {
+  70:quantum/backlight/backlight.c ****         backlight_config.level--;
+  71:quantum/backlight/backlight.c ****         backlight_config.enable = !!backlight_config.level;
+  72:quantum/backlight/backlight.c ****         eeconfig_update_backlight(backlight_config.raw);
+  73:quantum/backlight/backlight.c ****     }
+  74:quantum/backlight/backlight.c ****     dprintf("backlight decrease: %u\n", backlight_config.level);
+  75:quantum/backlight/backlight.c ****     backlight_set(backlight_config.level);
+  76:quantum/backlight/backlight.c **** }
+  77:quantum/backlight/backlight.c **** 
+  78:quantum/backlight/backlight.c **** /** \brief Backlight toggle
+  79:quantum/backlight/backlight.c ****  *
+  80:quantum/backlight/backlight.c ****  * FIXME: needs doc
+  81:quantum/backlight/backlight.c ****  */
+  82:quantum/backlight/backlight.c **** void backlight_toggle(void) {
+  83:quantum/backlight/backlight.c ****     bool enabled = backlight_config.enable;
+  84:quantum/backlight/backlight.c ****     dprintf("backlight toggle: %u\n", enabled);
+  85:quantum/backlight/backlight.c ****     if (enabled)
+  86:quantum/backlight/backlight.c ****         backlight_disable();
+  87:quantum/backlight/backlight.c ****     else
+  88:quantum/backlight/backlight.c ****         backlight_enable();
+  89:quantum/backlight/backlight.c **** }
+  90:quantum/backlight/backlight.c **** 
+  91:quantum/backlight/backlight.c **** /** \brief Enable backlight
+  92:quantum/backlight/backlight.c ****  *
+  93:quantum/backlight/backlight.c ****  * FIXME: needs doc
+  94:quantum/backlight/backlight.c ****  */
+  95:quantum/backlight/backlight.c **** void backlight_enable(void) {
+  96:quantum/backlight/backlight.c ****     if (backlight_config.enable) return;  // do nothing if backlight is already on
+  97:quantum/backlight/backlight.c **** 
+  98:quantum/backlight/backlight.c ****     backlight_config.enable = true;
+  99:quantum/backlight/backlight.c ****     if (backlight_config.raw == 1)  // enabled but level == 0
+ 100:quantum/backlight/backlight.c ****         backlight_config.level = 1;
+ 101:quantum/backlight/backlight.c ****     eeconfig_update_backlight(backlight_config.raw);
+ 102:quantum/backlight/backlight.c ****     dprintf("backlight enable\n");
+ 103:quantum/backlight/backlight.c ****     backlight_set(backlight_config.level);
+ 104:quantum/backlight/backlight.c **** }
+ 105:quantum/backlight/backlight.c **** 
+ 106:quantum/backlight/backlight.c **** /** \brief Disable backlight
+ 107:quantum/backlight/backlight.c ****  *
+ 108:quantum/backlight/backlight.c ****  * FIXME: needs doc
+ 109:quantum/backlight/backlight.c ****  */
+ 110:quantum/backlight/backlight.c **** void backlight_disable(void) {
+ 111:quantum/backlight/backlight.c ****     if (!backlight_config.enable) return;  // do nothing if backlight is already off
+ 112:quantum/backlight/backlight.c **** 
+ 113:quantum/backlight/backlight.c ****     backlight_config.enable = false;
+ 114:quantum/backlight/backlight.c ****     eeconfig_update_backlight(backlight_config.raw);
+ 115:quantum/backlight/backlight.c ****     dprintf("backlight disable\n");
+ 116:quantum/backlight/backlight.c ****     backlight_set(0);
+ 117:quantum/backlight/backlight.c **** }
+ 118:quantum/backlight/backlight.c **** 
+ 119:quantum/backlight/backlight.c **** /** /brief Get the backlight status
+ 120:quantum/backlight/backlight.c ****  *
+ 121:quantum/backlight/backlight.c ****  * FIXME: needs doc
+ 122:quantum/backlight/backlight.c ****  */
+ 123:quantum/backlight/backlight.c **** bool is_backlight_enabled(void) { return backlight_config.enable; }
+  16               		.loc 1 123 33 view -0
+  17               		.cfi_startproc
+  18               	/* prologue: function */
+  19               	/* frame size = 0 */
+  20               	/* stack size = 0 */
+  21               	.L__stack_usage = 0
+  22               		.loc 1 123 35 view .LVU1
+  23               		.loc 1 123 58 is_stmt 0 view .LVU2
+  24 0000 8091 0000 		lds r24,backlight_config
+  25               		.loc 1 123 1 view .LVU3
+  26 0004 8170      		andi r24,lo8(1)
+  27               	/* epilogue start */
+  28 0006 0895      		ret
+  29               		.cfi_endproc
+  30               	.LFE118:
+  32               		.section	.text.eeconfig_update_backlight_current,"ax",@progbits
+  33               	.global	eeconfig_update_backlight_current
+  35               	eeconfig_update_backlight_current:
+  36               	.LFB122:
+ 124:quantum/backlight/backlight.c **** 
+ 125:quantum/backlight/backlight.c **** /** \brief Backlight step through levels
+ 126:quantum/backlight/backlight.c ****  *
+ 127:quantum/backlight/backlight.c ****  * FIXME: needs doc
+ 128:quantum/backlight/backlight.c ****  */
+ 129:quantum/backlight/backlight.c **** void backlight_step(void) {
+ 130:quantum/backlight/backlight.c ****     backlight_config.level++;
+ 131:quantum/backlight/backlight.c ****     if (backlight_config.level > BACKLIGHT_LEVELS) {
+ 132:quantum/backlight/backlight.c ****         backlight_config.level = 0;
+ 133:quantum/backlight/backlight.c ****     }
+ 134:quantum/backlight/backlight.c ****     backlight_config.enable = !!backlight_config.level;
+ 135:quantum/backlight/backlight.c ****     eeconfig_update_backlight(backlight_config.raw);
+ 136:quantum/backlight/backlight.c ****     dprintf("backlight step: %u\n", backlight_config.level);
+ 137:quantum/backlight/backlight.c ****     backlight_set(backlight_config.level);
+ 138:quantum/backlight/backlight.c **** }
+ 139:quantum/backlight/backlight.c **** 
+ 140:quantum/backlight/backlight.c **** /** \brief Backlight set level without EEPROM update
+ 141:quantum/backlight/backlight.c ****  *
+ 142:quantum/backlight/backlight.c ****  */
+ 143:quantum/backlight/backlight.c **** void backlight_level_noeeprom(uint8_t level) {
+ 144:quantum/backlight/backlight.c ****     if (level > BACKLIGHT_LEVELS) level = BACKLIGHT_LEVELS;
+ 145:quantum/backlight/backlight.c ****     backlight_config.level  = level;
+ 146:quantum/backlight/backlight.c ****     backlight_config.enable = !!backlight_config.level;
+ 147:quantum/backlight/backlight.c ****     backlight_set(backlight_config.level);
+ 148:quantum/backlight/backlight.c **** }
+ 149:quantum/backlight/backlight.c **** 
+ 150:quantum/backlight/backlight.c **** /** \brief Backlight set level
+ 151:quantum/backlight/backlight.c ****  *
+ 152:quantum/backlight/backlight.c ****  * FIXME: needs doc
+ 153:quantum/backlight/backlight.c ****  */
+ 154:quantum/backlight/backlight.c **** void backlight_level(uint8_t level) {
+ 155:quantum/backlight/backlight.c ****     backlight_level_noeeprom(level);
+ 156:quantum/backlight/backlight.c ****     eeconfig_update_backlight(backlight_config.raw);
+ 157:quantum/backlight/backlight.c **** }
+ 158:quantum/backlight/backlight.c **** 
+ 159:quantum/backlight/backlight.c **** /** \brief Update current backlight state to EEPROM
+ 160:quantum/backlight/backlight.c ****  *
+ 161:quantum/backlight/backlight.c ****  */
+ 162:quantum/backlight/backlight.c **** void eeconfig_update_backlight_current(void) { eeconfig_update_backlight(backlight_config.raw); }
+  37               		.loc 1 162 46 is_stmt 1 view -0
+  38               		.cfi_startproc
+  39               	/* prologue: function */
+  40               	/* frame size = 0 */
+  41               	/* stack size = 0 */
+  42               	.L__stack_usage = 0
+  43               		.loc 1 162 48 view .LVU5
+  44 0000 8091 0000 		lds r24,backlight_config
+  45 0004 0C94 0000 		jmp eeconfig_update_backlight
+  46               	.LVL0:
+  47               		.cfi_endproc
+  48               	.LFE122:
+  50               		.section	.text.get_backlight_level,"ax",@progbits
+  51               	.global	get_backlight_level
+  53               	get_backlight_level:
+  54               	.LFB123:
+ 163:quantum/backlight/backlight.c **** 
+ 164:quantum/backlight/backlight.c **** /** \brief Get backlight level
+ 165:quantum/backlight/backlight.c ****  *
+ 166:quantum/backlight/backlight.c ****  * FIXME: needs doc
+ 167:quantum/backlight/backlight.c ****  */
+ 168:quantum/backlight/backlight.c **** uint8_t get_backlight_level(void) { return backlight_config.level; }
+  55               		.loc 1 168 35 view -0
+  56               		.cfi_startproc
+  57               	/* prologue: function */
+  58               	/* frame size = 0 */
+  59               	/* stack size = 0 */
+  60               	.L__stack_usage = 0
+  61               		.loc 1 168 37 view .LVU7
+  62               		.loc 1 168 60 is_stmt 0 view .LVU8
+  63 0000 8091 0000 		lds r24,backlight_config
+  64               		.loc 1 168 1 view .LVU9
+  65 0004 8695      		lsr r24
+  66 0006 8695      		lsr r24
+  67 0008 8695      		lsr r24
+  68               	/* epilogue start */
+  69 000a 0895      		ret
+  70               		.cfi_endproc
+  71               	.LFE123:
+  73               		.section	.text.backlight_init_ports,"ax",@progbits
+  74               		.weak	backlight_init_ports
+  76               	backlight_init_ports:
+  77               	.LFB124:
+ 169:quantum/backlight/backlight.c **** 
+ 170:quantum/backlight/backlight.c **** #ifdef BACKLIGHT_BREATHING
+ 171:quantum/backlight/backlight.c **** /** \brief Backlight breathing toggle
+ 172:quantum/backlight/backlight.c ****  *
+ 173:quantum/backlight/backlight.c ****  * FIXME: needs doc
+ 174:quantum/backlight/backlight.c ****  */
+ 175:quantum/backlight/backlight.c **** void backlight_toggle_breathing(void) {
+ 176:quantum/backlight/backlight.c ****     bool breathing = backlight_config.breathing;
+ 177:quantum/backlight/backlight.c ****     dprintf("backlight breathing toggle: %u\n", breathing);
+ 178:quantum/backlight/backlight.c ****     if (breathing)
+ 179:quantum/backlight/backlight.c ****         backlight_disable_breathing();
+ 180:quantum/backlight/backlight.c ****     else
+ 181:quantum/backlight/backlight.c ****         backlight_enable_breathing();
+ 182:quantum/backlight/backlight.c **** }
+ 183:quantum/backlight/backlight.c **** 
+ 184:quantum/backlight/backlight.c **** /** \brief Enable backlight breathing
+ 185:quantum/backlight/backlight.c ****  *
+ 186:quantum/backlight/backlight.c ****  * FIXME: needs doc
+ 187:quantum/backlight/backlight.c ****  */
+ 188:quantum/backlight/backlight.c **** void backlight_enable_breathing(void) {
+ 189:quantum/backlight/backlight.c ****     if (backlight_config.breathing) return;  // do nothing if breathing is already on
+ 190:quantum/backlight/backlight.c **** 
+ 191:quantum/backlight/backlight.c ****     backlight_config.breathing = true;
+ 192:quantum/backlight/backlight.c ****     eeconfig_update_backlight(backlight_config.raw);
+ 193:quantum/backlight/backlight.c ****     dprintf("backlight breathing enable\n");
+ 194:quantum/backlight/backlight.c ****     breathing_enable();
+ 195:quantum/backlight/backlight.c **** }
+ 196:quantum/backlight/backlight.c **** 
+ 197:quantum/backlight/backlight.c **** /** \brief Disable backlight breathing
+ 198:quantum/backlight/backlight.c ****  *
+ 199:quantum/backlight/backlight.c ****  * FIXME: needs doc
+ 200:quantum/backlight/backlight.c ****  */
+ 201:quantum/backlight/backlight.c **** void backlight_disable_breathing(void) {
+ 202:quantum/backlight/backlight.c ****     if (!backlight_config.breathing) return;  // do nothing if breathing is already off
+ 203:quantum/backlight/backlight.c **** 
+ 204:quantum/backlight/backlight.c ****     backlight_config.breathing = false;
+ 205:quantum/backlight/backlight.c ****     eeconfig_update_backlight(backlight_config.raw);
+ 206:quantum/backlight/backlight.c ****     dprintf("backlight breathing disable\n");
+ 207:quantum/backlight/backlight.c ****     breathing_disable();
+ 208:quantum/backlight/backlight.c **** }
+ 209:quantum/backlight/backlight.c **** 
+ 210:quantum/backlight/backlight.c **** /** \brief Get the backlight breathing status
+ 211:quantum/backlight/backlight.c ****  *
+ 212:quantum/backlight/backlight.c ****  * FIXME: needs doc
+ 213:quantum/backlight/backlight.c ****  */
+ 214:quantum/backlight/backlight.c **** bool is_backlight_breathing(void) { return backlight_config.breathing; }
+ 215:quantum/backlight/backlight.c **** 
+ 216:quantum/backlight/backlight.c **** // following are marked as weak purely for backwards compatibility
+ 217:quantum/backlight/backlight.c **** __attribute__((weak)) void breathing_period_set(uint8_t value) { breathing_period = value ? value :
+ 218:quantum/backlight/backlight.c **** 
+ 219:quantum/backlight/backlight.c **** __attribute__((weak)) uint8_t get_breathing_period(void) { return breathing_period; }
+ 220:quantum/backlight/backlight.c **** 
+ 221:quantum/backlight/backlight.c **** __attribute__((weak)) void breathing_period_default(void) { breathing_period_set(BREATHING_PERIOD);
+ 222:quantum/backlight/backlight.c **** 
+ 223:quantum/backlight/backlight.c **** __attribute__((weak)) void breathing_period_inc(void) { breathing_period_set(breathing_period + 1);
+ 224:quantum/backlight/backlight.c **** 
+ 225:quantum/backlight/backlight.c **** __attribute__((weak)) void breathing_period_dec(void) { breathing_period_set(breathing_period - 1);
+ 226:quantum/backlight/backlight.c **** 
+ 227:quantum/backlight/backlight.c **** __attribute__((weak)) void breathing_toggle(void) {
+ 228:quantum/backlight/backlight.c ****     if (is_breathing())
+ 229:quantum/backlight/backlight.c ****         breathing_disable();
+ 230:quantum/backlight/backlight.c ****     else
+ 231:quantum/backlight/backlight.c ****         breathing_enable();
+ 232:quantum/backlight/backlight.c **** }
+ 233:quantum/backlight/backlight.c **** 
+ 234:quantum/backlight/backlight.c **** #endif
+ 235:quantum/backlight/backlight.c **** 
+ 236:quantum/backlight/backlight.c **** // defaults for backlight api
+ 237:quantum/backlight/backlight.c **** __attribute__((weak)) void backlight_init_ports(void) {}
+  78               		.loc 1 237 55 is_stmt 1 view -0
+  79               		.cfi_startproc
+  80               	/* prologue: function */
+  81               	/* frame size = 0 */
+  82               	/* stack size = 0 */
+  83               	.L__stack_usage = 0
+  84               		.loc 1 237 56 view .LVU11
+  85               	/* epilogue start */
+  86               		.loc 1 237 1 is_stmt 0 view .LVU12
+  87 0000 0895      		ret
+  88               		.cfi_endproc
+  89               	.LFE124:
+  91               		.section	.text.backlight_set,"ax",@progbits
+  92               		.weak	backlight_set
+  94               	backlight_set:
+  95               	.LVL1:
+  96               	.LFB125:
+ 238:quantum/backlight/backlight.c **** 
+ 239:quantum/backlight/backlight.c **** __attribute__((weak)) void backlight_set(uint8_t level) {}
+  97               		.loc 1 239 57 is_stmt 1 view -0
+  98               		.cfi_startproc
+  99               	/* prologue: function */
+ 100               	/* frame size = 0 */
+ 101               	/* stack size = 0 */
+ 102               	.L__stack_usage = 0
+ 103               		.loc 1 239 58 view .LVU14
+ 104               	/* epilogue start */
+ 105               		.loc 1 239 1 is_stmt 0 view .LVU15
+ 106 0000 0895      		ret
+ 107               		.cfi_endproc
+ 108               	.LFE125:
+ 110               		.section	.text.backlight_init,"ax",@progbits
+ 111               	.global	backlight_init
+ 113               	backlight_init:
+ 114               	.LFB112:
+  38:quantum/backlight/backlight.c ****     /* check signature */
+ 115               		.loc 1 38 27 is_stmt 1 view -0
+ 116               		.cfi_startproc
+ 117               	/* prologue: function */
+ 118               	/* frame size = 0 */
+ 119               	/* stack size = 0 */
+ 120               	.L__stack_usage = 0
+  40:quantum/backlight/backlight.c ****         eeconfig_init();
+ 121               		.loc 1 40 5 view .LVU17
+  40:quantum/backlight/backlight.c ****         eeconfig_init();
+ 122               		.loc 1 40 10 is_stmt 0 view .LVU18
+ 123 0000 0E94 0000 		call eeconfig_is_enabled
+ 124               	.LVL2:
+  40:quantum/backlight/backlight.c ****         eeconfig_init();
+ 125               		.loc 1 40 8 view .LVU19
+ 126 0004 8111      		cpse r24,__zero_reg__
+ 127 0006 00C0      		rjmp .L7
+  41:quantum/backlight/backlight.c ****     }
+ 128               		.loc 1 41 9 is_stmt 1 view .LVU20
+ 129 0008 0E94 0000 		call eeconfig_init
+ 130               	.LVL3:
+ 131               	.L7:
+  43:quantum/backlight/backlight.c ****     if (backlight_config.level > BACKLIGHT_LEVELS) {
+ 132               		.loc 1 43 5 view .LVU21
+  43:quantum/backlight/backlight.c ****     if (backlight_config.level > BACKLIGHT_LEVELS) {
+ 133               		.loc 1 43 28 is_stmt 0 view .LVU22
+ 134 000c 0E94 0000 		call eeconfig_read_backlight
+ 135               	.LVL4:
+  43:quantum/backlight/backlight.c ****     if (backlight_config.level > BACKLIGHT_LEVELS) {
+ 136               		.loc 1 43 26 view .LVU23
+ 137 0010 8093 0000 		sts backlight_config,r24
+  44:quantum/backlight/backlight.c ****         backlight_config.level = BACKLIGHT_LEVELS;
+ 138               		.loc 1 44 5 is_stmt 1 view .LVU24
+  44:quantum/backlight/backlight.c ****         backlight_config.level = BACKLIGHT_LEVELS;
+ 139               		.loc 1 44 8 is_stmt 0 view .LVU25
+ 140 0014 8031      		cpi r24,lo8(16)
+ 141 0016 00F0      		brlo .L8
+  45:quantum/backlight/backlight.c ****     }
+ 142               		.loc 1 45 9 is_stmt 1 view .LVU26
+  45:quantum/backlight/backlight.c ****     }
+ 143               		.loc 1 45 32 is_stmt 0 view .LVU27
+ 144 0018 8770      		andi r24,lo8(7)
+ 145 001a 8860      		ori r24,lo8(8)
+ 146 001c 8093 0000 		sts backlight_config,r24
+ 147               	.L8:
+  47:quantum/backlight/backlight.c **** }
+ 148               		.loc 1 47 5 is_stmt 1 view .LVU28
+  47:quantum/backlight/backlight.c **** }
+ 149               		.loc 1 47 43 is_stmt 0 view .LVU29
+ 150 0020 9091 0000 		lds r25,backlight_config
+  47:quantum/backlight/backlight.c **** }
+ 151               		.loc 1 47 5 view .LVU30
+ 152 0024 892F      		mov r24,r25
+ 153 0026 8170      		andi r24,lo8(1)
+ 154 0028 90FF      		sbrs r25,0
+ 155 002a 00C0      		rjmp .L9
+  47:quantum/backlight/backlight.c **** }
+ 156               		.loc 1 47 61 discriminator 1 view .LVU31
+ 157 002c 892F      		mov r24,r25
+ 158 002e 8695      		lsr r24
+ 159 0030 8695      		lsr r24
+ 160 0032 8695      		lsr r24
+ 161               	.L9:
+  47:quantum/backlight/backlight.c **** }
+ 162               		.loc 1 47 5 discriminator 4 view .LVU32
+ 163 0034 0C94 0000 		jmp backlight_set
+ 164               	.LVL5:
+ 165               		.cfi_endproc
+ 166               	.LFE112:
+ 168               		.section	.text.backlight_increase,"ax",@progbits
+ 169               	.global	backlight_increase
+ 171               	backlight_increase:
+ 172               	.LFB113:
+  54:quantum/backlight/backlight.c ****     if (backlight_config.level < BACKLIGHT_LEVELS) {
+ 173               		.loc 1 54 31 is_stmt 1 view -0
+ 174               		.cfi_startproc
+ 175               	/* prologue: function */
+ 176               	/* frame size = 0 */
+ 177               	/* stack size = 0 */
+ 178               	.L__stack_usage = 0
+  55:quantum/backlight/backlight.c ****         backlight_config.level++;
+ 179               		.loc 1 55 5 view .LVU34
+  55:quantum/backlight/backlight.c ****         backlight_config.level++;
+ 180               		.loc 1 55 32 is_stmt 0 view .LVU35
+ 181 0000 8091 0000 		lds r24,backlight_config
+ 182 0004 982F      		mov r25,r24
+ 183 0006 987F      		andi r25,lo8(-8)
+  55:quantum/backlight/backlight.c ****         backlight_config.level++;
+ 184               		.loc 1 55 8 view .LVU36
+ 185 0008 01F4      		brne .L14
+  56:quantum/backlight/backlight.c ****     }
+ 186               		.loc 1 56 9 is_stmt 1 view .LVU37
+  56:quantum/backlight/backlight.c ****     }
+ 187               		.loc 1 56 31 is_stmt 0 view .LVU38
+ 188 000a 885F      		subi r24,lo8(-(8))
+ 189 000c 8093 0000 		sts backlight_config,r24
+ 190               	.L14:
+  58:quantum/backlight/backlight.c ****     eeconfig_update_backlight(backlight_config.raw);
+ 191               		.loc 1 58 5 is_stmt 1 view .LVU39
+  58:quantum/backlight/backlight.c ****     eeconfig_update_backlight(backlight_config.raw);
+ 192               		.loc 1 58 29 is_stmt 0 view .LVU40
+ 193 0010 8091 0000 		lds r24,backlight_config
+ 194 0014 8160      		ori r24,lo8(1<<0)
+ 195 0016 8093 0000 		sts backlight_config,r24
+  59:quantum/backlight/backlight.c ****     dprintf("backlight increase: %u\n", backlight_config.level);
+ 196               		.loc 1 59 5 is_stmt 1 view .LVU41
+ 197 001a 0E94 0000 		call eeconfig_update_backlight
+ 198               	.LVL6:
+  60:quantum/backlight/backlight.c ****     backlight_set(backlight_config.level);
+ 199               		.loc 1 60 5 view .LVU42
+  60:quantum/backlight/backlight.c ****     backlight_set(backlight_config.level);
+ 200               		.loc 1 60 5 view .LVU43
+ 201 001e 8091 0000 		lds r24,debug_config
+ 202 0022 80FF      		sbrs r24,0
+ 203 0024 00C0      		rjmp .L15
+  60:quantum/backlight/backlight.c ****     backlight_set(backlight_config.level);
+ 204               		.loc 1 60 5 discriminator 1 view .LVU44
+ 205               	.LBB2:
+  60:quantum/backlight/backlight.c ****     backlight_set(backlight_config.level);
+ 206               		.loc 1 60 5 discriminator 1 view .LVU45
+  60:quantum/backlight/backlight.c ****     backlight_set(backlight_config.level);
+ 207               		.loc 1 60 5 discriminator 1 view .LVU46
+ 208               	.LBE2:
+ 209 0026 8091 0000 		lds r24,backlight_config
+ 210 002a 8695      		lsr r24
+ 211 002c 8695      		lsr r24
+ 212 002e 8695      		lsr r24
+ 213 0030 1F92      		push __zero_reg__
+ 214               	.LCFI0:
+ 215               		.cfi_def_cfa_offset 3
+ 216 0032 8F93      		push r24
+ 217               	.LCFI1:
+ 218               		.cfi_def_cfa_offset 4
+ 219 0034 80E0      		ldi r24,lo8(__c.6316)
+ 220 0036 90E0      		ldi r25,hi8(__c.6316)
+ 221 0038 9F93      		push r25
+ 222               	.LCFI2:
+ 223               		.cfi_def_cfa_offset 5
+ 224 003a 8F93      		push r24
+ 225               	.LCFI3:
+ 226               		.cfi_def_cfa_offset 6
+ 227 003c 0E94 0000 		call __xprintf
+ 228               	.LVL7:
+ 229 0040 0F90      		pop __tmp_reg__
+ 230 0042 0F90      		pop __tmp_reg__
+ 231 0044 0F90      		pop __tmp_reg__
+ 232 0046 0F90      		pop __tmp_reg__
+ 233               	.LCFI4:
+ 234               		.cfi_def_cfa_offset 2
+ 235               	.L15:
+  61:quantum/backlight/backlight.c **** }
+ 236               		.loc 1 61 5 view .LVU47
+  61:quantum/backlight/backlight.c **** }
+ 237               		.loc 1 61 35 is_stmt 0 view .LVU48
+ 238 0048 8091 0000 		lds r24,backlight_config
+  61:quantum/backlight/backlight.c **** }
+ 239               		.loc 1 61 5 view .LVU49
+ 240 004c 8695      		lsr r24
+ 241 004e 8695      		lsr r24
+ 242 0050 8695      		lsr r24
+ 243 0052 0C94 0000 		jmp backlight_set
+ 244               	.LVL8:
+ 245               		.cfi_endproc
+ 246               	.LFE113:
+ 248               		.section	.text.backlight_decrease,"ax",@progbits
+ 249               	.global	backlight_decrease
+ 251               	backlight_decrease:
+ 252               	.LFB114:
+  68:quantum/backlight/backlight.c ****     if (backlight_config.level > 0) {
+ 253               		.loc 1 68 31 is_stmt 1 view -0
+ 254               		.cfi_startproc
+ 255               	/* prologue: function */
+ 256               	/* frame size = 0 */
+ 257               	/* stack size = 0 */
+ 258               	.L__stack_usage = 0
+  69:quantum/backlight/backlight.c ****         backlight_config.level--;
+ 259               		.loc 1 69 5 view .LVU51
+  69:quantum/backlight/backlight.c ****         backlight_config.level--;
+ 260               		.loc 1 69 32 is_stmt 0 view .LVU52
+ 261 0000 8091 0000 		lds r24,backlight_config
+ 262 0004 982F      		mov r25,r24
+ 263 0006 987F      		andi r25,lo8(-8)
+  69:quantum/backlight/backlight.c ****         backlight_config.level--;
+ 264               		.loc 1 69 8 view .LVU53
+ 265 0008 01F0      		breq .L20
+  70:quantum/backlight/backlight.c ****         backlight_config.enable = !!backlight_config.level;
+ 266               		.loc 1 70 9 is_stmt 1 view .LVU54
+  70:quantum/backlight/backlight.c ****         backlight_config.enable = !!backlight_config.level;
+ 267               		.loc 1 70 31 is_stmt 0 view .LVU55
+ 268 000a 8850      		subi r24,lo8(-(-8))
+ 269 000c 8093 0000 		sts backlight_config,r24
+  71:quantum/backlight/backlight.c ****         eeconfig_update_backlight(backlight_config.raw);
+ 270               		.loc 1 71 9 is_stmt 1 view .LVU56
+  71:quantum/backlight/backlight.c ****         eeconfig_update_backlight(backlight_config.raw);
+ 271               		.loc 1 71 35 is_stmt 0 view .LVU57
+ 272 0010 887F      		andi r24,lo8(-8)
+ 273 0012 91E0      		ldi r25,lo8(1)
+ 274 0014 01F4      		brne .L21
+ 275 0016 90E0      		ldi r25,0
+ 276               	.L21:
+  71:quantum/backlight/backlight.c ****         eeconfig_update_backlight(backlight_config.raw);
+ 277               		.loc 1 71 33 view .LVU58
+ 278 0018 8091 0000 		lds r24,backlight_config
+ 279 001c 90FB      		bst r25,0
+ 280 001e 80F9      		bld r24,0
+ 281 0020 8093 0000 		sts backlight_config,r24
+  72:quantum/backlight/backlight.c ****     }
+ 282               		.loc 1 72 9 is_stmt 1 view .LVU59
+ 283 0024 0E94 0000 		call eeconfig_update_backlight
+ 284               	.LVL9:
+ 285               	.L20:
+  74:quantum/backlight/backlight.c ****     backlight_set(backlight_config.level);
+ 286               		.loc 1 74 5 view .LVU60
+  74:quantum/backlight/backlight.c ****     backlight_set(backlight_config.level);
+ 287               		.loc 1 74 5 view .LVU61
+ 288 0028 8091 0000 		lds r24,debug_config
+ 289 002c 80FF      		sbrs r24,0
+ 290 002e 00C0      		rjmp .L22
+  74:quantum/backlight/backlight.c ****     backlight_set(backlight_config.level);
+ 291               		.loc 1 74 5 discriminator 1 view .LVU62
+ 292               	.LBB3:
+  74:quantum/backlight/backlight.c ****     backlight_set(backlight_config.level);
+ 293               		.loc 1 74 5 discriminator 1 view .LVU63
+  74:quantum/backlight/backlight.c ****     backlight_set(backlight_config.level);
+ 294               		.loc 1 74 5 discriminator 1 view .LVU64
+ 295               	.LBE3:
+ 296 0030 8091 0000 		lds r24,backlight_config
+ 297 0034 8695      		lsr r24
+ 298 0036 8695      		lsr r24
+ 299 0038 8695      		lsr r24
+ 300 003a 1F92      		push __zero_reg__
+ 301               	.LCFI5:
+ 302               		.cfi_def_cfa_offset 3
+ 303 003c 8F93      		push r24
+ 304               	.LCFI6:
+ 305               		.cfi_def_cfa_offset 4
+ 306 003e 80E0      		ldi r24,lo8(__c.6321)
+ 307 0040 90E0      		ldi r25,hi8(__c.6321)
+ 308 0042 9F93      		push r25
+ 309               	.LCFI7:
+ 310               		.cfi_def_cfa_offset 5
+ 311 0044 8F93      		push r24
+ 312               	.LCFI8:
+ 313               		.cfi_def_cfa_offset 6
+ 314 0046 0E94 0000 		call __xprintf
+ 315               	.LVL10:
+ 316 004a 0F90      		pop __tmp_reg__
+ 317 004c 0F90      		pop __tmp_reg__
+ 318 004e 0F90      		pop __tmp_reg__
+ 319 0050 0F90      		pop __tmp_reg__
+ 320               	.LCFI9:
+ 321               		.cfi_def_cfa_offset 2
+ 322               	.L22:
+  75:quantum/backlight/backlight.c **** }
+ 323               		.loc 1 75 5 view .LVU65
+  75:quantum/backlight/backlight.c **** }
+ 324               		.loc 1 75 35 is_stmt 0 view .LVU66
+ 325 0052 8091 0000 		lds r24,backlight_config
+  75:quantum/backlight/backlight.c **** }
+ 326               		.loc 1 75 5 view .LVU67
+ 327 0056 8695      		lsr r24
+ 328 0058 8695      		lsr r24
+ 329 005a 8695      		lsr r24
+ 330 005c 0C94 0000 		jmp backlight_set
+ 331               	.LVL11:
+ 332               		.cfi_endproc
+ 333               	.LFE114:
+ 335               		.section	.text.backlight_enable,"ax",@progbits
+ 336               	.global	backlight_enable
+ 338               	backlight_enable:
+ 339               	.LFB116:
+  95:quantum/backlight/backlight.c ****     if (backlight_config.enable) return;  // do nothing if backlight is already on
+ 340               		.loc 1 95 29 is_stmt 1 view -0
+ 341               		.cfi_startproc
+ 342               	/* prologue: function */
+ 343               	/* frame size = 0 */
+ 344               	/* stack size = 0 */
+ 345               	.L__stack_usage = 0
+  96:quantum/backlight/backlight.c **** 
+ 346               		.loc 1 96 5 view .LVU69
+  96:quantum/backlight/backlight.c **** 
+ 347               		.loc 1 96 9 is_stmt 0 view .LVU70
+ 348 0000 8091 0000 		lds r24,backlight_config
+  96:quantum/backlight/backlight.c **** 
+ 349               		.loc 1 96 8 view .LVU71
+ 350 0004 80FD      		sbrc r24,0
+ 351 0006 00C0      		rjmp .L29
+  98:quantum/backlight/backlight.c ****     if (backlight_config.raw == 1)  // enabled but level == 0
+ 352               		.loc 1 98 5 is_stmt 1 view .LVU72
+  98:quantum/backlight/backlight.c ****     if (backlight_config.raw == 1)  // enabled but level == 0
+ 353               		.loc 1 98 29 is_stmt 0 view .LVU73
+ 354 0008 8160      		ori r24,lo8(1<<0)
+ 355 000a 8093 0000 		sts backlight_config,r24
+  99:quantum/backlight/backlight.c ****         backlight_config.level = 1;
+ 356               		.loc 1 99 5 is_stmt 1 view .LVU74
+  99:quantum/backlight/backlight.c ****         backlight_config.level = 1;
+ 357               		.loc 1 99 8 is_stmt 0 view .LVU75
+ 358 000e 8130      		cpi r24,lo8(1)
+ 359 0010 01F4      		brne .L31
+ 100:quantum/backlight/backlight.c ****     eeconfig_update_backlight(backlight_config.raw);
+ 360               		.loc 1 100 9 is_stmt 1 view .LVU76
+ 100:quantum/backlight/backlight.c ****     eeconfig_update_backlight(backlight_config.raw);
+ 361               		.loc 1 100 32 is_stmt 0 view .LVU77
+ 362 0012 89E0      		ldi r24,lo8(9)
+ 363 0014 8093 0000 		sts backlight_config,r24
+ 364               	.L31:
+ 101:quantum/backlight/backlight.c ****     dprintf("backlight enable\n");
+ 365               		.loc 1 101 5 is_stmt 1 view .LVU78
+ 366 0018 8091 0000 		lds r24,backlight_config
+ 367 001c 0E94 0000 		call eeconfig_update_backlight
+ 368               	.LVL12:
+ 102:quantum/backlight/backlight.c ****     backlight_set(backlight_config.level);
+ 369               		.loc 1 102 5 view .LVU79
+ 102:quantum/backlight/backlight.c ****     backlight_set(backlight_config.level);
+ 370               		.loc 1 102 5 view .LVU80
+ 371 0020 8091 0000 		lds r24,debug_config
+ 372 0024 80FF      		sbrs r24,0
+ 373 0026 00C0      		rjmp .L32
+ 102:quantum/backlight/backlight.c ****     backlight_set(backlight_config.level);
+ 374               		.loc 1 102 5 discriminator 1 view .LVU81
+ 375               	.LBB4:
+ 102:quantum/backlight/backlight.c ****     backlight_set(backlight_config.level);
+ 376               		.loc 1 102 5 discriminator 1 view .LVU82
+ 102:quantum/backlight/backlight.c ****     backlight_set(backlight_config.level);
+ 377               		.loc 1 102 5 discriminator 1 view .LVU83
+ 378               	.LBE4:
+ 379 0028 80E0      		ldi r24,lo8(__c.6332)
+ 380 002a 90E0      		ldi r25,hi8(__c.6332)
+ 381 002c 9F93      		push r25
+ 382               	.LCFI10:
+ 383               		.cfi_def_cfa_offset 3
+ 384 002e 8F93      		push r24
+ 385               	.LCFI11:
+ 386               		.cfi_def_cfa_offset 4
+ 387 0030 0E94 0000 		call __xprintf
+ 388               	.LVL13:
+ 389 0034 0F90      		pop __tmp_reg__
+ 390 0036 0F90      		pop __tmp_reg__
+ 391               	.LCFI12:
+ 392               		.cfi_def_cfa_offset 2
+ 393               	.L32:
+ 103:quantum/backlight/backlight.c **** }
+ 394               		.loc 1 103 5 view .LVU84
+ 103:quantum/backlight/backlight.c **** }
+ 395               		.loc 1 103 35 is_stmt 0 view .LVU85
+ 396 0038 8091 0000 		lds r24,backlight_config
+ 103:quantum/backlight/backlight.c **** }
+ 397               		.loc 1 103 5 view .LVU86
+ 398 003c 8695      		lsr r24
+ 399 003e 8695      		lsr r24
+ 400 0040 8695      		lsr r24
+ 401 0042 0C94 0000 		jmp backlight_set
+ 402               	.LVL14:
+ 403               	.L29:
+ 404               	/* epilogue start */
+ 104:quantum/backlight/backlight.c **** 
+ 405               		.loc 1 104 1 view .LVU87
+ 406 0046 0895      		ret
+ 407               		.cfi_endproc
+ 408               	.LFE116:
+ 410               		.section	.text.backlight_disable,"ax",@progbits
+ 411               	.global	backlight_disable
+ 413               	backlight_disable:
+ 414               	.LFB117:
+ 110:quantum/backlight/backlight.c ****     if (!backlight_config.enable) return;  // do nothing if backlight is already off
+ 415               		.loc 1 110 30 is_stmt 1 view -0
+ 416               		.cfi_startproc
+ 417               	/* prologue: function */
+ 418               	/* frame size = 0 */
+ 419               	/* stack size = 0 */
+ 420               	.L__stack_usage = 0
+ 111:quantum/backlight/backlight.c **** 
+ 421               		.loc 1 111 5 view .LVU89
+ 111:quantum/backlight/backlight.c **** 
+ 422               		.loc 1 111 26 is_stmt 0 view .LVU90
+ 423 0000 8091 0000 		lds r24,backlight_config
+ 111:quantum/backlight/backlight.c **** 
+ 424               		.loc 1 111 8 view .LVU91
+ 425 0004 80FF      		sbrs r24,0
+ 426 0006 00C0      		rjmp .L36
+ 113:quantum/backlight/backlight.c ****     eeconfig_update_backlight(backlight_config.raw);
+ 427               		.loc 1 113 5 is_stmt 1 view .LVU92
+ 113:quantum/backlight/backlight.c ****     eeconfig_update_backlight(backlight_config.raw);
+ 428               		.loc 1 113 29 is_stmt 0 view .LVU93
+ 429 0008 8E7F      		andi r24,lo8(~(1<<0))
+ 430 000a 8093 0000 		sts backlight_config,r24
+ 114:quantum/backlight/backlight.c ****     dprintf("backlight disable\n");
+ 431               		.loc 1 114 5 is_stmt 1 view .LVU94
+ 432 000e 0E94 0000 		call eeconfig_update_backlight
+ 433               	.LVL15:
+ 115:quantum/backlight/backlight.c ****     backlight_set(0);
+ 434               		.loc 1 115 5 view .LVU95
+ 115:quantum/backlight/backlight.c ****     backlight_set(0);
+ 435               		.loc 1 115 5 view .LVU96
+ 436 0012 8091 0000 		lds r24,debug_config
+ 437 0016 80FF      		sbrs r24,0
+ 438 0018 00C0      		rjmp .L38
+ 115:quantum/backlight/backlight.c ****     backlight_set(0);
+ 439               		.loc 1 115 5 discriminator 1 view .LVU97
+ 440               	.LBB5:
+ 115:quantum/backlight/backlight.c ****     backlight_set(0);
+ 441               		.loc 1 115 5 discriminator 1 view .LVU98
+ 115:quantum/backlight/backlight.c ****     backlight_set(0);
+ 442               		.loc 1 115 5 discriminator 1 view .LVU99
+ 443               	.LBE5:
+ 444 001a 80E0      		ldi r24,lo8(__c.6337)
+ 445 001c 90E0      		ldi r25,hi8(__c.6337)
+ 446 001e 9F93      		push r25
+ 447               	.LCFI13:
+ 448               		.cfi_def_cfa_offset 3
+ 449 0020 8F93      		push r24
+ 450               	.LCFI14:
+ 451               		.cfi_def_cfa_offset 4
+ 452 0022 0E94 0000 		call __xprintf
+ 453               	.LVL16:
+ 454 0026 0F90      		pop __tmp_reg__
+ 455 0028 0F90      		pop __tmp_reg__
+ 456               	.LCFI15:
+ 457               		.cfi_def_cfa_offset 2
+ 458               	.L38:
+ 116:quantum/backlight/backlight.c **** }
+ 459               		.loc 1 116 5 view .LVU100
+ 460 002a 80E0      		ldi r24,0
+ 461 002c 0C94 0000 		jmp backlight_set
+ 462               	.LVL17:
+ 463               	.L36:
+ 464               	/* epilogue start */
+ 117:quantum/backlight/backlight.c **** 
+ 465               		.loc 1 117 1 is_stmt 0 view .LVU101
+ 466 0030 0895      		ret
+ 467               		.cfi_endproc
+ 468               	.LFE117:
+ 470               		.section	.text.backlight_toggle,"ax",@progbits
+ 471               	.global	backlight_toggle
+ 473               	backlight_toggle:
+ 474               	.LFB115:
+  82:quantum/backlight/backlight.c ****     bool enabled = backlight_config.enable;
+ 475               		.loc 1 82 29 is_stmt 1 view -0
+ 476               		.cfi_startproc
+ 477 0000 CF93      		push r28
+ 478               	.LCFI16:
+ 479               		.cfi_def_cfa_offset 3
+ 480               		.cfi_offset 28, -2
+ 481               	/* prologue: function */
+ 482               	/* frame size = 0 */
+ 483               	/* stack size = 1 */
+ 484               	.L__stack_usage = 1
+  83:quantum/backlight/backlight.c ****     dprintf("backlight toggle: %u\n", enabled);
+ 485               		.loc 1 83 5 view .LVU103
+  83:quantum/backlight/backlight.c ****     dprintf("backlight toggle: %u\n", enabled);
+ 486               		.loc 1 83 10 is_stmt 0 view .LVU104
+ 487 0002 C091 0000 		lds r28,backlight_config
+ 488 0006 C170      		andi r28,1
+ 489               	.LVL18:
+  84:quantum/backlight/backlight.c ****     if (enabled)
+ 490               		.loc 1 84 5 is_stmt 1 view .LVU105
+  84:quantum/backlight/backlight.c ****     if (enabled)
+ 491               		.loc 1 84 5 view .LVU106
+ 492 0008 8091 0000 		lds r24,debug_config
+ 493 000c 80FF      		sbrs r24,0
+ 494 000e 00C0      		rjmp .L43
+  84:quantum/backlight/backlight.c ****     if (enabled)
+ 495               		.loc 1 84 5 discriminator 1 view .LVU107
+ 496               	.LBB6:
+  84:quantum/backlight/backlight.c ****     if (enabled)
+ 497               		.loc 1 84 5 discriminator 1 view .LVU108
+  84:quantum/backlight/backlight.c ****     if (enabled)
+ 498               		.loc 1 84 5 discriminator 1 view .LVU109
+ 499               	.LBE6:
+ 500 0010 1F92      		push __zero_reg__
+ 501               	.LCFI17:
+ 502               		.cfi_def_cfa_offset 4
+ 503 0012 CF93      		push r28
+ 504               	.LCFI18:
+ 505               		.cfi_def_cfa_offset 5
+ 506 0014 80E0      		ldi r24,lo8(__c.6327)
+ 507 0016 90E0      		ldi r25,hi8(__c.6327)
+ 508 0018 9F93      		push r25
+ 509               	.LCFI19:
+ 510               		.cfi_def_cfa_offset 6
+ 511 001a 8F93      		push r24
+ 512               	.LCFI20:
+ 513               		.cfi_def_cfa_offset 7
+ 514 001c 0E94 0000 		call __xprintf
+ 515               	.LVL19:
+ 516 0020 0F90      		pop __tmp_reg__
+ 517 0022 0F90      		pop __tmp_reg__
+ 518 0024 0F90      		pop __tmp_reg__
+ 519 0026 0F90      		pop __tmp_reg__
+ 520               	.LCFI21:
+ 521               		.cfi_def_cfa_offset 3
+ 522               	.L43:
+  85:quantum/backlight/backlight.c ****         backlight_disable();
+ 523               		.loc 1 85 5 view .LVU110
+  85:quantum/backlight/backlight.c ****         backlight_disable();
+ 524               		.loc 1 85 8 is_stmt 0 view .LVU111
+ 525 0028 CC23      		tst r28
+ 526 002a 01F0      		breq .L44
+  86:quantum/backlight/backlight.c ****     else
+ 527               		.loc 1 86 9 is_stmt 1 view .LVU112
+ 528               	/* epilogue start */
+  89:quantum/backlight/backlight.c **** 
+ 529               		.loc 1 89 1 is_stmt 0 view .LVU113
+ 530 002c CF91      		pop r28
+ 531               	.LVL20:
+  86:quantum/backlight/backlight.c ****     else
+ 532               		.loc 1 86 9 view .LVU114
+ 533 002e 0C94 0000 		jmp backlight_disable
+ 534               	.LVL21:
+ 535               	.L44:
+  88:quantum/backlight/backlight.c **** }
+ 536               		.loc 1 88 9 is_stmt 1 view .LVU115
+ 537               	/* epilogue start */
+  89:quantum/backlight/backlight.c **** 
+ 538               		.loc 1 89 1 is_stmt 0 view .LVU116
+ 539 0032 CF91      		pop r28
+ 540               	.LVL22:
+  88:quantum/backlight/backlight.c **** }
+ 541               		.loc 1 88 9 view .LVU117
+ 542 0034 0C94 0000 		jmp backlight_enable
+ 543               	.LVL23:
+ 544               		.cfi_endproc
+ 545               	.LFE115:
+ 547               		.section	.text.backlight_step,"ax",@progbits
+ 548               	.global	backlight_step
+ 550               	backlight_step:
+ 551               	.LFB119:
+ 129:quantum/backlight/backlight.c ****     backlight_config.level++;
+ 552               		.loc 1 129 27 is_stmt 1 view -0
+ 553               		.cfi_startproc
+ 554               	/* prologue: function */
+ 555               	/* frame size = 0 */
+ 556               	/* stack size = 0 */
+ 557               	.L__stack_usage = 0
+ 130:quantum/backlight/backlight.c ****     if (backlight_config.level > BACKLIGHT_LEVELS) {
+ 558               		.loc 1 130 5 view .LVU119
+ 130:quantum/backlight/backlight.c ****     if (backlight_config.level > BACKLIGHT_LEVELS) {
+ 559               		.loc 1 130 21 is_stmt 0 view .LVU120
+ 560 0000 9091 0000 		lds r25,backlight_config
+ 561 0004 892F      		mov r24,r25
+ 562 0006 8695      		lsr r24
+ 563 0008 8695      		lsr r24
+ 564 000a 8695      		lsr r24
+ 130:quantum/backlight/backlight.c ****     if (backlight_config.level > BACKLIGHT_LEVELS) {
+ 565               		.loc 1 130 27 view .LVU121
+ 566 000c 8F5F      		subi r24,lo8(-(1))
+ 567 000e 8F71      		andi r24,lo8(31)
+ 131:quantum/backlight/backlight.c ****         backlight_config.level = 0;
+ 568               		.loc 1 131 5 is_stmt 1 view .LVU122
+ 569 0010 9770      		andi r25,lo8(7)
+ 131:quantum/backlight/backlight.c ****         backlight_config.level = 0;
+ 570               		.loc 1 131 8 is_stmt 0 view .LVU123
+ 571 0012 8230      		cpi r24,lo8(2)
+ 572 0014 00F4      		brsh .L49
+ 130:quantum/backlight/backlight.c ****     if (backlight_config.level > BACKLIGHT_LEVELS) {
+ 573               		.loc 1 130 27 view .LVU124
+ 574 0016 880F      		lsl r24
+ 575 0018 880F      		lsl r24
+ 576 001a 880F      		lsl r24
+ 577 001c 892B      		or r24,r25
+ 578 001e 8093 0000 		sts backlight_config,r24
+ 579               	.L50:
+ 134:quantum/backlight/backlight.c ****     eeconfig_update_backlight(backlight_config.raw);
+ 580               		.loc 1 134 5 is_stmt 1 view .LVU125
+ 134:quantum/backlight/backlight.c ****     eeconfig_update_backlight(backlight_config.raw);
+ 581               		.loc 1 134 31 is_stmt 0 view .LVU126
+ 582 0022 8091 0000 		lds r24,backlight_config
+ 583 0026 887F      		andi r24,lo8(-8)
+ 584 0028 91E0      		ldi r25,lo8(1)
+ 585 002a 01F4      		brne .L51
+ 586 002c 90E0      		ldi r25,0
+ 587               	.L51:
+ 134:quantum/backlight/backlight.c ****     eeconfig_update_backlight(backlight_config.raw);
+ 588               		.loc 1 134 29 view .LVU127
+ 589 002e 8091 0000 		lds r24,backlight_config
+ 590 0032 90FB      		bst r25,0
+ 591 0034 80F9      		bld r24,0
+ 592 0036 8093 0000 		sts backlight_config,r24
+ 135:quantum/backlight/backlight.c ****     dprintf("backlight step: %u\n", backlight_config.level);
+ 593               		.loc 1 135 5 is_stmt 1 view .LVU128
+ 594 003a 0E94 0000 		call eeconfig_update_backlight
+ 595               	.LVL24:
+ 136:quantum/backlight/backlight.c ****     backlight_set(backlight_config.level);
+ 596               		.loc 1 136 5 view .LVU129
+ 136:quantum/backlight/backlight.c ****     backlight_set(backlight_config.level);
+ 597               		.loc 1 136 5 view .LVU130
+ 598 003e 8091 0000 		lds r24,debug_config
+ 599 0042 80FF      		sbrs r24,0
+ 600 0044 00C0      		rjmp .L52
+ 136:quantum/backlight/backlight.c ****     backlight_set(backlight_config.level);
+ 601               		.loc 1 136 5 discriminator 1 view .LVU131
+ 602               	.LBB7:
+ 136:quantum/backlight/backlight.c ****     backlight_set(backlight_config.level);
+ 603               		.loc 1 136 5 discriminator 1 view .LVU132
+ 136:quantum/backlight/backlight.c ****     backlight_set(backlight_config.level);
+ 604               		.loc 1 136 5 discriminator 1 view .LVU133
+ 605               	.LBE7:
+ 606 0046 8091 0000 		lds r24,backlight_config
+ 607 004a 8695      		lsr r24
+ 608 004c 8695      		lsr r24
+ 609 004e 8695      		lsr r24
+ 610 0050 1F92      		push __zero_reg__
+ 611               	.LCFI22:
+ 612               		.cfi_def_cfa_offset 3
+ 613 0052 8F93      		push r24
+ 614               	.LCFI23:
+ 615               		.cfi_def_cfa_offset 4
+ 616 0054 80E0      		ldi r24,lo8(__c.6345)
+ 617 0056 90E0      		ldi r25,hi8(__c.6345)
+ 618 0058 9F93      		push r25
+ 619               	.LCFI24:
+ 620               		.cfi_def_cfa_offset 5
+ 621 005a 8F93      		push r24
+ 622               	.LCFI25:
+ 623               		.cfi_def_cfa_offset 6
+ 624 005c 0E94 0000 		call __xprintf
+ 625               	.LVL25:
+ 626 0060 0F90      		pop __tmp_reg__
+ 627 0062 0F90      		pop __tmp_reg__
+ 628 0064 0F90      		pop __tmp_reg__
+ 629 0066 0F90      		pop __tmp_reg__
+ 630               	.LCFI26:
+ 631               		.cfi_def_cfa_offset 2
+ 632               	.L52:
+ 137:quantum/backlight/backlight.c **** }
+ 633               		.loc 1 137 5 view .LVU134
+ 137:quantum/backlight/backlight.c **** }
+ 634               		.loc 1 137 35 is_stmt 0 view .LVU135
+ 635 0068 8091 0000 		lds r24,backlight_config
+ 137:quantum/backlight/backlight.c **** }
+ 636               		.loc 1 137 5 view .LVU136
+ 637 006c 8695      		lsr r24
+ 638 006e 8695      		lsr r24
+ 639 0070 8695      		lsr r24
+ 640 0072 0C94 0000 		jmp backlight_set
+ 641               	.LVL26:
+ 642               	.L49:
+ 132:quantum/backlight/backlight.c ****     }
+ 643               		.loc 1 132 9 is_stmt 1 view .LVU137
+ 132:quantum/backlight/backlight.c ****     }
+ 644               		.loc 1 132 32 is_stmt 0 view .LVU138
+ 645 0076 9093 0000 		sts backlight_config,r25
+ 646 007a 00C0      		rjmp .L50
+ 647               		.cfi_endproc
+ 648               	.LFE119:
+ 650               		.section	.text.backlight_level_noeeprom,"ax",@progbits
+ 651               	.global	backlight_level_noeeprom
+ 653               	backlight_level_noeeprom:
+ 654               	.LVL27:
+ 655               	.LFB120:
+ 143:quantum/backlight/backlight.c ****     if (level > BACKLIGHT_LEVELS) level = BACKLIGHT_LEVELS;
+ 656               		.loc 1 143 46 is_stmt 1 view -0
+ 657               		.cfi_startproc
+ 658               	/* prologue: function */
+ 659               	/* frame size = 0 */
+ 660               	/* stack size = 0 */
+ 661               	.L__stack_usage = 0
+ 144:quantum/backlight/backlight.c ****     backlight_config.level  = level;
+ 662               		.loc 1 144 5 view .LVU140
+ 663 0000 8111      		cpse r24,__zero_reg__
+ 664 0002 81E0      		ldi r24,lo8(1)
+ 665               	.LVL28:
+ 666               	.L57:
+ 145:quantum/backlight/backlight.c ****     backlight_config.enable = !!backlight_config.level;
+ 667               		.loc 1 145 5 view .LVU141
+ 145:quantum/backlight/backlight.c ****     backlight_config.enable = !!backlight_config.level;
+ 668               		.loc 1 145 29 is_stmt 0 view .LVU142
+ 669 0004 9091 0000 		lds r25,backlight_config
+ 670 0008 9770      		andi r25,lo8(7)
+ 671 000a 282F      		mov r18,r24
+ 672 000c 220F      		lsl r18
+ 673 000e 220F      		lsl r18
+ 674 0010 220F      		lsl r18
+ 675 0012 922B      		or r25,r18
+ 676 0014 9093 0000 		sts backlight_config,r25
+ 146:quantum/backlight/backlight.c ****     backlight_set(backlight_config.level);
+ 677               		.loc 1 146 5 is_stmt 1 view .LVU143
+ 146:quantum/backlight/backlight.c ****     backlight_set(backlight_config.level);
+ 678               		.loc 1 146 31 is_stmt 0 view .LVU144
+ 679 0018 987F      		andi r25,lo8(-8)
+ 680 001a 21E0      		ldi r18,lo8(1)
+ 681 001c 01F4      		brne .L58
+ 682 001e 20E0      		ldi r18,0
+ 683               	.L58:
+ 146:quantum/backlight/backlight.c ****     backlight_set(backlight_config.level);
+ 684               		.loc 1 146 29 view .LVU145
+ 685 0020 9091 0000 		lds r25,backlight_config
+ 686 0024 20FB      		bst r18,0
+ 687 0026 90F9      		bld r25,0
+ 688 0028 9093 0000 		sts backlight_config,r25
+ 147:quantum/backlight/backlight.c **** }
+ 689               		.loc 1 147 5 is_stmt 1 view .LVU146
+ 690 002c 0C94 0000 		jmp backlight_set
+ 691               	.LVL29:
+ 147:quantum/backlight/backlight.c **** }
+ 692               		.loc 1 147 5 is_stmt 0 view .LVU147
+ 693               		.cfi_endproc
+ 694               	.LFE120:
+ 696               		.section	.text.backlight_level,"ax",@progbits
+ 697               	.global	backlight_level
+ 699               	backlight_level:
+ 700               	.LVL30:
+ 701               	.LFB121:
+ 154:quantum/backlight/backlight.c ****     backlight_level_noeeprom(level);
+ 702               		.loc 1 154 37 is_stmt 1 view -0
+ 703               		.cfi_startproc
+ 704               	/* prologue: function */
+ 705               	/* frame size = 0 */
+ 706               	/* stack size = 0 */
+ 707               	.L__stack_usage = 0
+ 155:quantum/backlight/backlight.c ****     eeconfig_update_backlight(backlight_config.raw);
+ 708               		.loc 1 155 5 view .LVU149
+ 709 0000 0E94 0000 		call backlight_level_noeeprom
+ 710               	.LVL31:
+ 156:quantum/backlight/backlight.c **** }
+ 711               		.loc 1 156 5 view .LVU150
+ 712 0004 8091 0000 		lds r24,backlight_config
+ 713 0008 0C94 0000 		jmp eeconfig_update_backlight
+ 714               	.LVL32:
+ 715               		.cfi_endproc
+ 716               	.LFE121:
+ 718               		.section	.text.backlight_task,"ax",@progbits
+ 719               		.weak	backlight_task
+ 721               	backlight_task:
+ 722               	.LFB128:
+ 723               		.cfi_startproc
+ 724               	/* prologue: function */
+ 725               	/* frame size = 0 */
+ 726               	/* stack size = 0 */
+ 727               	.L__stack_usage = 0
+ 728               	/* epilogue start */
+ 729 0000 0895      		ret
+ 730               		.cfi_endproc
+ 731               	.LFE128:
+ 733               		.section	.progmem.data.__c.6345,"a"
+ 736               	__c.6345:
+ 737 0000 6261 636B 		.string	"backlight step: %u\n"
+ 737      6C69 6768 
+ 737      7420 7374 
+ 737      6570 3A20 
+ 737      2575 0A00 
+ 738               		.section	.progmem.data.__c.6337,"a"
+ 741               	__c.6337:
+ 742 0000 6261 636B 		.string	"backlight disable\n"
+ 742      6C69 6768 
+ 742      7420 6469 
+ 742      7361 626C 
+ 742      650A 00
+ 743               		.section	.progmem.data.__c.6332,"a"
+ 746               	__c.6332:
+ 747 0000 6261 636B 		.string	"backlight enable\n"
+ 747      6C69 6768 
+ 747      7420 656E 
+ 747      6162 6C65 
+ 747      0A00 
+ 748               		.section	.progmem.data.__c.6327,"a"
+ 751               	__c.6327:
+ 752 0000 6261 636B 		.string	"backlight toggle: %u\n"
+ 752      6C69 6768 
+ 752      7420 746F 
+ 752      6767 6C65 
+ 752      3A20 2575 
+ 753               		.section	.progmem.data.__c.6321,"a"
+ 756               	__c.6321:
+ 757 0000 6261 636B 		.string	"backlight decrease: %u\n"
+ 757      6C69 6768 
+ 757      7420 6465 
+ 757      6372 6561 
+ 757      7365 3A20 
+ 758               		.section	.progmem.data.__c.6316,"a"
+ 761               	__c.6316:
+ 762 0000 6261 636B 		.string	"backlight increase: %u\n"
+ 762      6C69 6768 
+ 762      7420 696E 
+ 762      6372 6561 
+ 762      7365 3A20 
+ 763               		.comm	backlight_config,1,1
+ 764               		.text
+ 765               	.Letext0:
+ 766               		.file 2 "c:\\msys64\\home\\kyleo\\qmk_utils\\avr8-gnu-toolchain\\avr\\include\\stdint.h"
+ 767               		.file 3 "c:\\msys64\\home\\kyleo\\qmk_utils\\avr8-gnu-toolchain\\lib\\gcc\\avr\\8.3.0\\include\\st
+ 768               		.file 4 "lib/lufa/LUFA/Drivers/USB/Core/AVR8/../StdRequestType.h"
+ 769               		.file 5 "tmk_core/common/action.h"
+ 770               		.file 6 "lib/lufa/LUFA/Drivers/USB/Core/AVR8/../DeviceStandardReq.h"
+ 771               		.file 7 "lib/lufa/LUFA/Drivers/USB/Core/USBTask.h"
+ 772               		.file 8 "lib/lufa/LUFA/Drivers/USB/Core/HostStandardReq.h"
+ 773               		.file 9 "c:\\msys64\\home\\kyleo\\qmk_utils\\avr8-gnu-toolchain\\avr\\include\\stdio.h"
+ 774               		.file 10 "tmk_core/common/report.h"
+ 775               		.file 11 "tmk_core/common/host.h"
+ 776               		.file 12 "tmk_core/common/avr/xprintf.h"
+ 777               		.file 13 "tmk_core/common/debug.h"
+ 778               		.file 14 "quantum/keycode_config.h"
+ 779               		.file 15 "quantum/keymap.h"
+ 780               		.file 16 "quantum/backlight/backlight.h"
+ 781               		.file 17 "./quantum/color.h"
+ 782               		.file 18 "quantum/rgblight.h"
+ 783               		.file 19 "tmk_core/common/action_layer.h"
+ 784               		.file 20 "tmk_core/common/timer.h"
+ 785               		.file 21 "tmk_core/common/action_util.h"
+ 786               		.file 22 "c:\\msys64\\home\\kyleo\\qmk_utils\\avr8-gnu-toolchain\\avr\\include\\stdlib.h"
+ 787               		.file 23 "quantum/quantum.h"
+ 788               		.file 24 "tmk_core/common/eeconfig.h"
+DEFINED SYMBOLS
+                            *ABS*:00000000 backlight.c
+C:\Users\kyleo\AppData\Local\Temp\cczNE4cd.s:2      *ABS*:0000003e __SP_H__
+C:\Users\kyleo\AppData\Local\Temp\cczNE4cd.s:3      *ABS*:0000003d __SP_L__
+C:\Users\kyleo\AppData\Local\Temp\cczNE4cd.s:4      *ABS*:0000003f __SREG__
+C:\Users\kyleo\AppData\Local\Temp\cczNE4cd.s:5      *ABS*:00000000 __tmp_reg__
+C:\Users\kyleo\AppData\Local\Temp\cczNE4cd.s:6      *ABS*:00000001 __zero_reg__
+C:\Users\kyleo\AppData\Local\Temp\cczNE4cd.s:13     .text.is_backlight_enabled:00000000 is_backlight_enabled
+                            *COM*:00000001 backlight_config
+C:\Users\kyleo\AppData\Local\Temp\cczNE4cd.s:35     .text.eeconfig_update_backlight_current:00000000 eeconfig_update_backlight_current
+C:\Users\kyleo\AppData\Local\Temp\cczNE4cd.s:53     .text.get_backlight_level:00000000 get_backlight_level
+C:\Users\kyleo\AppData\Local\Temp\cczNE4cd.s:76     .text.backlight_init_ports:00000000 backlight_init_ports
+C:\Users\kyleo\AppData\Local\Temp\cczNE4cd.s:94     .text.backlight_set:00000000 backlight_set
+C:\Users\kyleo\AppData\Local\Temp\cczNE4cd.s:113    .text.backlight_init:00000000 backlight_init
+C:\Users\kyleo\AppData\Local\Temp\cczNE4cd.s:171    .text.backlight_increase:00000000 backlight_increase
+C:\Users\kyleo\AppData\Local\Temp\cczNE4cd.s:761    .progmem.data.__c.6316:00000000 __c.6316
+C:\Users\kyleo\AppData\Local\Temp\cczNE4cd.s:251    .text.backlight_decrease:00000000 backlight_decrease
+C:\Users\kyleo\AppData\Local\Temp\cczNE4cd.s:756    .progmem.data.__c.6321:00000000 __c.6321
+C:\Users\kyleo\AppData\Local\Temp\cczNE4cd.s:338    .text.backlight_enable:00000000 backlight_enable
+C:\Users\kyleo\AppData\Local\Temp\cczNE4cd.s:746    .progmem.data.__c.6332:00000000 __c.6332
+C:\Users\kyleo\AppData\Local\Temp\cczNE4cd.s:413    .text.backlight_disable:00000000 backlight_disable
+C:\Users\kyleo\AppData\Local\Temp\cczNE4cd.s:741    .progmem.data.__c.6337:00000000 __c.6337
+C:\Users\kyleo\AppData\Local\Temp\cczNE4cd.s:473    .text.backlight_toggle:00000000 backlight_toggle
+C:\Users\kyleo\AppData\Local\Temp\cczNE4cd.s:751    .progmem.data.__c.6327:00000000 __c.6327
+C:\Users\kyleo\AppData\Local\Temp\cczNE4cd.s:550    .text.backlight_step:00000000 backlight_step
+C:\Users\kyleo\AppData\Local\Temp\cczNE4cd.s:736    .progmem.data.__c.6345:00000000 __c.6345
+C:\Users\kyleo\AppData\Local\Temp\cczNE4cd.s:653    .text.backlight_level_noeeprom:00000000 backlight_level_noeeprom
+C:\Users\kyleo\AppData\Local\Temp\cczNE4cd.s:699    .text.backlight_level:00000000 backlight_level
+C:\Users\kyleo\AppData\Local\Temp\cczNE4cd.s:721    .text.backlight_task:00000000 backlight_task
+
+UNDEFINED SYMBOLS
+eeconfig_update_backlight
+eeconfig_is_enabled
+eeconfig_init
+eeconfig_read_backlight
+debug_config
+__xprintf
+__do_clear_bss

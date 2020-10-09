@@ -1,0 +1,593 @@
+   1              		.cpu cortex-m0
+   2              		.eabi_attribute 20, 1
+   3              		.eabi_attribute 21, 1
+   4              		.eabi_attribute 23, 3
+   5              		.eabi_attribute 24, 1
+   6              		.eabi_attribute 25, 1
+   7              		.eabi_attribute 26, 1
+   8              		.eabi_attribute 30, 4
+   9              		.eabi_attribute 34, 0
+  10              		.eabi_attribute 18, 2
+  11              		.file	"ws2812_spi.c"
+  12              		.text
+  13              	.Ltext0:
+  14              		.cfi_sections	.debug_frame
+  15              		.section	.text.get_protocol_eq,"ax",%progbits
+  16              		.align	1
+  17              		.arch armv6s-m
+  18              		.syntax unified
+  19              		.code	16
+  20              		.thumb_func
+  21              		.fpu softvfp
+  23              	get_protocol_eq:
+  24              	.LVL0:
+  25              	.LFB194:
+  26              		.file 1 "drivers/chibios/ws2812_spi.c"
+   1:drivers/chibios/ws2812_spi.c **** #include "quantum.h"
+   2:drivers/chibios/ws2812_spi.c **** #include "ws2812.h"
+   3:drivers/chibios/ws2812_spi.c **** 
+   4:drivers/chibios/ws2812_spi.c **** /* Adapted from https://github.com/gamazeps/ws2812b-chibios-SPIDMA/ */
+   5:drivers/chibios/ws2812_spi.c **** 
+   6:drivers/chibios/ws2812_spi.c **** #ifdef RGBW
+   7:drivers/chibios/ws2812_spi.c **** #    error "RGBW not supported"
+   8:drivers/chibios/ws2812_spi.c **** #endif
+   9:drivers/chibios/ws2812_spi.c **** 
+  10:drivers/chibios/ws2812_spi.c **** // Define the spi your LEDs are plugged to here
+  11:drivers/chibios/ws2812_spi.c **** #ifndef WS2812_SPI
+  12:drivers/chibios/ws2812_spi.c **** #    define WS2812_SPI SPID1
+  13:drivers/chibios/ws2812_spi.c **** #endif
+  14:drivers/chibios/ws2812_spi.c **** 
+  15:drivers/chibios/ws2812_spi.c **** #ifndef WS2812_SPI_MOSI_PAL_MODE
+  16:drivers/chibios/ws2812_spi.c **** #    define WS2812_SPI_MOSI_PAL_MODE 5
+  17:drivers/chibios/ws2812_spi.c **** #endif
+  18:drivers/chibios/ws2812_spi.c **** 
+  19:drivers/chibios/ws2812_spi.c **** #define BYTES_FOR_LED_BYTE 4
+  20:drivers/chibios/ws2812_spi.c **** #define NB_COLORS 3
+  21:drivers/chibios/ws2812_spi.c **** #define BYTES_FOR_LED (BYTES_FOR_LED_BYTE * NB_COLORS)
+  22:drivers/chibios/ws2812_spi.c **** #define DATA_SIZE (BYTES_FOR_LED * RGBLED_NUM)
+  23:drivers/chibios/ws2812_spi.c **** #define RESET_SIZE 200
+  24:drivers/chibios/ws2812_spi.c **** #define PREAMBLE_SIZE 4
+  25:drivers/chibios/ws2812_spi.c **** 
+  26:drivers/chibios/ws2812_spi.c **** static uint8_t txbuf[PREAMBLE_SIZE + DATA_SIZE + RESET_SIZE] = {0};
+  27:drivers/chibios/ws2812_spi.c **** 
+  28:drivers/chibios/ws2812_spi.c **** /*
+  29:drivers/chibios/ws2812_spi.c ****  * As the trick here is to use the SPI to send a huge pattern of 0 and 1 to
+  30:drivers/chibios/ws2812_spi.c ****  * the ws2812b protocol, we use this helper function to translate bytes into
+  31:drivers/chibios/ws2812_spi.c ****  * 0s and 1s for the LED (with the appropriate timing).
+  32:drivers/chibios/ws2812_spi.c ****  */
+  33:drivers/chibios/ws2812_spi.c **** static uint8_t get_protocol_eq(uint8_t data, int pos) {
+  27              		.loc 1 33 55 view -0
+  28              		.cfi_startproc
+  29              		@ args = 0, pretend = 0, frame = 0
+  30              		@ frame_needed = 0, uses_anonymous_args = 0
+  34:drivers/chibios/ws2812_spi.c ****     uint8_t eq = 0;
+  31              		.loc 1 34 5 view .LVU1
+  35:drivers/chibios/ws2812_spi.c ****     if (data & (1 << (2 * (3 - pos))))
+  32              		.loc 1 35 5 view .LVU2
+  33              		.loc 1 35 30 is_stmt 0 view .LVU3
+  34 0000 0323     		movs	r3, #3
+  35              		.loc 1 35 9 view .LVU4
+  36 0002 0200     		movs	r2, r0
+  37              		.loc 1 35 30 view .LVU5
+  38 0004 591A     		subs	r1, r3, r1
+  39              	.LVL1:
+  40              		.loc 1 35 25 view .LVU6
+  41 0006 4900     		lsls	r1, r1, #1
+  42              		.loc 1 35 9 view .LVU7
+  43 0008 0A41     		asrs	r2, r2, r1
+  33:drivers/chibios/ws2812_spi.c ****     uint8_t eq = 0;
+  44              		.loc 1 33 55 view .LVU8
+  45 000a 10B5     		push	{r4, lr}
+  46              		.cfi_def_cfa_offset 8
+  47              		.cfi_offset 4, -8
+  48              		.cfi_offset 14, -4
+  36:drivers/chibios/ws2812_spi.c ****         eq = 0b1110;
+  49              		.loc 1 36 12 view .LVU9
+  50 000c 0B33     		adds	r3, r3, #11
+  33:drivers/chibios/ws2812_spi.c ****     uint8_t eq = 0;
+  51              		.loc 1 33 55 view .LVU10
+  52 000e 0400     		movs	r4, r0
+  35:drivers/chibios/ws2812_spi.c ****     if (data & (1 << (2 * (3 - pos))))
+  53              		.loc 1 35 8 view .LVU11
+  54 0010 D207     		lsls	r2, r2, #31
+  55 0012 00D4     		bmi	.L2
+  37:drivers/chibios/ws2812_spi.c ****     else
+  38:drivers/chibios/ws2812_spi.c ****         eq = 0b1000;
+  56              		.loc 1 38 12 view .LVU12
+  57 0014 063B     		subs	r3, r3, #6
+  58              	.L2:
+  59              	.LVL2:
+  39:drivers/chibios/ws2812_spi.c ****     if (data & (2 << (2 * (3 - pos))))
+  60              		.loc 1 39 5 is_stmt 1 view .LVU13
+  61              		.loc 1 39 19 is_stmt 0 view .LVU14
+  62 0016 0222     		movs	r2, #2
+  40:drivers/chibios/ws2812_spi.c ****         eq += 0b11100000;
+  41:drivers/chibios/ws2812_spi.c ****     else
+  42:drivers/chibios/ws2812_spi.c ****         eq += 0b10000000;
+  63              		.loc 1 42 12 view .LVU15
+  64 0018 1800     		movs	r0, r3
+  65              	.LVL3:
+  39:drivers/chibios/ws2812_spi.c ****     if (data & (2 << (2 * (3 - pos))))
+  66              		.loc 1 39 19 view .LVU16
+  67 001a 8A40     		lsls	r2, r2, r1
+  68              		.loc 1 42 12 view .LVU17
+  69 001c 8038     		subs	r0, r0, #128
+  70 001e C0B2     		uxtb	r0, r0
+  39:drivers/chibios/ws2812_spi.c ****     if (data & (2 << (2 * (3 - pos))))
+  71              		.loc 1 39 8 view .LVU18
+  72 0020 1442     		tst	r4, r2
+  73 0022 01D0     		beq	.L4
+  40:drivers/chibios/ws2812_spi.c ****         eq += 0b11100000;
+  74              		.loc 1 40 9 is_stmt 1 view .LVU19
+  40:drivers/chibios/ws2812_spi.c ****         eq += 0b11100000;
+  75              		.loc 1 40 12 is_stmt 0 view .LVU20
+  76 0024 203B     		subs	r3, r3, #32
+  77              	.LVL4:
+  40:drivers/chibios/ws2812_spi.c ****         eq += 0b11100000;
+  78              		.loc 1 40 12 view .LVU21
+  79 0026 D8B2     		uxtb	r0, r3
+  80              	.LVL5:
+  81              	.L4:
+  43:drivers/chibios/ws2812_spi.c ****     return eq;
+  82              		.loc 1 43 5 is_stmt 1 view .LVU22
+  44:drivers/chibios/ws2812_spi.c **** }
+  83              		.loc 1 44 1 is_stmt 0 view .LVU23
+  84              		@ sp needed
+  85 0028 10BD     		pop	{r4, pc}
+  86              		.cfi_endproc
+  87              	.LFE194:
+  89              		.section	.text.ws2812_init,"ax",%progbits
+  90              		.align	1
+  91              		.global	ws2812_init
+  92              		.syntax unified
+  93              		.code	16
+  94              		.thumb_func
+  95              		.fpu softvfp
+  97              	ws2812_init:
+  98              	.LFB196:
+  45:drivers/chibios/ws2812_spi.c **** 
+  46:drivers/chibios/ws2812_spi.c **** static void set_led_color_rgb(LED_TYPE color, int pos) {
+  47:drivers/chibios/ws2812_spi.c ****     uint8_t* tx_start = &txbuf[PREAMBLE_SIZE];
+  48:drivers/chibios/ws2812_spi.c **** 
+  49:drivers/chibios/ws2812_spi.c ****     for (int j = 0; j < 4; j++) tx_start[BYTES_FOR_LED * pos + j] = get_protocol_eq(color.g, j);
+  50:drivers/chibios/ws2812_spi.c ****     for (int j = 0; j < 4; j++) tx_start[BYTES_FOR_LED * pos + BYTES_FOR_LED_BYTE + j] = get_protoc
+  51:drivers/chibios/ws2812_spi.c ****     for (int j = 0; j < 4; j++) tx_start[BYTES_FOR_LED * pos + BYTES_FOR_LED_BYTE * 2 + j] = get_pr
+  52:drivers/chibios/ws2812_spi.c **** }
+  53:drivers/chibios/ws2812_spi.c **** 
+  54:drivers/chibios/ws2812_spi.c **** void ws2812_init(void) {
+  99              		.loc 1 54 24 is_stmt 1 view -0
+ 100              		.cfi_startproc
+ 101              		@ args = 0, pretend = 0, frame = 0
+ 102              		@ frame_needed = 0, uses_anonymous_args = 0
+  55:drivers/chibios/ws2812_spi.c **** #if defined(USE_GPIOV1)
+  56:drivers/chibios/ws2812_spi.c ****     palSetLineMode(RGB_DI_PIN, PAL_MODE_STM32_ALTERNATE_PUSHPULL);
+  57:drivers/chibios/ws2812_spi.c **** #else
+  58:drivers/chibios/ws2812_spi.c ****     palSetLineMode(RGB_DI_PIN, PAL_MODE_ALTERNATE(WS2812_SPI_MOSI_PAL_MODE) | PAL_STM32_OTYPE_PUSHP
+ 103              		.loc 1 58 5 view .LVU25
+ 104 0000 8021     		movs	r1, #128
+  54:drivers/chibios/ws2812_spi.c **** #if defined(USE_GPIOV1)
+ 105              		.loc 1 54 24 is_stmt 0 view .LVU26
+ 106 0002 10B5     		push	{r4, lr}
+ 107              		.cfi_def_cfa_offset 8
+ 108              		.cfi_offset 4, -8
+ 109              		.cfi_offset 14, -4
+ 110              		.loc 1 58 5 view .LVU27
+ 111 0004 0222     		movs	r2, #2
+ 112 0006 0902     		lsls	r1, r1, #8
+ 113 0008 0748     		ldr	r0, .L7
+ 114 000a FFF7FEFF 		bl	_pal_lld_setgroupmode
+ 115              	.LVL6:
+  59:drivers/chibios/ws2812_spi.c **** #endif
+  60:drivers/chibios/ws2812_spi.c **** 
+  61:drivers/chibios/ws2812_spi.c ****     // TODO: more dynamic baudrate
+  62:drivers/chibios/ws2812_spi.c ****     static const SPIConfig spicfg = {
+ 116              		.loc 1 62 5 is_stmt 1 view .LVU28
+  63:drivers/chibios/ws2812_spi.c ****         0, NULL, PAL_PORT(RGB_DI_PIN), PAL_PAD(RGB_DI_PIN),
+  64:drivers/chibios/ws2812_spi.c ****         SPI_CR1_BR_1 | SPI_CR1_BR_0  // baudrate : fpclk / 8 => 1tick is 0.32us (2.25 MHz)
+  65:drivers/chibios/ws2812_spi.c ****     };
+  66:drivers/chibios/ws2812_spi.c **** 
+  67:drivers/chibios/ws2812_spi.c ****     spiAcquireBus(&WS2812_SPI);     /* Acquire ownership of the bus.    */
+ 117              		.loc 1 67 5 view .LVU29
+ 118 000e 074C     		ldr	r4, .L7+4
+  68:drivers/chibios/ws2812_spi.c ****     spiStart(&WS2812_SPI, &spicfg); /* Setup transfer parameters.       */
+  69:drivers/chibios/ws2812_spi.c ****     spiSelect(&WS2812_SPI);         /* Slave Select assertion.          */
+  70:drivers/chibios/ws2812_spi.c **** }
+ 119              		.loc 1 70 1 is_stmt 0 view .LVU30
+ 120              		@ sp needed
+  67:drivers/chibios/ws2812_spi.c ****     spiStart(&WS2812_SPI, &spicfg); /* Setup transfer parameters.       */
+ 121              		.loc 1 67 5 view .LVU31
+ 122 0010 2000     		movs	r0, r4
+ 123 0012 FFF7FEFF 		bl	spiAcquireBus
+ 124              	.LVL7:
+  68:drivers/chibios/ws2812_spi.c ****     spiStart(&WS2812_SPI, &spicfg); /* Setup transfer parameters.       */
+ 125              		.loc 1 68 5 is_stmt 1 view .LVU32
+ 126 0016 0649     		ldr	r1, .L7+8
+ 127 0018 2000     		movs	r0, r4
+ 128 001a FFF7FEFF 		bl	spiStart
+ 129              	.LVL8:
+  69:drivers/chibios/ws2812_spi.c **** }
+ 130              		.loc 1 69 5 view .LVU33
+ 131 001e 2000     		movs	r0, r4
+ 132 0020 FFF7FEFF 		bl	spiSelect
+ 133              	.LVL9:
+ 134              		.loc 1 70 1 is_stmt 0 view .LVU34
+ 135 0024 10BD     		pop	{r4, pc}
+ 136              	.L8:
+ 137 0026 C046     		.align	2
+ 138              	.L7:
+ 139 0028 00040048 		.word	1207960576
+ 140 002c 00000000 		.word	SPID2
+ 141 0030 00000000 		.word	.LANCHOR0
+ 142              		.cfi_endproc
+ 143              	.LFE196:
+ 145              		.section	.text.ws2812_setleds,"ax",%progbits
+ 146              		.align	1
+ 147              		.global	ws2812_setleds
+ 148              		.syntax unified
+ 149              		.code	16
+ 150              		.thumb_func
+ 151              		.fpu softvfp
+ 153              	ws2812_setleds:
+ 154              	.LVL10:
+ 155              	.LFB197:
+  71:drivers/chibios/ws2812_spi.c **** 
+  72:drivers/chibios/ws2812_spi.c **** void ws2812_setleds(LED_TYPE* ledarray, uint16_t leds) {
+ 156              		.loc 1 72 56 is_stmt 1 view -0
+ 157              		.cfi_startproc
+ 158              		@ args = 0, pretend = 0, frame = 24
+ 159              		@ frame_needed = 0, uses_anonymous_args = 0
+  73:drivers/chibios/ws2812_spi.c ****     static bool s_init = false;
+ 160              		.loc 1 73 5 view .LVU36
+  74:drivers/chibios/ws2812_spi.c ****     if (!s_init) {
+ 161              		.loc 1 74 5 view .LVU37
+  72:drivers/chibios/ws2812_spi.c ****     static bool s_init = false;
+ 162              		.loc 1 72 56 is_stmt 0 view .LVU38
+ 163 0000 F0B5     		push	{r4, r5, r6, r7, lr}
+ 164              		.cfi_def_cfa_offset 20
+ 165              		.cfi_offset 4, -20
+ 166              		.cfi_offset 5, -16
+ 167              		.cfi_offset 6, -12
+ 168              		.cfi_offset 7, -8
+ 169              		.cfi_offset 14, -4
+ 170              		.loc 1 74 9 view .LVU39
+ 171 0002 234C     		ldr	r4, .L19
+  72:drivers/chibios/ws2812_spi.c ****     static bool s_init = false;
+ 172              		.loc 1 72 56 view .LVU40
+ 173 0004 87B0     		sub	sp, sp, #28
+ 174              		.cfi_def_cfa_offset 48
+ 175              		.loc 1 74 8 view .LVU41
+ 176 0006 2378     		ldrb	r3, [r4]
+  72:drivers/chibios/ws2812_spi.c ****     static bool s_init = false;
+ 177              		.loc 1 72 56 view .LVU42
+ 178 0008 0490     		str	r0, [sp, #16]
+ 179 000a 0591     		str	r1, [sp, #20]
+ 180              		.loc 1 74 8 view .LVU43
+ 181 000c 002B     		cmp	r3, #0
+ 182 000e 03D1     		bne	.L10
+  75:drivers/chibios/ws2812_spi.c ****         ws2812_init();
+ 183              		.loc 1 75 9 is_stmt 1 view .LVU44
+ 184 0010 FFF7FEFF 		bl	ws2812_init
+ 185              	.LVL11:
+  76:drivers/chibios/ws2812_spi.c ****         s_init = true;
+ 186              		.loc 1 76 9 view .LVU45
+ 187              		.loc 1 76 16 is_stmt 0 view .LVU46
+ 188 0014 0123     		movs	r3, #1
+ 189 0016 2370     		strb	r3, [r4]
+ 190              	.L10:
+ 191              	.LBB8:
+ 192              	.LBB9:
+ 193              	.LBB10:
+ 194              	.LBB11:
+  51:drivers/chibios/ws2812_spi.c **** }
+ 195              		.loc 1 51 14 discriminator 1 view .LVU47
+ 196 0018 0024     		movs	r4, #0
+ 197              	.L11:
+ 198              	.LVL12:
+  51:drivers/chibios/ws2812_spi.c **** }
+ 199              		.loc 1 51 14 discriminator 1 view .LVU48
+ 200              	.LBE11:
+ 201              	.LBE10:
+ 202              	.LBE9:
+  77:drivers/chibios/ws2812_spi.c ****     }
+  78:drivers/chibios/ws2812_spi.c **** 
+  79:drivers/chibios/ws2812_spi.c ****     for (uint8_t i = 0; i < leds; i++) {
+ 203              		.loc 1 79 5 discriminator 1 view .LVU49
+ 204 001a 059B     		ldr	r3, [sp, #20]
+ 205 001c 9C42     		cmp	r4, r3
+ 206 001e 07D3     		bcc	.L15
+ 207              	.LBE8:
+  80:drivers/chibios/ws2812_spi.c ****         set_led_color_rgb(ledarray[i], i);
+  81:drivers/chibios/ws2812_spi.c ****     }
+  82:drivers/chibios/ws2812_spi.c **** 
+  83:drivers/chibios/ws2812_spi.c ****     // Send async - each led takes ~0.03ms, 50 leds ~1.5ms, animations flushing faster than send wi
+  84:drivers/chibios/ws2812_spi.c ****     // Instead spiSend can be used to send synchronously (or the thread logic can be added back).
+  85:drivers/chibios/ws2812_spi.c **** #ifdef WS2812_SPI_SYNC
+  86:drivers/chibios/ws2812_spi.c ****     spiSend(&WS2812_SPI, sizeof(txbuf) / sizeof(txbuf[0]), txbuf);
+  87:drivers/chibios/ws2812_spi.c **** #else
+  88:drivers/chibios/ws2812_spi.c ****     spiStartSend(&WS2812_SPI, sizeof(txbuf) / sizeof(txbuf[0]), txbuf);
+ 208              		.loc 1 88 5 is_stmt 1 view .LVU50
+ 209 0020 BA21     		movs	r1, #186
+ 210 0022 1C4A     		ldr	r2, .L19+4
+ 211 0024 4900     		lsls	r1, r1, #1
+ 212 0026 1C48     		ldr	r0, .L19+8
+ 213 0028 FFF7FEFF 		bl	spiStartSend
+ 214              	.LVL13:
+  89:drivers/chibios/ws2812_spi.c **** #endif
+  90:drivers/chibios/ws2812_spi.c **** }
+ 215              		.loc 1 90 1 is_stmt 0 view .LVU51
+ 216 002c 07B0     		add	sp, sp, #28
+ 217              		@ sp needed
+ 218              	.LVL14:
+ 219              		.loc 1 90 1 view .LVU52
+ 220 002e F0BD     		pop	{r4, r5, r6, r7, pc}
+ 221              	.LVL15:
+ 222              	.L15:
+ 223              	.LBB23:
+  80:drivers/chibios/ws2812_spi.c ****         set_led_color_rgb(ledarray[i], i);
+ 224              		.loc 1 80 9 is_stmt 1 discriminator 3 view .LVU53
+  80:drivers/chibios/ws2812_spi.c ****         set_led_color_rgb(ledarray[i], i);
+ 225              		.loc 1 80 35 is_stmt 0 discriminator 3 view .LVU54
+ 226 0030 0323     		movs	r3, #3
+ 227              	.LBB20:
+ 228              	.LBB17:
+ 229              	.LBB12:
+  49:drivers/chibios/ws2812_spi.c ****     for (int j = 0; j < 4; j++) tx_start[BYTES_FOR_LED * pos + BYTES_FOR_LED_BYTE + j] = get_protoc
+ 230              		.loc 1 49 56 discriminator 3 view .LVU55
+ 231 0032 0C25     		movs	r5, #12
+  49:drivers/chibios/ws2812_spi.c ****     for (int j = 0; j < 4; j++) tx_start[BYTES_FOR_LED * pos + BYTES_FOR_LED_BYTE + j] = get_protoc
+ 232              		.loc 1 49 14 discriminator 3 view .LVU56
+ 233 0034 0026     		movs	r6, #0
+ 234              	.LBE12:
+ 235              	.LBE17:
+ 236              	.LBE20:
+  80:drivers/chibios/ws2812_spi.c ****         set_led_color_rgb(ledarray[i], i);
+ 237              		.loc 1 80 35 discriminator 3 view .LVU57
+ 238 0036 6343     		muls	r3, r4
+ 239 0038 049A     		ldr	r2, [sp, #16]
+ 240              	.LBB21:
+ 241              	.LBB18:
+ 242              	.LBB13:
+  49:drivers/chibios/ws2812_spi.c ****     for (int j = 0; j < 4; j++) tx_start[BYTES_FOR_LED * pos + BYTES_FOR_LED_BYTE + j] = get_protoc
+ 243              		.loc 1 49 56 discriminator 3 view .LVU58
+ 244 003a 6543     		muls	r5, r4
+ 245              	.LBE13:
+ 246              	.LBE18:
+ 247              	.LBE21:
+  80:drivers/chibios/ws2812_spi.c ****         set_led_color_rgb(ledarray[i], i);
+ 248              		.loc 1 80 35 discriminator 3 view .LVU59
+ 249 003c D318     		adds	r3, r2, r3
+ 250 003e 1A78     		ldrb	r2, [r3]
+ 251 0040 0192     		str	r2, [sp, #4]
+ 252              	.LVL16:
+  80:drivers/chibios/ws2812_spi.c ****         set_led_color_rgb(ledarray[i], i);
+ 253              		.loc 1 80 35 discriminator 3 view .LVU60
+ 254 0042 5A78     		ldrb	r2, [r3, #1]
+ 255 0044 9B78     		ldrb	r3, [r3, #2]
+ 256 0046 0392     		str	r2, [sp, #12]
+ 257              	.LVL17:
+  80:drivers/chibios/ws2812_spi.c ****         set_led_color_rgb(ledarray[i], i);
+ 258              		.loc 1 80 35 discriminator 3 view .LVU61
+ 259 0048 0293     		str	r3, [sp, #8]
+ 260              	.LVL18:
+ 261              	.LBB22:
+ 262              	.LBI9:
+  46:drivers/chibios/ws2812_spi.c ****     uint8_t* tx_start = &txbuf[PREAMBLE_SIZE];
+ 263              		.loc 1 46 13 is_stmt 1 discriminator 3 view .LVU62
+ 264              	.LBB19:
+  47:drivers/chibios/ws2812_spi.c **** 
+ 265              		.loc 1 47 5 discriminator 3 view .LVU63
+  49:drivers/chibios/ws2812_spi.c ****     for (int j = 0; j < 4; j++) tx_start[BYTES_FOR_LED * pos + BYTES_FOR_LED_BYTE + j] = get_protoc
+ 266              		.loc 1 49 5 discriminator 3 view .LVU64
+ 267              	.LBB14:
+  49:drivers/chibios/ws2812_spi.c ****     for (int j = 0; j < 4; j++) tx_start[BYTES_FOR_LED * pos + BYTES_FOR_LED_BYTE + j] = get_protoc
+ 268              		.loc 1 49 10 discriminator 3 view .LVU65
+  49:drivers/chibios/ws2812_spi.c ****     for (int j = 0; j < 4; j++) tx_start[BYTES_FOR_LED * pos + BYTES_FOR_LED_BYTE + j] = get_protoc
+ 269              		.loc 1 49 10 is_stmt 0 discriminator 3 view .LVU66
+ 270 004a 124B     		ldr	r3, .L19+4
+ 271 004c ED18     		adds	r5, r5, r3
+  49:drivers/chibios/ws2812_spi.c ****     for (int j = 0; j < 4; j++) tx_start[BYTES_FOR_LED * pos + BYTES_FOR_LED_BYTE + j] = get_protoc
+ 272              		.loc 1 49 67 discriminator 3 view .LVU67
+ 273 004e 2F1D     		adds	r7, r5, #4
+ 274              	.LVL19:
+ 275              	.L12:
+  49:drivers/chibios/ws2812_spi.c ****     for (int j = 0; j < 4; j++) tx_start[BYTES_FOR_LED * pos + BYTES_FOR_LED_BYTE + j] = get_protoc
+ 276              		.loc 1 49 33 is_stmt 1 view .LVU68
+  49:drivers/chibios/ws2812_spi.c ****     for (int j = 0; j < 4; j++) tx_start[BYTES_FOR_LED * pos + BYTES_FOR_LED_BYTE + j] = get_protoc
+ 277              		.loc 1 49 69 is_stmt 0 view .LVU69
+ 278 0050 3100     		movs	r1, r6
+ 279 0052 0198     		ldr	r0, [sp, #4]
+ 280 0054 FFF7FEFF 		bl	get_protocol_eq
+ 281              	.LVL20:
+  49:drivers/chibios/ws2812_spi.c ****     for (int j = 0; j < 4; j++) tx_start[BYTES_FOR_LED * pos + BYTES_FOR_LED_BYTE + j] = get_protoc
+ 282              		.loc 1 49 67 view .LVU70
+ 283 0058 B855     		strb	r0, [r7, r6]
+  49:drivers/chibios/ws2812_spi.c ****     for (int j = 0; j < 4; j++) tx_start[BYTES_FOR_LED * pos + BYTES_FOR_LED_BYTE + j] = get_protoc
+ 284              		.loc 1 49 29 view .LVU71
+ 285 005a 0136     		adds	r6, r6, #1
+ 286              	.LVL21:
+  49:drivers/chibios/ws2812_spi.c ****     for (int j = 0; j < 4; j++) tx_start[BYTES_FOR_LED * pos + BYTES_FOR_LED_BYTE + j] = get_protoc
+ 287              		.loc 1 49 5 view .LVU72
+ 288 005c 042E     		cmp	r6, #4
+ 289 005e F7D1     		bne	.L12
+ 290              	.LBE14:
+ 291              	.LBB15:
+  50:drivers/chibios/ws2812_spi.c ****     for (int j = 0; j < 4; j++) tx_start[BYTES_FOR_LED * pos + BYTES_FOR_LED_BYTE * 2 + j] = get_pr
+ 292              		.loc 1 50 88 view .LVU73
+ 293 0060 2F00     		movs	r7, r5
+  50:drivers/chibios/ws2812_spi.c ****     for (int j = 0; j < 4; j++) tx_start[BYTES_FOR_LED * pos + BYTES_FOR_LED_BYTE * 2 + j] = get_pr
+ 294              		.loc 1 50 14 view .LVU74
+ 295 0062 0026     		movs	r6, #0
+ 296              	.LVL22:
+  50:drivers/chibios/ws2812_spi.c ****     for (int j = 0; j < 4; j++) tx_start[BYTES_FOR_LED * pos + BYTES_FOR_LED_BYTE * 2 + j] = get_pr
+ 297              		.loc 1 50 88 view .LVU75
+ 298 0064 0837     		adds	r7, r7, #8
+ 299              	.L13:
+ 300              	.LVL23:
+  50:drivers/chibios/ws2812_spi.c ****     for (int j = 0; j < 4; j++) tx_start[BYTES_FOR_LED * pos + BYTES_FOR_LED_BYTE * 2 + j] = get_pr
+ 301              		.loc 1 50 33 is_stmt 1 view .LVU76
+  50:drivers/chibios/ws2812_spi.c ****     for (int j = 0; j < 4; j++) tx_start[BYTES_FOR_LED * pos + BYTES_FOR_LED_BYTE * 2 + j] = get_pr
+ 302              		.loc 1 50 90 is_stmt 0 view .LVU77
+ 303 0066 3100     		movs	r1, r6
+ 304 0068 0398     		ldr	r0, [sp, #12]
+ 305 006a FFF7FEFF 		bl	get_protocol_eq
+ 306              	.LVL24:
+  50:drivers/chibios/ws2812_spi.c ****     for (int j = 0; j < 4; j++) tx_start[BYTES_FOR_LED * pos + BYTES_FOR_LED_BYTE * 2 + j] = get_pr
+ 307              		.loc 1 50 88 view .LVU78
+ 308 006e B855     		strb	r0, [r7, r6]
+  50:drivers/chibios/ws2812_spi.c ****     for (int j = 0; j < 4; j++) tx_start[BYTES_FOR_LED * pos + BYTES_FOR_LED_BYTE * 2 + j] = get_pr
+ 309              		.loc 1 50 29 view .LVU79
+ 310 0070 0136     		adds	r6, r6, #1
+ 311              	.LVL25:
+  50:drivers/chibios/ws2812_spi.c ****     for (int j = 0; j < 4; j++) tx_start[BYTES_FOR_LED * pos + BYTES_FOR_LED_BYTE * 2 + j] = get_pr
+ 312              		.loc 1 50 5 view .LVU80
+ 313 0072 042E     		cmp	r6, #4
+ 314 0074 F7D1     		bne	.L13
+ 315              	.LBE15:
+ 316              	.LBB16:
+  51:drivers/chibios/ws2812_spi.c **** }
+ 317              		.loc 1 51 14 view .LVU81
+ 318 0076 0026     		movs	r6, #0
+ 319              	.LVL26:
+  51:drivers/chibios/ws2812_spi.c **** }
+ 320              		.loc 1 51 92 view .LVU82
+ 321 0078 0C35     		adds	r5, r5, #12
+ 322              	.L14:
+ 323              	.LVL27:
+  51:drivers/chibios/ws2812_spi.c **** }
+ 324              		.loc 1 51 33 is_stmt 1 view .LVU83
+  51:drivers/chibios/ws2812_spi.c **** }
+ 325              		.loc 1 51 94 is_stmt 0 view .LVU84
+ 326 007a 3100     		movs	r1, r6
+ 327 007c 0298     		ldr	r0, [sp, #8]
+ 328 007e FFF7FEFF 		bl	get_protocol_eq
+ 329              	.LVL28:
+  51:drivers/chibios/ws2812_spi.c **** }
+ 330              		.loc 1 51 92 view .LVU85
+ 331 0082 A855     		strb	r0, [r5, r6]
+  51:drivers/chibios/ws2812_spi.c **** }
+ 332              		.loc 1 51 29 view .LVU86
+ 333 0084 0136     		adds	r6, r6, #1
+ 334              	.LVL29:
+  51:drivers/chibios/ws2812_spi.c **** }
+ 335              		.loc 1 51 5 view .LVU87
+ 336 0086 042E     		cmp	r6, #4
+ 337 0088 F7D1     		bne	.L14
+ 338              	.LVL30:
+  51:drivers/chibios/ws2812_spi.c **** }
+ 339              		.loc 1 51 5 view .LVU88
+ 340              	.LBE16:
+ 341              	.LBE19:
+ 342              	.LBE22:
+  79:drivers/chibios/ws2812_spi.c ****         set_led_color_rgb(ledarray[i], i);
+ 343              		.loc 1 79 36 discriminator 3 view .LVU89
+ 344 008a 0134     		adds	r4, r4, #1
+ 345              	.LVL31:
+  79:drivers/chibios/ws2812_spi.c ****         set_led_color_rgb(ledarray[i], i);
+ 346              		.loc 1 79 36 discriminator 3 view .LVU90
+ 347 008c E4B2     		uxtb	r4, r4
+ 348              	.LVL32:
+  79:drivers/chibios/ws2812_spi.c ****         set_led_color_rgb(ledarray[i], i);
+ 349              		.loc 1 79 36 discriminator 3 view .LVU91
+ 350 008e C4E7     		b	.L11
+ 351              	.L20:
+ 352              		.align	2
+ 353              	.L19:
+ 354 0090 00000000 		.word	.LANCHOR1
+ 355 0094 00000000 		.word	txbuf
+ 356 0098 00000000 		.word	SPID2
+ 357              	.LBE23:
+ 358              		.cfi_endproc
+ 359              	.LFE197:
+ 361              		.section	.bss.s_init.10027,"aw",%nobits
+ 362              		.set	.LANCHOR1,. + 0
+ 365              	s_init.10027:
+ 366 0000 00       		.space	1
+ 367              		.section	.bss.txbuf,"aw",%nobits
+ 370              	txbuf:
+ 371 0000 00000000 		.space	372
+ 371      00000000 
+ 371      00000000 
+ 371      00000000 
+ 371      00000000 
+ 372              		.section	.rodata.spicfg.10022,"a"
+ 373              		.align	2
+ 374              		.set	.LANCHOR0,. + 0
+ 377              	spicfg.10022:
+ 378 0000 00       		.byte	0
+ 379 0001 000000   		.space	3
+ 380 0004 00000000 		.word	0
+ 381 0008 00040048 		.word	1207960576
+ 382 000c 0F000000 		.word	15
+ 383 0010 1800     		.short	24
+ 384 0012 0000     		.space	2
+ 385              		.text
+ 386              	.Letext0:
+ 387              		.file 2 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\lib\\gcc\\arm-none-eabi\\8.3.1\\in
+ 388              		.file 3 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\arm-none-eabi\\include\\machine\\_
+ 389              		.file 4 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\arm-none-eabi\\include\\sys\\_stdi
+ 390              		.file 5 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\arm-none-eabi\\include\\stdint.h"
+ 391              		.file 6 "./lib/chibios/os/common/ports/ARMCMx/compilers/GCC/chtypes.h"
+ 392              		.file 7 "./lib/chibios/os/rt/include/chsystypes.h"
+ 393              		.file 8 "./lib/chibios/os/rt/include/chschd.h"
+ 394              		.file 9 "./lib/chibios/os/rt/include/chtime.h"
+ 395              		.file 10 "./lib/chibios/os/common/ext/ST/STM32F0xx/system_stm32f0xx.h"
+ 396              		.file 11 "./lib/chibios/os/common/ext/ST/STM32F0xx/stm32f072xb.h"
+ 397              		.file 12 "./lib/chibios/os/common/ports/ARMCMx/chcore.h"
+ 398              		.file 13 "./lib/chibios/os/common/ports/ARMCMx/chcore_v6m.h"
+ 399              		.file 14 "./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/stm32_tim.h"
+ 400              		.file 15 "./lib/chibios/os/rt/include/chsem.h"
+ 401              		.file 16 "./lib/chibios/os/rt/include/chmtx.h"
+ 402              		.file 17 "./lib/chibios/os/rt/include/chsys.h"
+ 403              		.file 18 "./lib/chibios/os/rt/include/chregistry.h"
+ 404              		.file 19 "./lib/chibios/os/oslib/include/chmemcore.h"
+ 405              		.file 20 "./lib/chibios/os/hal/ports/STM32/LLD/DMAv1/stm32_dma.h"
+ 406              		.file 21 "./lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/stm32_gpio.h"
+ 407              		.file 22 "./lib/chibios/os/hal/ports/STM32/LLD/GPIOv2/hal_pal_lld.h"
+ 408              		.file 23 "./lib/chibios/os/hal/include/hal_i2c.h"
+ 409              		.file 24 "./lib/chibios/os/hal/ports/STM32/LLD/I2Cv2/hal_i2c_lld.h"
+ 410              		.file 25 "./lib/chibios/os/hal/include/hal_pwm.h"
+ 411              		.file 26 "./lib/chibios/os/hal/ports/STM32/LLD/TIMv1/hal_pwm_lld.h"
+ 412              		.file 27 "./lib/chibios/os/hal/include/hal_spi.h"
+ 413              		.file 28 "./lib/chibios/os/hal/ports/STM32/LLD/SPIv2/hal_spi_lld.h"
+ 414              		.file 29 "./lib/chibios/os/hal/include/hal_usb.h"
+ 415              		.file 30 "./lib/chibios/os/hal/ports/STM32/LLD/USBv1/hal_usb_lld.h"
+ 416              		.file 31 "tmk_core/common/action.h"
+ 417              		.file 32 "tmk_core/common/report.h"
+ 418              		.file 33 "tmk_core/common/host.h"
+ 419              		.file 34 "tmk_core/common/debug.h"
+ 420              		.file 35 "quantum/keycode_config.h"
+ 421              		.file 36 "quantum/keymap.h"
+ 422              		.file 37 "./quantum/color.h"
+ 423              		.file 38 "quantum/rgblight.h"
+ 424              		.file 39 "tmk_core/common/action_layer.h"
+ 425              		.file 40 "tmk_core/common/timer.h"
+ 426              		.file 41 "tmk_core/common/action_util.h"
+ 427              		.file 42 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\arm-none-eabi\\include\\sys\\_typ
+ 428              		.file 43 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\arm-none-eabi\\include\\sys\\reen
+ 429              		.file 44 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\arm-none-eabi\\include\\sys\\lock
+ 430              		.file 45 "c:\\msys64\\home\\kyleo\\qmk_utils\\gcc-arm-none-eabi\\arm-none-eabi\\include\\stdlib.h"
+ 431              		.file 46 "quantum/quantum.h"
+DEFINED SYMBOLS
+                            *ABS*:00000000 ws2812_spi.c
+C:\Users\kyleo\AppData\Local\Temp\ccJdkHTn.s:16     .text.get_protocol_eq:00000000 $t
+C:\Users\kyleo\AppData\Local\Temp\ccJdkHTn.s:23     .text.get_protocol_eq:00000000 get_protocol_eq
+C:\Users\kyleo\AppData\Local\Temp\ccJdkHTn.s:90     .text.ws2812_init:00000000 $t
+C:\Users\kyleo\AppData\Local\Temp\ccJdkHTn.s:97     .text.ws2812_init:00000000 ws2812_init
+C:\Users\kyleo\AppData\Local\Temp\ccJdkHTn.s:139    .text.ws2812_init:00000028 $d
+C:\Users\kyleo\AppData\Local\Temp\ccJdkHTn.s:146    .text.ws2812_setleds:00000000 $t
+C:\Users\kyleo\AppData\Local\Temp\ccJdkHTn.s:153    .text.ws2812_setleds:00000000 ws2812_setleds
+C:\Users\kyleo\AppData\Local\Temp\ccJdkHTn.s:354    .text.ws2812_setleds:00000090 $d
+C:\Users\kyleo\AppData\Local\Temp\ccJdkHTn.s:370    .bss.txbuf:00000000 txbuf
+C:\Users\kyleo\AppData\Local\Temp\ccJdkHTn.s:365    .bss.s_init.10027:00000000 s_init.10027
+C:\Users\kyleo\AppData\Local\Temp\ccJdkHTn.s:366    .bss.s_init.10027:00000000 $d
+C:\Users\kyleo\AppData\Local\Temp\ccJdkHTn.s:371    .bss.txbuf:00000000 $d
+C:\Users\kyleo\AppData\Local\Temp\ccJdkHTn.s:373    .rodata.spicfg.10022:00000000 $d
+C:\Users\kyleo\AppData\Local\Temp\ccJdkHTn.s:377    .rodata.spicfg.10022:00000000 spicfg.10022
+
+UNDEFINED SYMBOLS
+_pal_lld_setgroupmode
+spiAcquireBus
+spiStart
+spiSelect
+SPID2
+spiStartSend
